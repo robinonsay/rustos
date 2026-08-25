@@ -7,5 +7,5 @@ name = "api"
 version = "0.1.0"
 
 [[package]]
-name = "firmware"
+name = "pico2"
 version = "0.1.0"

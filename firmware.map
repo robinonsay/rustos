@@ -1,0 +1,64 @@
+     VMA      LMA     Size Align Out     In      Symbol
+       0        0        0     1 _min_stack_size = 8K
+10000000 10000000      110   512 .vector_table
+10000000 10000000      110     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.vector_table)
+10000000 10000000      110     1                 pico2::VECTOR_TABLE
+10000110 10000110        0     1         . = ALIGN(4)
+10000110 10000110       14     4 .boot_info
+10000110 10000110       14     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.boot_info)
+10000110 10000110       14     1                 pico2::BOOT_INFO
+10000124 10000124        0     1         . = ALIGN(4)
+10000124 10000124       14     2 .text
+10000124 10000124        6     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.text.DefaultHandler)
+10000124 10000124        0     1                 $t
+10000125 10000125        6     1                 DefaultHandler
+1000012a 1000012a        6     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.text.OnHardFault)
+1000012a 1000012a        0     1                 $t
+1000012b 1000012b        6     1                 OnHardFault
+10000130 10000130        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.text.OnReset)
+10000130 10000130        0     1                 $t
+10000131 10000131        8     1                 OnReset
+10000138 10000138        0     1         . = ALIGN(4)
+10000138 10000138        0     1 .rodata
+10000138 10000138        0     1         . = ALIGN(4)
+20000000 20000000        0     4 .data
+20000000 20000000        0     1         __sdata = .
+20000000 20000000        0     1         . = ALIGN(4)
+20000000 20000000        0     1         __edata = .
+20000000 20000000        0     1 __sidata = LOADADDR(.data)
+20000000 20000000        0     4 .bss
+20000000 20000000        0     1         __sbss = .
+20000000 20000000        0     1         . = ALIGN(4)
+20000000 20000000        0     1         __ebss = .
+20000000 20000000     2000     8 .stack
+20000000 20000000     2000     1         . = . + _min_stack_size
+20002000 20002000        0     1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+       0        0      164     1 .debug_abbrev
+       0        0      164     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_abbrev)
+       0        0      54a     1 .debug_info
+       0        0      54a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_info)
+       0        0       48     1 .debug_aranges
+       0        0       48     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_aranges)
+       0        0       28     1 .debug_ranges
+       0        0       28     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_ranges)
+       0        0      538     1 .debug_str
+       0        0      538     1         <internal>:(.debug_str)
+       0        0       99     1 .comment
+       0        0       99     1         <internal>:(.comment)
+       0        0       3a     1 .ARM.attributes
+       0        0       3a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.ARM.attributes)
+       0        0       84     4 .debug_frame
+       0        0       84     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_frame)
+       0        0       8a     1 .debug_line
+       0        0       8a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-a8719dd40e4fd473.9ksnygigvxx6vxzvif9q6x0r1.0b86lbk.rcgu.o:(.debug_line)
+       0        0      110     4 .symtab
+       0        0      110     4         <internal>:(.symtab)
+       0        0       c8     1 .shstrtab
+       0        0       c8     1         <internal>:(.shstrtab)
+       0        0       d3     1 .strtab
+       0        0       d3     1         <internal>:(.strtab)

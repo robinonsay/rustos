@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["api", "firmware"]
+members = ["api", "firmware/pico2"]
 
 [profile.dev]
 panic = "abort"
