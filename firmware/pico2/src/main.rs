@@ -91,7 +91,7 @@ unsafe fn reset_bss() {
         reset_data();
         reset_bss();
     }
-    loop{}
+    main();
 }
 
 #[unsafe(no_mangle)] pub extern "C" fn DefaultHandler(){
@@ -115,3 +115,7 @@ static VECTOR_TABLE: [Vector; 68] = {
     t[13] = Vector { reserved: 0};
     t
 };
+
+fn main() -> !{
+    loop{}
+}
