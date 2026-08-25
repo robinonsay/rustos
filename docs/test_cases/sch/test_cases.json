@@ -1,0 +1,216 @@
+{
+  "module": "SCH",
+  "test_cases": [
+    {
+      "id": "SW-TC-SCH-001",
+      "title": "Register Application With Fixed Period",
+      "requirement_ids": ["SW-REQ-SCH-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a JUNO_SCH_T scheduler root using caller-provided storage. Prepare a mock application with a start hook, a periodic hook, and a configured period of 10 ms.",
+      "procedure": [
+        "Call JunoSch_RegisterApp() with the scheduler root, the mock application, and period=10 ms.",
+        "Capture the returned status code.",
+        "Query the scheduler for the registered application count.",
+        "Inspect the registered period associated with the mock application."
+      ],
+      "acceptance_criteria": "JunoSch_RegisterApp returns JUNO_STATUS_SUCCESS, the registered app count increments by one, and the stored period equals 10 ms.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-002",
+      "title": "Register Multiple Applications With Distinct Periods",
+      "requirement_ids": ["SW-REQ-SCH-001", "SW-REQ-SCH-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with capacity for at least three applications. Prepare three mock applications A, B, C with periods 5 ms, 50 ms, and 500 ms respectively.",
+      "procedure": [
+        "Register application A with period 5 ms.",
+        "Register application B with period 50 ms.",
+        "Register application C with period 500 ms.",
+        "Query each registered app's period from the scheduler."
+      ],
+      "acceptance_criteria": "All three registrations return JUNO_STATUS_SUCCESS and the stored periods match 5 ms, 50 ms, and 500 ms respectively.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-003",
+      "title": "Reject Registration After Initialization Complete",
+      "requirement_ids": ["SW-REQ-SCH-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root and register one mock application. Call the scheduler's initialization-complete entry (e.g., first JunoSch_Run cycle or JunoSch_Start) so the schedule is finalized.",
+      "procedure": [
+        "Confirm the scheduler reports an initialized/started state.",
+        "Attempt to register a new mock application with period 20 ms.",
+        "Capture the returned status code.",
+        "Query the registered application count."
+      ],
+      "acceptance_criteria": "JunoSch_RegisterApp returns a non-success status (e.g., JUNO_STATUS_ERR) and the registered app count is unchanged.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-004",
+      "title": "Periodic Invocation At Registered Period",
+      "requirement_ids": ["SW-REQ-SCH-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with a fake/monotonic time source under test control. Register a single mock application with period 10 ms whose periodic hook increments a call counter.",
+      "procedure": [
+        "Start the scheduler.",
+        "Advance the fake time source by 100 ms while invoking the scheduler tick.",
+        "Read the mock application's call counter.",
+        "Repeat for a 200 ms advance and read the counter again."
+      ],
+      "acceptance_criteria": "After 100 ms, the periodic hook has been invoked exactly 10 times; after 200 ms total, exactly 20 times.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-005",
+      "title": "Distinct Periods Drive Distinct Invocation Rates",
+      "requirement_ids": ["SW-REQ-SCH-003", "SW-REQ-SCH-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with a fake time source. Register app FAST at period 5 ms and app SLOW at period 500 ms; each periodic hook increments its own counter.",
+      "procedure": [
+        "Start the scheduler.",
+        "Advance the fake time source by 1000 ms while invoking scheduler ticks.",
+        "Read the FAST and SLOW counters."
+      ],
+      "acceptance_criteria": "FAST counter equals 200 (1000/5) and SLOW counter equals 2 (1000/500) after 1000 ms of simulated time.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-006",
+      "title": "Deterministic Invocation Order Across Cycles",
+      "requirement_ids": ["SW-REQ-SCH-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with a fake time source. Register three applications A, B, C all at period 10 ms; each periodic hook appends its own ID to a shared trace buffer.",
+      "procedure": [
+        "Start the scheduler.",
+        "Advance the fake time source so the scheduler runs at least 5 cycles where all three apps are due.",
+        "Capture the contents of the trace buffer."
+      ],
+      "acceptance_criteria": "The trace buffer contains the same fixed sub-sequence (e.g., [A, B, C]) repeated identically on every cycle where all three apps are due.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-007",
+      "title": "Scheduler Continues After Application Failure",
+      "requirement_ids": ["SW-REQ-SCH-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with a fake time source. Register apps A and C with passing periodic hooks (period 10 ms each) and app B (period 10 ms) whose periodic hook always returns JUNO_STATUS_ERR. Each app has a call counter.",
+      "procedure": [
+        "Start the scheduler.",
+        "Advance the fake time source by 100 ms.",
+        "Read counters for A, B, and C."
+      ],
+      "acceptance_criteria": "Counters for A, B, and C each equal 10 after 100 ms; the scheduler does not abort, panic, or skip A and C when B returns an error.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-008",
+      "title": "Start Hook Invoked Once Before First Periodic Invocation",
+      "requirement_ids": ["SW-REQ-SCH-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root with a fake time source. Register a mock application with period 10 ms whose start hook increments a start counter and whose periodic hook increments a tick counter and asserts that start_count >= 1.",
+      "procedure": [
+        "Start the scheduler.",
+        "Advance the fake time source by 50 ms.",
+        "Read the start_count and tick_count.",
+        "Restart the fake time source for an additional 50 ms; read counters again."
+      ],
+      "acceptance_criteria": "start_count equals 1 after the first cycle and remains 1 after subsequent cycles; tick_count is greater than zero and the start-before-tick assertion never fires.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-009",
+      "title": "POSIX and Pico2 Equivalent Invocation Sequence",
+      "requirement_ids": ["SW-REQ-SCH-008"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build the SCH library for both POSIX and Pico2 targets. Configure a fixture that registers identical apps A, B, C (periods 5 ms, 10 ms, 50 ms) and records the invocation sequence to a serial/log buffer. Run the same fixture under each build with a fake time source advanced by 100 ms.",
+      "procedure": [
+        "Run the POSIX fixture binary; capture the recorded invocation sequence to posix_seq.log.",
+        "Run the Pico2 fixture (or its host-replay equivalent); capture the recorded invocation sequence to pico2_seq.log.",
+        "Diff posix_seq.log against pico2_seq.log."
+      ],
+      "acceptance_criteria": "The two invocation sequence logs are byte-identical across the 100 ms simulation window.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-010",
+      "title": "Compile-Time Capacity Bound Enforced",
+      "requirement_ids": ["SW-REQ-SCH-009"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Configure the scheduler with a compile-time capacity macro JUNO_SCH_MAX_APPS=4. Initialize a scheduler root sized to that capacity. Prepare five mock applications with period 10 ms each.",
+      "procedure": [
+        "Inspect libjuno/include/juno/sch/juno_sch_api.hpp to confirm the capacity is a compile-time constant (e.g., template parameter, constexpr, or macro) with no dynamic resizing API.",
+        "Register applications #1 through #4 and capture each return status.",
+        "Attempt to register application #5 and capture the return status.",
+        "Query the registered application count after step 3."
+      ],
+      "acceptance_criteria": "Inspection confirms a compile-time capacity bound; registrations 1-4 return JUNO_STATUS_SUCCESS, registration 5 returns a non-success status, and the registered count is exactly 4.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-011",
+      "title": "Caller-Owned Storage And No Dynamic Allocation",
+      "requirement_ids": ["SW-REQ-SCH-010"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the SCH library against a POSIX harness that overrides ::operator new, ::operator new[], malloc, calloc, and realloc to fail or assert. Provide a caller-owned JUNO_SCH_T storage buffer and an array of caller-owned application slots.",
+      "procedure": [
+        "Inspect libjuno/include/juno/sch/juno_sch_api.hpp and libs/sch_lib/src/**/*.cpp to confirm no calls to malloc/calloc/realloc/new/new[] exist in library code.",
+        "Initialize the scheduler root using caller-provided storage.",
+        "Register four mock applications using caller-provided slots.",
+        "Run the scheduler for 100 ms of fake time."
+      ],
+      "acceptance_criteria": "Source inspection finds no dynamic allocation calls; the harness reports zero allocations during init, registration, and 100 ms of execution.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    },
+    {
+      "id": "SW-TC-SCH-012",
+      "title": "Reject Registration With Period Outside Supported Range",
+      "requirement_ids": ["SW-REQ-SCH-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a scheduler root using caller-provided storage. Prepare mock applications configured with periods 5 ms, 500 ms (boundary cases) and 0 ms (invalid).",
+      "procedure": [
+        "Register a mock application with period 5 ms; capture the status.",
+        "Register a mock application with period 500 ms; capture the status.",
+        "Attempt to register a mock application with period 0 ms; capture the status."
+      ],
+      "acceptance_criteria": "Registration at 5 ms and 500 ms return JUNO_STATUS_SUCCESS; registration at 0 ms returns a non-success status.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/sch_lib/tests/sch_test.cpp"
+    }
+  ]
+}

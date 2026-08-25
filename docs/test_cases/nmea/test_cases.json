@@ -1,0 +1,288 @@
+{
+  "module": "NMEA",
+  "test_cases": [
+    {
+      "id": "SW-TC-NMEA-001",
+      "title": "GGA Sentence Parsing - Valid Fix",
+      "requirement_ids": ["SW-REQ-NMEA-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture with no external dependencies.",
+      "procedure": [
+        "Construct a known-good GGA sentence string with fixed latitude, longitude, altitude, satellite count, and fix quality fields.",
+        "Pass the sentence buffer to the NMEA library GGA parse function.",
+        "Read each output field from the populated GGA result struct.",
+        "Compare each output field against the expected value derived from the input."
+      ],
+      "acceptance_criteria": "Parse function returns success and the GGA result struct latitude, longitude, altitude, satellite count, and fix quality fields equal the expected values from the input sentence.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-002",
+      "title": "GGA Sentence Parsing - Southern and Western Hemispheres",
+      "requirement_ids": ["SW-REQ-NMEA-001", "SW-REQ-NMEA-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence with hemisphere indicators 'S' for latitude and 'W' for longitude.",
+        "Invoke the NMEA library GGA parse function on the sentence.",
+        "Read the parsed latitude and longitude scalar values."
+      ],
+      "acceptance_criteria": "Parsed latitude is negative and parsed longitude is negative, with magnitudes matching the input within 1e-6 degrees.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-003",
+      "title": "RMC Sentence Parsing - Valid Fix",
+      "requirement_ids": ["SW-REQ-NMEA-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a known-good RMC sentence with fixed latitude, longitude, ground speed, course, and UTC time.",
+        "Pass the sentence buffer to the NMEA library RMC parse function.",
+        "Read each output field from the populated RMC result struct.",
+        "Compare each output field against the expected value derived from the input."
+      ],
+      "acceptance_criteria": "Parse function returns success and the RMC result struct latitude, longitude, ground speed, course, and UTC time fields equal the expected values from the input sentence.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-004",
+      "title": "Checksum Validation - Valid Sentence Accepted",
+      "requirement_ids": ["SW-REQ-NMEA-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Compute the correct XOR checksum for a known GGA sentence body.",
+        "Append the correct '*HH' checksum suffix to the sentence.",
+        "Invoke the NMEA library parse entry point on the full sentence string.",
+        "Inspect the returned status."
+      ],
+      "acceptance_criteria": "Parse entry point returns success status and produces a populated parsed-output struct.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-005",
+      "title": "Checksum Validation - Mismatched Checksum Rejected",
+      "requirement_ids": ["SW-REQ-NMEA-003", "SW-REQ-NMEA-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a syntactically valid GGA sentence body.",
+        "Replace the correct '*HH' checksum suffix with an intentionally incorrect two-digit hex value.",
+        "Invoke the NMEA library parse entry point on the corrupted sentence.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "Parse entry point returns a non-success error status indicating a checksum mismatch and does not populate the parsed-output struct with sentence values.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-006",
+      "title": "Checksum Validation - Missing Checksum Rejected",
+      "requirement_ids": ["SW-REQ-NMEA-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence body with no '*HH' checksum suffix appended.",
+        "Invoke the NMEA library parse entry point on the sentence.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "Parse entry point returns a non-success error status and does not populate parsed-output fields.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-007",
+      "title": "Decimal Degrees Conversion - Latitude",
+      "requirement_ids": ["SW-REQ-NMEA-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose latitude field is the literal '4807.038,N' (48 degrees 7.038 minutes North).",
+        "Invoke the NMEA library GGA parse function.",
+        "Read the parsed latitude scalar from the result struct.",
+        "Compare the scalar against the expected decimal degree value 48.1173."
+      ],
+      "acceptance_criteria": "Parsed latitude scalar equals 48.1173 within an absolute tolerance of 1e-4 decimal degrees.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-008",
+      "title": "Decimal Degrees Conversion - Longitude",
+      "requirement_ids": ["SW-REQ-NMEA-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose longitude field is the literal '01131.000,E' (11 degrees 31.000 minutes East).",
+        "Invoke the NMEA library GGA parse function.",
+        "Read the parsed longitude scalar from the result struct.",
+        "Compare the scalar against the expected decimal degree value 11.5167."
+      ],
+      "acceptance_criteria": "Parsed longitude scalar equals 11.5167 within an absolute tolerance of 1e-4 decimal degrees.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-009",
+      "title": "Altitude Reported In Meters",
+      "requirement_ids": ["SW-REQ-NMEA-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose altitude field is '545.4' with the unit indicator 'M' (meters).",
+        "Invoke the NMEA library GGA parse function.",
+        "Read the altitude scalar from the parsed result struct."
+      ],
+      "acceptance_criteria": "Parsed altitude scalar equals 545.4 within 1e-3 meters and the parser exposes the value with no unit conversion applied.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-010",
+      "title": "Ground Speed Knots-to-Meters-per-Second Conversion",
+      "requirement_ids": ["SW-REQ-NMEA-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct an RMC sentence whose ground speed field is exactly '10.0' knots.",
+        "Invoke the NMEA library RMC parse function on the sentence.",
+        "Read the ground speed scalar from the parsed result struct.",
+        "Compare the scalar against the expected meters-per-second value 5.14444."
+      ],
+      "acceptance_criteria": "Parsed ground speed scalar equals 5.14444 m/s within an absolute tolerance of 1e-3 m/s (one knot equals 0.514444 m/s).",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-011",
+      "title": "UTC Time Extraction From GGA",
+      "requirement_ids": ["SW-REQ-NMEA-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose UTC time field is '123519' (12:35:19 UTC).",
+        "Invoke the NMEA library GGA parse function.",
+        "Read the UTC time fields (hours, minutes, seconds) from the parsed result struct."
+      ],
+      "acceptance_criteria": "Parsed UTC fields equal hours=12, minutes=35, seconds=19 exactly.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-012",
+      "title": "UTC Time Extraction From RMC",
+      "requirement_ids": ["SW-REQ-NMEA-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct an RMC sentence whose UTC time field is '225446' (22:54:46 UTC).",
+        "Invoke the NMEA library RMC parse function.",
+        "Read the UTC time fields (hours, minutes, seconds) from the parsed result struct."
+      ],
+      "acceptance_criteria": "Parsed UTC fields equal hours=22, minutes=54, seconds=46 exactly.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-013",
+      "title": "Sentence Type Identification - GGA vs RMC vs Other",
+      "requirement_ids": ["SW-REQ-NMEA-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Pass a sentence beginning with '$GPGGA' to the NMEA library type-identification entry point and record the returned sentence-type enum.",
+        "Pass a sentence beginning with '$GPRMC' to the NMEA library type-identification entry point and record the returned sentence-type enum.",
+        "Pass a sentence beginning with '$GPGSV' (an unsupported type) to the NMEA library type-identification entry point and record the returned sentence-type enum or status."
+      ],
+      "acceptance_criteria": "GGA input yields the GGA sentence-type identifier, RMC input yields the RMC sentence-type identifier, and the unsupported sentence is identified as a non-GGA, non-RMC type (or returns an unknown-type status).",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-014",
+      "title": "Reject Malformed Numeric Field",
+      "requirement_ids": ["SW-REQ-NMEA-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose latitude field contains the non-numeric token 'ABCD.EFG'.",
+        "Recompute and append a correct checksum so that checksum validation does not mask the field error.",
+        "Invoke the NMEA library parse entry point on the sentence.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "Parse entry point returns a non-success error status indicating malformed input and does not populate the parsed-output struct with sentence values.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-015",
+      "title": "Reject Out-of-Bounds Field",
+      "requirement_ids": ["SW-REQ-NMEA-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a GGA sentence whose latitude field encodes a value greater than 90 degrees (e.g. '9901.000,N').",
+        "Recompute and append a correct checksum to isolate the field validation.",
+        "Invoke the NMEA library parse entry point on the sentence.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "Parse entry point returns a non-success error status indicating an out-of-bounds field and does not populate the parsed-output struct with sentence values.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-016",
+      "title": "Deterministic Parsing - Repeated Identical Inputs",
+      "requirement_ids": ["SW-REQ-NMEA-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the NMEA parser in a Google Test fixture.",
+      "procedure": [
+        "Construct a known-good GGA sentence buffer.",
+        "Invoke the NMEA library parse entry point on the buffer and capture the populated result struct (call A).",
+        "Without modifying any state, invoke the parse entry point again on the same buffer and capture the populated result struct (call B).",
+        "Repeat the parse a third time and capture the result struct (call C).",
+        "Byte-compare result structs A, B, and C."
+      ],
+      "acceptance_criteria": "Result structs A, B, and C are byte-identical for all parsed fields and all calls return the same status code.",
+      "status": "Active",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    },
+    {
+      "id": "SW-TC-NMEA-017",
+      "title": "POSIX and Pico2 Parser Output Equivalence",
+      "requirement_ids": ["SW-REQ-NMEA-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build the NMEA library and its Google Test suite for both the POSIX target and the Pico2 target. Capture the parsed-output structs (or their serialized byte representations) emitted by the same parametrized test inputs on each target.",
+      "procedure": [
+        "Run the NMEA Google Test suite on the POSIX build and write the captured parsed-output bytes to a fixture artifact.",
+        "Run the NMEA Google Test suite on the Pico2 build (or its host-mode equivalent) and write the captured parsed-output bytes to a fixture artifact.",
+        "Programmatically byte-compare the two artifacts inside a Google Test that loads both fixtures and asserts equality."
+      ],
+      "acceptance_criteria": "The byte-comparison Google Test passes: every parsed-output field for every input sentence is identical between the POSIX and Pico2 captures.",
+      "status": "Draft",
+      "google_test_ref": "libs/nmea_lib/tests/nmea_test.cpp"
+    }
+  ]
+}

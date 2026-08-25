@@ -1,0 +1,137 @@
+{
+  "module": "NMEA",
+  "requirements": [
+    {
+      "id": "SW-REQ-NMEA-001",
+      "title": "GGA Sentence Parsing",
+      "description": "The NMEA library shall parse GGA sentences into latitude, longitude, altitude, satellite count, and fix quality.",
+      "rationale": "Decomposes SW-REQ-SYS-038 and SW-REQ-SYS-039: GGA is the primary NMEA carrier of WGS-84 geodetic position and altitude. The five fields are bundled into one requirement because the public API ingests one sentence and returns one populated struct in a single observable I/O call; splitting per-field would not reflect a separately observable behavior at the library boundary.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-002",
+      "title": "RMC Sentence Parsing",
+      "description": "The NMEA library shall parse RMC sentences into latitude, longitude, ground speed, course, and UTC time.",
+      "rationale": "Decomposes SW-REQ-SYS-028: RMC carries UTC time and ground-speed/course needed for downstream nav and time alignment. The five fields are bundled into one requirement because the public API ingests one sentence and returns one populated struct in a single observable I/O call; splitting per-field would not reflect a separately observable behavior at the library boundary.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-028",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-003",
+      "title": "Checksum Validation",
+      "description": "The NMEA library shall validate the embedded checksum of each NMEA sentence before producing parsed output.",
+      "rationale": "Decomposes SW-REQ-SYS-038: downstream geodetic position consumers require parsed-output integrity, so the checksum is verified on every sentence to prevent corrupted bytes from polluting reported lat/lon/altitude.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-004",
+      "title": "Reject Sentences with Invalid Checksum",
+      "description": "The NMEA library shall return an error status when a sentence checksum does not match.",
+      "rationale": "Decomposes SW-REQ-SYS-038: parsed geodetic position must be trustworthy, so the parser surfaces checksum failures as an error status enabling callers to discard tainted data rather than emit corrupted lat/lon downstream.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-005",
+      "title": "Decimal Geodetic Coordinate Output",
+      "description": "The NMEA library shall convert latitude and longitude from degrees-minutes format to a single geodetic decimal value.",
+      "rationale": "Decomposes SW-REQ-SYS-038: NMEA emits ddmm.mmmm; downstream consumers require a single decimal scalar in WGS-84. This requirement is the unit-conversion contract (degrees-minutes to decimal degrees), distinct from SW-REQ-NMEA-001 which is the field-extraction contract for GGA.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-006",
+      "title": "Altitude Reported in Meters",
+      "description": "The NMEA library shall report parsed altitude in meters.",
+      "rationale": "Decomposes SW-REQ-SYS-039 and SW-REQ-SYS-042: altitude unit must be preserved as meters (SI) for downstream HAE interpretation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-039",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-007",
+      "title": "Ground Speed Converted to SI Units",
+      "description": "The NMEA library shall convert ground speed from knots to meters per second in parsed output.",
+      "rationale": "Decomposes SW-REQ-SYS-042: NMEA RMC reports speed in knots; FSW SI units mandate conversion at the parser boundary.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-008",
+      "title": "UTC Time Extraction",
+      "description": "The NMEA library shall extract UTC time of fix from each parsed sentence containing it.",
+      "rationale": "Decomposes SW-REQ-SYS-028: GPS UTC time logging requires the parser to surface UTC from GGA and RMC.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-028",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-009",
+      "title": "Sentence Type Identification",
+      "description": "The NMEA library shall identify the sentence type of each input message before parsing it.",
+      "rationale": "Decomposes SW-REQ-SYS-028: extracting UTC requires discriminating GGA from RMC (and other types) so the parser dispatches sentence-type-specific field extraction before producing UTC output.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-028",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-010",
+      "title": "POSIX and Pico2 Parser Equivalence",
+      "description": "The NMEA library shall produce identical parsed outputs on POSIX and Pico2 builds for identical inputs.",
+      "rationale": "Decomposes SW-REQ-SYS-043: as a pure parser the library must be byte-equivalent across both build targets.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-011",
+      "title": "Deterministic Parsing",
+      "description": "The NMEA library shall produce deterministic parsed outputs given identical input sentences.",
+      "rationale": "Decomposes SW-REQ-SYS-044: parser determinism is required for repeatable Trick sim and regression analysis.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NMEA-012",
+      "title": "Reject Malformed Fields",
+      "description": "The NMEA library shall return an error status when a sentence field is malformed or out of bounds.",
+      "rationale": "Decomposes SW-REQ-SYS-044: deterministic FSW outputs require the parser to reject non-numeric, oversized, or otherwise malformed fields with an error status rather than silently emit garbage values that would corrupt downstream determinism.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

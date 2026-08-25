@@ -1,0 +1,308 @@
+{
+  "module": "AFM",
+  "test_cases": [
+    {
+      "id": "SW-TC-AFM-001",
+      "title": "Sensor and Nav Input Acceptance - Full Suite",
+      "requirement_ids": ["SW-REQ-AFM-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library with default configuration on POSIX build.",
+      "procedure": [
+        "Construct a synthetic input record containing valid IMU acceleration, barometric pressure, GPS position, and nav state fields.",
+        "Submit the input record to the AFM library through its public update interface.",
+        "Read the returned status code.",
+        "Repeat the submission across at least 100 sequential synthetic samples covering pre-launch through landing."
+      ],
+      "acceptance_criteria": "All input submissions return JUNO_STATUS_SUCCESS and the AFM library accepts every IMU, baro, GPS, and nav field without rejecting the record.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-002",
+      "title": "Flight Phase Enumeration Set",
+      "requirement_ids": ["SW-REQ-AFM-002"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Inspect the public AFM phase enumeration declared in the library header.",
+      "procedure": [
+        "Open the AFM public header file.",
+        "Locate the flight phase enumeration type.",
+        "Enumerate every value defined in the type.",
+        "Compare the value set to {pre-launch, boost, apogee, descent, landing}."
+      ],
+      "acceptance_criteria": "The phase enumeration declares exactly the five values pre-launch, boost, apogee, descent, and landing, with no additional or missing values.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-003",
+      "title": "Current Phase Output - Initial State",
+      "requirement_ids": ["SW-REQ-AFM-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library with default configuration; do not feed any sensor samples.",
+      "procedure": [
+        "Call the AFM public phase getter immediately after initialization.",
+        "Read the returned phase value and status code."
+      ],
+      "acceptance_criteria": "The getter returns JUNO_STATUS_SUCCESS and a current phase value equal to pre-launch.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-004",
+      "title": "Current Phase Output - After Synthetic Boost",
+      "requirement_ids": ["SW-REQ-AFM-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX; prepare a synthetic flight profile that drives the rocket from pre-launch into a sustained boost segment.",
+      "procedure": [
+        "Feed pre-launch samples for at least 1 second of synthetic time.",
+        "Feed boost-profile samples (high acceleration, increasing altitude) for at least 2 seconds of synthetic time.",
+        "Call the AFM public phase getter.",
+        "Read the returned phase value."
+      ],
+      "acceptance_criteria": "The getter returns the boost phase after the boost profile has been applied.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-005",
+      "title": "Phase Transition Ordering - Full Nominal Profile",
+      "requirement_ids": ["SW-REQ-AFM-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Load a synthetic full-flight profile spanning pre-launch, boost, apogee, descent, and landing segments back-to-back.",
+      "procedure": [
+        "Feed every sample of the synthetic profile in temporal order through the AFM update interface.",
+        "After each sample, query the current phase and append it to an in-test phase trace.",
+        "Compute the ordered sequence of distinct phase values observed across the trace.",
+        "Compare that sequence to the expected order pre-launch, boost, apogee, descent, landing."
+      ],
+      "acceptance_criteria": "The observed distinct phase sequence equals exactly [pre-launch, boost, apogee, descent, landing] in that order with no other transitions in between.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-006",
+      "title": "Phase Transition Ordering - No Skipped Phases",
+      "requirement_ids": ["SW-REQ-AFM-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare three synthetic profiles: (a) a long pre-launch hold then immediate apogee-like input, (b) a short boost then immediate descent-like input, (c) a short descent then immediate landing-like input.",
+      "procedure": [
+        "Run profile (a) through the AFM update interface and record the phase trace.",
+        "Reset the AFM and run profile (b) through the update interface and record the phase trace.",
+        "Reset the AFM and run profile (c) through the update interface and record the phase trace.",
+        "For each trace, verify that no phase advance skipped an intermediate phase in the ordering pre-launch, boost, apogee, descent, landing."
+      ],
+      "acceptance_criteria": "In all three traces, every observed phase advance moves to the immediately next phase in the defined ordering; no intermediate phase is skipped.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-007",
+      "title": "No Phase Regression Under Noisy Inputs",
+      "requirement_ids": ["SW-REQ-AFM-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a synthetic profile that progresses through every phase and then injects post-event sensor noise resembling earlier phases (e.g., post-landing IMU spikes resembling boost, post-apogee acceleration resembling boost).",
+      "procedure": [
+        "Feed the full nominal profile to drive the AFM into the landing phase.",
+        "Continue feeding samples that resemble earlier-phase signatures for at least 5 seconds of synthetic time.",
+        "Query the phase after every sample and record the trace.",
+        "Verify that no recorded phase value is earlier in the defined ordering than any previously recorded value."
+      ],
+      "acceptance_criteria": "The phase trace is monotonically non-decreasing in the order pre-launch, boost, apogee, descent, landing across the entire run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-008",
+      "title": "Transition Timestamp Output",
+      "requirement_ids": ["SW-REQ-AFM-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a synthetic full-flight profile with sample timestamps assigned at known synthetic times for each ground-truth phase change.",
+      "procedure": [
+        "Feed all samples through the AFM update interface.",
+        "After each update, query the AFM transition timestamp accessor.",
+        "Record the timestamp reported for each observed phase transition.",
+        "Verify that a timestamp is reported for each of the four transitions pre-launch->boost, boost->apogee, apogee->descent, descent->landing."
+      ],
+      "acceptance_criteria": "Four transition timestamps are reported, each accessor call returns JUNO_STATUS_SUCCESS, and each timestamp is greater than or equal to the timestamp of the prior transition.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-009",
+      "title": "Bounded Detection Latency - Synthetic Profile",
+      "requirement_ids": ["SW-REQ-AFM-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a synthetic full-flight profile with ground-truth phase-change times annotated for each transition.",
+      "procedure": [
+        "Feed all samples through the AFM update interface in temporal order.",
+        "Record the AFM-reported timestamp for each detected phase transition.",
+        "For each transition, compute the absolute difference between the AFM timestamp and the ground-truth timestamp.",
+        "Verify each absolute difference is less than or equal to 1.0 second."
+      ],
+      "acceptance_criteria": "All four phase transitions are detected with absolute timestamp error less than or equal to 1.0 second versus the synthetic ground truth.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-010",
+      "title": "Bounded Detection Latency - Hardware Demonstration",
+      "requirement_ids": ["SW-REQ-AFM-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 flight or HIL replay of a recorded FT1 flight. Pico 2 board running the AFM application; flight log capture enabled; ground-truth phase-change times available from post-flight analysis (apogee from baro peak, boost-end from acceleration sign change, etc.).",
+      "procedure": [
+        "Execute the flight (or replay the recorded flight log into the Pico 2 via HIL).",
+        "Capture the AFM phase-transition log including reported timestamps for each transition.",
+        "Perform post-flight ground-truth analysis on the recorded sensor log to determine the actual time of each phase change.",
+        "For each transition, compute the absolute difference between the AFM-reported timestamp and the ground-truth timestamp.",
+        "Plot AFM-reported phase versus time alongside the ground-truth phase trace."
+      ],
+      "acceptance_criteria": "Every observed phase transition (pre-launch->boost, boost->apogee, apogee->descent, descent->landing) is reported by the AFM within 1.0 second of the ground-truth time.",
+      "expected_artifacts": [
+        {
+          "name": "afm_phase_log.csv",
+          "description": "AFM-reported phase and transition timestamps captured during the flight or HIL replay",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "afm_phase_vs_truth.png",
+          "description": "Plot of AFM-reported phase versus ground-truth phase over time",
+          "artifact_type": "plot"
+        },
+        {
+          "name": "afm_latency_summary.csv",
+          "description": "Per-transition table of AFM timestamp, ground-truth timestamp, and absolute error",
+          "artifact_type": "csv"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-AFM-011",
+      "title": "Degraded Sensor Continuation - GPS Dropout",
+      "requirement_ids": ["SW-REQ-AFM-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a synthetic full-flight profile in which GPS fields are marked invalid for the entire run while IMU and baro remain valid.",
+      "procedure": [
+        "Feed every sample through the AFM update interface with GPS marked invalid.",
+        "After every update, call the AFM phase getter.",
+        "Record the returned status code and phase value for every call.",
+        "Verify the trace contains the full phase sequence pre-launch through landing."
+      ],
+      "acceptance_criteria": "Every phase getter call returns JUNO_STATUS_SUCCESS, and the recorded phase trace includes pre-launch, boost, apogee, descent, and landing in order despite GPS being unavailable.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-012",
+      "title": "Degraded Sensor Continuation - Baro Dropout",
+      "requirement_ids": ["SW-REQ-AFM-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a synthetic full-flight profile in which barometric fields are marked invalid for the entire run while IMU and GPS remain valid.",
+      "procedure": [
+        "Feed every sample through the AFM update interface with baro marked invalid.",
+        "After every update, call the AFM phase getter.",
+        "Record the returned status code and phase value for every call.",
+        "Verify a current phase is produced for every call."
+      ],
+      "acceptance_criteria": "Every phase getter call returns JUNO_STATUS_SUCCESS with a valid phase value from the defined enumeration; AFM does not stop producing output due to baro absence.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-013",
+      "title": "Failure Returns Status Without Aborting Caller",
+      "requirement_ids": ["SW-REQ-AFM-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare invalid input scenarios: null root pointer, null output pointer, and an update call before initialization.",
+      "procedure": [
+        "Invoke the AFM update API with a null root handle and capture the returned status code.",
+        "Invoke the AFM phase getter with a null output pointer and capture the returned status code.",
+        "Invoke the AFM update API on an uninitialized root and capture the returned status code.",
+        "After every error-returning call, continue executing further test code in the same process to confirm no abort occurred."
+      ],
+      "acceptance_criteria": "Each invalid call returns a non-success JUNO_STATUS_T error code; the test process continues executing after every call without aborting, asserting, or terminating.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-014",
+      "title": "POSIX and Pico2 Output Equivalence",
+      "requirement_ids": ["SW-REQ-AFM-010"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build the AFM library for both POSIX and Pico 2 targets. Prepare a fixed synthetic full-flight input log stored as a CSV. Configure a host-side test harness that can drive the same input log into a POSIX run and into a Pico 2 run via serial replay.",
+      "procedure": [
+        "Run the POSIX AFM build with the input log; capture the per-sample phase output and transition timestamps to a CSV.",
+        "Run the Pico 2 AFM build over serial replay with the same input log; capture the per-sample phase output and transition timestamps to a CSV.",
+        "Compare the two CSVs sample-by-sample.",
+        "Verify equality of the per-sample phase value across all samples and equality of the four transition timestamps."
+      ],
+      "acceptance_criteria": "The POSIX and Pico 2 AFM phase outputs are identical sample-for-sample, and the four reported transition timestamps are equal between the two builds.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-015",
+      "title": "Deterministic Phase Output - Repeated Runs",
+      "requirement_ids": ["SW-REQ-AFM-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a fixed synthetic full-flight input sequence stored as a deterministic in-memory array.",
+      "procedure": [
+        "Execute Run A: instantiate a fresh AFM root, feed the entire input sequence, and record the per-sample phase trace and the four transition timestamps.",
+        "Execute Run B: instantiate a fresh AFM root, feed the same input sequence, and record the per-sample phase trace and the four transition timestamps.",
+        "Compare the Run A and Run B phase traces sample-by-sample.",
+        "Compare the Run A and Run B transition timestamps."
+      ],
+      "acceptance_criteria": "Run A and Run B produce identical per-sample phase traces and identical transition timestamps.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-016",
+      "title": "No-Regression Across Repeated Synthetic Profiles",
+      "requirement_ids": ["SW-REQ-AFM-005", "SW-REQ-AFM-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize AFM library on POSIX. Prepare a corpus of at least three distinct synthetic full-flight profiles (nominal, low-thrust, high-noise), each with annotated ground-truth transition times.",
+      "procedure": [
+        "For each profile in the corpus, instantiate a fresh AFM root and feed every sample through the update interface.",
+        "Record the per-sample phase trace for the profile.",
+        "Verify the trace is monotonically non-decreasing in the defined phase ordering.",
+        "Re-run the same profile a second time on a fresh AFM root and verify the resulting trace is identical to the first run."
+      ],
+      "acceptance_criteria": "For every profile, the phase trace is monotonically non-decreasing and is bit-identical between repeated runs.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/afm_lib/tests/afm_lib_test.cpp"
+    }
+  ]
+}

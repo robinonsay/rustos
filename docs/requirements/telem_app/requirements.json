@@ -1,0 +1,126 @@
+{
+  "module": "TELEM-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-TELEM-APP-001",
+      "title": "Scheduled at Two Hertz",
+      "description": "The telem_app shall be scheduled to execute at 2 Hz on the static TDM scheduler.",
+      "rationale": "Derived from SW-REQ-SYS-019: 2 Hz downlink cadence balances LoRa link budget against ground observability.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-019",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-002",
+      "title": "Subscribe to Telemetry Source Messages",
+      "description": "The telem_app shall subscribe to GPS, baro, navigation, flight phase, and sensor health messages on the software bus.",
+      "rationale": "Derived from SW-REQ-SYS-020: packet content requires composition from these sources via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-020",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-003",
+      "title": "Compose Packet via telem_lib",
+      "description": "The telem_app shall invoke telem_lib to compose a telemetry packet from subscribed bus messages.",
+      "rationale": "Derived from SW-REQ-SYS-020: app delegates packet composition logic to its controller library per MVC.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-020",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-004",
+      "title": "Embed Sensor Health Bitmap",
+      "description": "The telem_app shall include the latest published sensor health bitmap in each transmitted packet.",
+      "rationale": "Derived from SW-REQ-SYS-031: per-sensor health observability is required in every telemetry packet.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-005",
+      "title": "Transmit via lora_lib",
+      "description": "The telem_app shall hand each composed packet to lora_lib for transmission over the LoRa radio.",
+      "rationale": "Derived from SW-REQ-SYS-003: live telemetry downlink requires app to invoke radio library.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-006",
+      "title": "Continuous Operation From Power-On",
+      "description": "The telem app shall execute every cycle from power-on until external power is removed.",
+      "rationale": "Derived from SW-REQ-SYS-021: continuous telemetry coverage from power-on until external power removed.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-021",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-007",
+      "title": "Continue After Transmission Failure",
+      "description": "The telem_app shall continue executing subsequent cycles after a transmission failure without halting or backing off.",
+      "rationale": "Derived from SW-REQ-SYS-036: radio loss must not impair operation; no backoff per PM brief.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-036",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-008",
+      "title": "Publish Radio Health Status",
+      "description": "The telem_app shall publish a radio health status indicating success or failure of the most recent transmission.",
+      "rationale": "Derived from SW-REQ-SYS-061: radio transmission failures are surfaced via the published health state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-061",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-009",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "description": "The telem app shall produce identical published telemetry on POSIX and Pico2 builds for identical bus inputs.",
+      "rationale": "Derived from SW-REQ-SYS-043: POSIX build must be functionally equivalent to the Pico2 flight build for Trick simulation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-010",
+      "title": "Post-Landing Recovery Beacon",
+      "description": "The telem app shall continue transmitting telemetry indefinitely after landing until external power is removed.",
+      "rationale": "Derived from SW-REQ-SYS-048: post-landing recovery beaconing supports locating the rocket after landing.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-048",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-APP-011",
+      "title": "Deterministic Telemetry Output",
+      "description": "The telem app shall produce identical published telemetry given identical bus inputs.",
+      "rationale": "Derived from SW-REQ-SYS-044: determinism required for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

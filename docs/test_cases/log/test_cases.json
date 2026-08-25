@@ -1,0 +1,250 @@
+{
+  "module": "LOG",
+  "test_cases": [
+    {
+      "id": "SW-TC-LOG-001",
+      "title": "Severity-Tagged Logging API Surface Inspection",
+      "requirement_ids": [
+        "SW-REQ-LOG-001"
+      ],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open libs/log_lib public header and locate the diagnostic logging API declarations.",
+      "procedure": [
+        "Inspect libs/log_lib/include/log_lib/log_api.hpp for the JUNO_LOG_LEVEL_T enum class.",
+        "Confirm the enum declares all four severities: JUNO_LOG_LEVEL_DEBUG, JUNO_LOG_LEVEL_INFO, JUNO_LOG_LEVEL_WARN, JUNO_LOG_LEVEL_ERROR.",
+        "Confirm the LOG_LIB_API_T vtable declares Log and LogFmt entry points each accepting a JUNO_LOG_LEVEL_T parameter.",
+        "Confirm the entry points are part of the public API exported by libs/log_lib."
+      ],
+      "acceptance_criteria": "log_api.hpp declares JUNO_LOG_LEVEL_T with all four severities and a LOG_LIB_API_T vtable whose Log and LogFmt members accept a JUNO_LOG_LEVEL_T parameter covering every severity.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-002",
+      "title": "Severity Prefix Present on Debug Records",
+      "requirement_ids": [
+        "SW-REQ-LOG-002"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink that captures emitted records into a caller-owned buffer.",
+      "procedure": [
+        "Invoke the Log entry point with severity JUNO_LOG_LEVEL_DEBUG and a known message string.",
+        "Read the captured record from the test sink buffer.",
+        "Assert the captured record begins with the debug severity label."
+      ],
+      "acceptance_criteria": "Captured record starts with the debug severity label prefix before the message body.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-003",
+      "title": "Severity Prefix Distinct Across All Levels",
+      "requirement_ids": [
+        "SW-REQ-LOG-002"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink that captures emitted records into a caller-owned buffer.",
+      "procedure": [
+        "Invoke Log with each of the four severities (DEBUG, INFO, WARN, ERROR) and a known message.",
+        "Capture each emitted record from the test sink.",
+        "Assert each record begins with the severity label corresponding to the severity passed.",
+        "Assert the four severity labels are distinct from each other."
+      ],
+      "acceptance_criteria": "Each of the four emitted records carries a distinct severity label prefix matching the JUNO_LOG_LEVEL_T value passed.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-004",
+      "title": "Printf-Style Format String With Variadic Arguments",
+      "requirement_ids": [
+        "SW-REQ-LOG-003"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink that captures emitted records into a caller-owned buffer.",
+      "procedure": [
+        "Invoke LogFmt with severity JUNO_LOG_LEVEL_INFO, format string \"value=%d name=%s\" and arguments (42, \"juno\").",
+        "Capture the emitted record from the test sink.",
+        "Assert the record body contains the substring \"value=42 name=juno\"."
+      ],
+      "acceptance_criteria": "Captured record body includes \"value=42 name=juno\" demonstrating printf-style substitution of the variadic arguments.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-005",
+      "title": "Format String With Multiple Conversion Specifiers",
+      "requirement_ids": [
+        "SW-REQ-LOG-003"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink that captures emitted records into a caller-owned buffer.",
+      "procedure": [
+        "Invoke LogFmt with severity JUNO_LOG_LEVEL_ERROR, format string \"%s code=0x%X count=%u\" and arguments (\"err\", 0xDEAD, 7u).",
+        "Capture the emitted record from the test sink.",
+        "Assert the record body contains the substring \"err code=0xDEAD count=7\"."
+      ],
+      "acceptance_criteria": "Captured record body contains \"err code=0xDEAD count=7\" confirming correct handling of multiple conversion specifiers.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-006",
+      "title": "Bounded Output Buffer - Static Allocation Inspection",
+      "requirement_ids": [
+        "SW-REQ-LOG-004"
+      ],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open libs/log_lib implementation source files (log_common.cpp, log_posix.cpp, log_pico2.cpp).",
+      "procedure": [
+        "Inspect the log_lib implementation for the formatted record output buffer.",
+        "Confirm the buffer is a fixed-size stack array of kLogMaxRecord bytes (compile-time constant).",
+        "Confirm no calls to malloc, calloc, realloc, new, vasprintf, asprintf, or open_memstream appear in the formatting path.",
+        "Confirm the formatting call uses vsnprintf with the fixed buffer length as the bound."
+      ],
+      "acceptance_criteria": "Implementation uses a fixed-size kLogMaxRecord stack buffer and vsnprintf bounded by that length; no heap allocation primitive appears in the diagnostic emission path.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-007",
+      "title": "Oversized Message Truncated Without Overflow",
+      "requirement_ids": [
+        "SW-REQ-LOG-004"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink that captures emitted records into a caller-owned buffer larger than the log_lib internal buffer (kLogMaxRecord = 256).",
+      "procedure": [
+        "Construct an input format/message string longer than kLogMaxRecord.",
+        "Invoke LogFmt with severity JUNO_LOG_LEVEL_INFO and the oversized payload.",
+        "Capture the emitted record length from the test sink.",
+        "Assert the captured record length is less than or equal to kLogMaxRecord.",
+        "Assert no memory corruption is reported by the test harness (AddressSanitizer clean if enabled)."
+      ],
+      "acceptance_criteria": "Emitted record length does not exceed kLogMaxRecord and the test completes without memory errors.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-008",
+      "title": "Status Code Returned on Successful Emission",
+      "requirement_ids": [
+        "SW-REQ-LOG-005"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink configured to accept all writes successfully.",
+      "procedure": [
+        "Invoke Log with each of the four severities (DEBUG, INFO, WARN, ERROR) using a valid message.",
+        "Invoke LogFmt with each severity using a valid format string.",
+        "Capture the JUNO_STATUS_T return value from each call.",
+        "Assert each return value equals JUNO_STATUS_SUCCESS."
+      ],
+      "acceptance_criteria": "All severity invocations of Log and LogFmt return JUNO_STATUS_SUCCESS when the sink accepts writes.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-009",
+      "title": "Status Code Returned on Sink Failure",
+      "requirement_ids": [
+        "SW-REQ-LOG-005"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize log_lib with a test sink configured to fail every write.",
+      "procedure": [
+        "Invoke Log with severity JUNO_LOG_LEVEL_INFO and a valid message.",
+        "Capture the JUNO_STATUS_T return value.",
+        "Assert the returned status equals JUNO_STATUS_WRITE_ERROR."
+      ],
+      "acceptance_criteria": "Logging call returns JUNO_STATUS_WRITE_ERROR when the underlying sink reports failure.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-010",
+      "title": "Identical Public API on POSIX and Pico2 Builds",
+      "requirement_ids": [
+        "SW-REQ-LOG-006"
+      ],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open the log_lib public header (log_api.hpp) and the platform implementation files (log_posix.cpp, log_pico2.cpp).",
+      "procedure": [
+        "Inspect log_api.hpp for LOG_LIB_API_T and LOG_LIB_ROOT_T declarations.",
+        "Confirm the public header contains no preprocessor branching that changes the visible function signatures by platform.",
+        "Locate the LOG_LIB_IMPL_T New() factories in log_posix.cpp and log_pico2.cpp.",
+        "Confirm both platform implementations construct a static const LOG_LIB_API_T vtable with identical Log and LogFmt signatures.",
+        "Confirm the vtable is constructed exactly once at New() and never reassigned (no global mutable state)."
+      ],
+      "acceptance_criteria": "log_api.hpp declares one platform-independent API; POSIX and Pico2 implementations both construct an identical-shape LOG_LIB_API_T vtable as a file-scope static const, wired once at New().",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-011",
+      "title": "Platform-Specific Sink Selected at Build Time",
+      "requirement_ids": [
+        "SW-REQ-LOG-007"
+      ],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open libs/log_lib/CMakeLists.txt and the platform-specific implementation source files.",
+      "procedure": [
+        "Inspect libs/log_lib/CMakeLists.txt for platform-conditional source selection (JUNO_FSW_POSIX gate).",
+        "Confirm log_posix.cpp compiles into the POSIX build and routes diagnostic output to stderr (file descriptor 2).",
+        "Confirm log_pico2.cpp compiles into the Pico2 build and routes diagnostic output to a UART sink, with optional RTT toggle via LOG_LIB_PICO2_USE_RTT.",
+        "Confirm sink selection is resolved at configure/compile time, not at runtime.",
+        "Confirm the LOG_LIB_IMPL_T instance is file-scope static const (no global mutable state)."
+      ],
+      "acceptance_criteria": "CMake selects exactly one platform implementation per build; POSIX build emits to stderr and Pico2 build emits to UART (or RTT when LOG_LIB_PICO2_USE_RTT is set), with no runtime sink negotiation.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/log_lib/tests/log_test.cpp"
+    },
+    {
+      "id": "SW-TC-LOG-012",
+      "title": "No SD or Mission Log Coupling - Code Inspection",
+      "requirement_ids": [
+        "SW-REQ-LOG-008"
+      ],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Open libs/log_lib source tree and CMakeLists.txt.",
+      "procedure": [
+        "Inspect libs/log_lib/CMakeLists.txt for link or include dependencies on mlog_lib, sd_lib, SD card drivers, or filesystem libraries.",
+        "Inspect all libs/log_lib source files for include directives referencing mlog_lib, sd_lib, FatFs, or filesystem headers.",
+        "Inspect all libs/log_lib source files for symbol references to SD, mlog, or file write APIs.",
+        "Confirm none of the above dependencies, includes, or references are present."
+      ],
+      "acceptance_criteria": "libs/log_lib declares no build dependency on, includes from, or symbol references to mlog_lib, sd_lib, SD card, or filesystem APIs.",
+      "expected_artifacts": [
+        {
+          "name": "log_lib_no_sd_coupling.md",
+          "description": "Inspection record with grep evidence for SW-REQ-LOG-008. See docs/inspections/log_lib_no_sd_coupling.md (INS-LOG-001).",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    }
+  ]
+}

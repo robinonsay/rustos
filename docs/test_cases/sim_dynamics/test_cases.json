@@ -1,0 +1,345 @@
+{
+  "module": "SIM-DYN",
+  "test_cases": [
+    {
+      "id": "SW-TC-SIM-DYN-001",
+      "title": "Six-DOF Truth State Produced Each Step",
+      "requirement_ids": ["SW-REQ-SIM-DYN-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_dynamics with default vehicle config; zero initial state; gravity-only forces.",
+      "procedure": [
+        "Initialize sim_dynamics with default mass, inertia, and zero initial state.",
+        "Advance the integrator one fixed step.",
+        "Read the published truth-state structure.",
+        "Assert all six DOFs (3 translational position, 3 rotational attitude) are populated and finite."
+      ],
+      "acceptance_criteria": "Truth state contains 3-axis position, 3-axis velocity, attitude quaternion, and 3-axis angular velocity; all values are finite floating-point numbers.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-002",
+      "title": "Truth State Field Composition",
+      "requirement_ids": ["SW-REQ-SIM-DYN-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_dynamics with default vehicle config; populate non-trivial initial state.",
+      "procedure": [
+        "Initialize sim_dynamics with non-zero position, velocity, attitude quaternion, and angular velocity.",
+        "Advance the integrator one fixed step.",
+        "Read the published truth-state structure.",
+        "Assert position, velocity, attitude quaternion, and angular velocity fields are all present and read back as configured (within integrator tolerance)."
+      ],
+      "acceptance_criteria": "Published truth-state struct exposes position, velocity, attitude quaternion, and angular-velocity members; quaternion has four components; vectors have three components.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-003",
+      "title": "Gravity-Only Vertical Free Fall in NED",
+      "requirement_ids": ["SW-REQ-SIM-DYN-003", "SW-REQ-SIM-DYN-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initial state: position [0,0,-100] m (NED, 100 m above ground), velocity zero, attitude identity, no thrust, no drag, gravity 9.81 m/s^2.",
+      "procedure": [
+        "Configure sim_dynamics with gravity-only force model.",
+        "Set initial NED position to [0, 0, -100] m and zero velocity.",
+        "Integrate forward for t = 1.0 s of simulated time.",
+        "Read truth-state position and velocity.",
+        "Compare against analytical free-fall: z(t) = -100 + 0.5*9.81*1.0^2 m (NED Down positive), vz(t) = 9.81*1.0 m/s."
+      ],
+      "acceptance_criteria": "Position Down component matches analytical free-fall to within 1e-3 m; velocity Down component matches 9.81 m/s within 1e-3 m/s; North and East components remain zero within 1e-9.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-004",
+      "title": "Body-to-NED Quaternion Identity Mapping",
+      "requirement_ids": ["SW-REQ-SIM-DYN-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initial state: identity quaternion (body axes aligned with NED), zero angular velocity, no torques.",
+      "procedure": [
+        "Configure sim_dynamics with identity attitude quaternion and zero angular velocity.",
+        "Apply a body-frame thrust along body +X axis equal to 10 N for one step.",
+        "Read truth-state attitude quaternion and resulting NED-frame acceleration through velocity delta.",
+        "Verify body +X thrust maps to NED North acceleration (positive North velocity component) given identity attitude."
+      ],
+      "acceptance_criteria": "After one integration step at dt=0.01 s with body-aligned gravity, NED East velocity component is 0.0 m/s within 1e-6 m/s tolerance; NED Down velocity component equals 9.81*0.01 = 0.0981 m/s within 1e-6 m/s tolerance; North component is 0.0 m/s within 1e-6 m/s tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-005",
+      "title": "Quaternion Rotation Maps Body Thrust to NED",
+      "requirement_ids": ["SW-REQ-SIM-DYN-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initial state: 90-degree rotation about body Y axis (body +X aligned with NED Down), zero angular velocity, body-frame thrust along body +X.",
+      "procedure": [
+        "Configure sim_dynamics with attitude quaternion representing +90 deg pitch (body +X points to NED Down).",
+        "Apply body-frame thrust of 10 N along body +X.",
+        "Disable gravity and drag for this case.",
+        "Integrate one fixed step and read truth-state velocity.",
+        "Verify the resulting velocity increment is along NED Down (positive Down)."
+      ],
+      "acceptance_criteria": "After one step, velocity Down component equals F/m * dt within 1e-6 m/s; North and East velocity components remain below 1e-9 m/s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-006",
+      "title": "Motor Thrust Curve Time-Variation",
+      "requirement_ids": ["SW-REQ-SIM-DYN-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure thrust curve with three points: (0.0 s, 0 N), (0.5 s, 20 N), (1.0 s, 0 N). Vehicle held in identity attitude; gravity and drag disabled.",
+      "procedure": [
+        "Initialize sim_dynamics with the three-point thrust curve.",
+        "Step the simulation and sample applied force at t = 0.0 s, 0.25 s, 0.5 s, 0.75 s, and 1.0 s.",
+        "Compare logged thrust force magnitude to the linearly-interpolated thrust curve at each sample time.",
+        "Sample thrust force at t = 1.5 s (after burnout) and assert zero force."
+      ],
+      "acceptance_criteria": "Thrust at 0.0 s = 0 N, 0.5 s = 20 N, 1.0 s = 0 N; intermediate values match linear interpolation within 1e-6 N; post-burnout thrust is exactly 0 N.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-007",
+      "title": "Parabolic Trajectory Under Gravity Only",
+      "requirement_ids": ["SW-REQ-SIM-DYN-006", "SW-REQ-SIM-DYN-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initial state: position [0,0,-500] m NED, velocity [50, 0, -50] m/s NED, identity attitude, no thrust, no drag, gravity 9.81 m/s^2.",
+      "procedure": [
+        "Configure sim_dynamics with gravity-only forces.",
+        "Set initial position [0, 0, -500] m and velocity [50, 0, -50] m/s in NED.",
+        "Integrate forward for t = 5.0 s of simulated time.",
+        "Read truth-state position.",
+        "Compare against analytical projectile: x(t) = 50*t, y(t) = 0, z(t) = -500 + (-50)*t + 0.5*9.81*t^2 (NED Down positive)."
+      ],
+      "acceptance_criteria": "All three NED position components match the analytical parabolic trajectory to within 1e-2 m at t = 5.0 s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-008",
+      "title": "Aerodynamic Drag Force Magnitude",
+      "requirement_ids": ["SW-REQ-SIM-DYN-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Vehicle at rest attitude (identity); velocity [100, 0, 0] m/s NED; Cd = 0.5; reference area = 0.01 m^2; air density = 1.225 kg/m^3; gravity and thrust disabled.",
+      "procedure": [
+        "Configure sim_dynamics with drag-only force model and the listed coefficients.",
+        "Set vehicle velocity to [100, 0, 0] m/s and read computed drag force.",
+        "Compare drag force magnitude against analytical 0.5 * rho * Cd * A * V^2 = 0.5 * 1.225 * 0.5 * 0.01 * 100^2 = 30.625 N.",
+        "Verify drag force vector points opposite to velocity (negative North)."
+      ],
+      "acceptance_criteria": "Drag force magnitude equals 30.625 N within 1e-3 N; force vector is anti-parallel to velocity (dot product with velocity unit vector equals -1 within 1e-9).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-009",
+      "title": "Drag Scales With Velocity Squared",
+      "requirement_ids": ["SW-REQ-SIM-DYN-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Same drag configuration as SW-TC-SIM-DYN-008; gravity and thrust disabled.",
+      "procedure": [
+        "Compute drag force at velocity 50 m/s along North.",
+        "Compute drag force at velocity 100 m/s along North.",
+        "Compute drag force at velocity 200 m/s along North.",
+        "Compute the ratio of force magnitudes: F(100)/F(50) and F(200)/F(100)."
+      ],
+      "acceptance_criteria": "F(100)/F(50) equals 4.0 within 1e-6; F(200)/F(100) equals 4.0 within 1e-6, demonstrating V^2 scaling.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-010",
+      "title": "Configured Mass Affects Translational Acceleration",
+      "requirement_ids": ["SW-REQ-SIM-DYN-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Two sim_dynamics instances: one with mass 1.0 kg, one with mass 2.0 kg. Apply identical 10 N body-frame thrust along +X. Disable gravity and drag.",
+      "procedure": [
+        "Initialize instance A with mass 1.0 kg and instance B with mass 2.0 kg.",
+        "Apply body-frame thrust of 10 N along body +X to both for one fixed step dt.",
+        "Read velocity from each instance.",
+        "Assert velocity_A = 10/1.0 * dt and velocity_B = 10/2.0 * dt within tolerance."
+      ],
+      "acceptance_criteria": "Velocity ratio v_A / v_B equals 2.0 within 1e-9; absolute velocity values match F/m*dt within 1e-9 m/s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-011",
+      "title": "Configured Inertia Affects Angular Acceleration",
+      "requirement_ids": ["SW-REQ-SIM-DYN-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Two sim_dynamics instances with diagonal inertia tensors I_A = diag(0.1, 0.1, 0.1) and I_B = diag(0.2, 0.2, 0.2) kg*m^2. Apply identical 1.0 N*m body-frame torque about body +X. Disable gravity, thrust, drag.",
+      "procedure": [
+        "Initialize instance A with I = diag(0.1, 0.1, 0.1) and instance B with I = diag(0.2, 0.2, 0.2).",
+        "Apply 1.0 N*m body torque about body X axis to both for one fixed step dt.",
+        "Read angular velocity from each instance.",
+        "Assert omega_A_x = 1.0/0.1 * dt and omega_B_x = 1.0/0.2 * dt within tolerance."
+      ],
+      "acceptance_criteria": "Angular-velocity ratio omega_A_x / omega_B_x equals 2.0 within 1e-6; absolute values match torque/inertia*dt within 1e-6 rad/s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-012",
+      "title": "Fixed-Step Integrator Step Size",
+      "requirement_ids": ["SW-REQ-SIM-DYN-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure sim_dynamics with fixed step dt = 0.01 s. Initial velocity zero, body thrust 1 N along +X with mass 1 kg, gravity and drag disabled.",
+      "procedure": [
+        "Step the integrator 100 times.",
+        "Record the simulated time after each step.",
+        "Verify each successive simulated-time delta equals 0.01 s exactly (no drift).",
+        "Verify final simulated time equals 1.0 s within 1e-12 s."
+      ],
+      "acceptance_criteria": "Inter-step time delta equals configured dt exactly (bit-identical) for all 100 steps; total simulated time equals N*dt within floating-point rounding (1e-12 s).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-013",
+      "title": "Deterministic Truth Output Across Identical Runs",
+      "requirement_ids": ["SW-REQ-SIM-DYN-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Two sim_dynamics instances with identical configuration: same mass, inertia, initial state, thrust curve, gravity, drag.",
+      "procedure": [
+        "Run instance A for 1000 fixed steps and record full truth-state trajectory.",
+        "Run instance B with the same configuration for 1000 fixed steps and record full truth-state trajectory.",
+        "Compare each truth-state field at every step between the two trajectories.",
+        "Assert exact bitwise equality of all truth-state fields at all steps."
+      ],
+      "acceptance_criteria": "All truth-state fields (position, velocity, quaternion, angular velocity) at all 1000 steps are bitwise identical between runs A and B.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-014",
+      "title": "Truth State Published Every Integration Step",
+      "requirement_ids": ["SW-REQ-SIM-DYN-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Hook a counting recorder to sim_dynamics truth-state output. Configure dt = 0.01 s.",
+      "procedure": [
+        "Reset the recorder counter to zero.",
+        "Step the integrator 250 times.",
+        "Read the recorder count and the recorded timestamps.",
+        "Verify the recorder captured exactly 250 truth-state samples with timestamps spaced by dt."
+      ],
+      "acceptance_criteria": "Recorder count equals 250; consecutive timestamps differ by exactly dt (0.01 s) within 1e-12 s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-015",
+      "title": "Integration Stops at Ground Impact",
+      "requirement_ids": ["SW-REQ-SIM-DYN-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initial state: position [0,0,-10] m NED (10 m above ground), velocity [0,0,20] m/s (descending), identity attitude. Gravity enabled, thrust and drag disabled.",
+      "procedure": [
+        "Configure sim_dynamics with the initial state above and dt = 0.01 s.",
+        "Step the integrator until simulated time reaches 5.0 s.",
+        "At each step, record whether the integrator advanced position.",
+        "Identify the step at which the Down position first reaches or exceeds 0 m (ground)."
+      ],
+      "acceptance_criteria": "After the step at which position Down reaches 0 m, position and velocity values do not change in subsequent steps; the integrator reports that motion has terminated at impact.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-016",
+      "title": "Truth State Pinned After Ground Impact",
+      "requirement_ids": ["SW-REQ-SIM-DYN-013"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Same initial conditions as SW-TC-SIM-DYN-015 producing ground impact within the run.",
+      "procedure": [
+        "Configure sim_dynamics with descending initial state guaranteed to impact ground.",
+        "Step the integrator past the impact time and continue stepping for 100 more steps.",
+        "Record truth-state position, velocity, and attitude quaternion at the impact step and at each post-impact step.",
+        "Compare position and quaternion at all post-impact steps to the values at the impact step."
+      ],
+      "acceptance_criteria": "Position and attitude quaternion at all 100 post-impact steps are bitwise identical to the values recorded at the impact step.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_dynamics/tests/sim_dynamics_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-DYN-017",
+      "title": "SI Units Inspection of Truth State Fields",
+      "requirement_ids": ["SW-REQ-SIM-DYN-014", "SW-REQ-SIM-DYN-002"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source code review of sim_dynamics truth-state struct, configuration struct, and force/torque computations.",
+      "procedure": [
+        "Inspect the truth-state struct definition and confirm field-level comments declare units: position (m), velocity (m/s), angular velocity (rad/s).",
+        "Inspect quaternion field and confirm it is documented as dimensionless unit quaternion.",
+        "Inspect mass (kg) and inertia (kg*m^2) configuration field comments.",
+        "Inspect thrust curve (N), gravity (m/s^2), and drag-related (Cd dimensionless, area m^2, density kg/m^3) field comments.",
+        "Confirm no field is documented in non-SI units (e.g., feet, pounds, degrees)."
+      ],
+      "acceptance_criteria": "All truth-state and configuration fields carry SI-unit annotations in source comments; no non-SI units appear in the public sim_dynamics interface.",
+      "expected_artifacts": [
+        {
+          "name": "sim_dynamics_si_units_inspection.md",
+          "description": "Signed inspection log verifying SI-unit annotations on all sim_dynamics outputs",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SIM-DYN-018",
+      "title": "NED Frame Convention Inspection",
+      "requirement_ids": ["SW-REQ-SIM-DYN-003"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source code review of sim_dynamics truth-state struct and integration logic.",
+      "procedure": [
+        "Inspect the position and velocity field comments and confirm they declare NED (North-East-Down) frame.",
+        "Inspect the gravity application code and confirm it adds a positive acceleration along the Down (Z) component.",
+        "Inspect ground-impact logic and confirm it triggers when Down position reaches or exceeds zero.",
+        "Confirm no documentation references ENU or other frames for truth state."
+      ],
+      "acceptance_criteria": "Position and velocity fields are documented as NED; gravity applied along +Down; ground impact uses Down >= 0 convention.",
+      "expected_artifacts": [
+        {
+          "name": "sim_dynamics_ned_frame_inspection.md",
+          "description": "Signed inspection log verifying NED frame convention in sim_dynamics outputs",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

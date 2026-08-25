@@ -1,0 +1,345 @@
+{
+  "module": "KMAT",
+  "test_cases": [
+    {
+      "id": "SW-TC-KMAT-001",
+      "title": "Compile-Time-Fixed Matrix Dimensions",
+      "requirement_ids": ["SW-REQ-KMAT-001"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the kmat library and unit-test binary on POSIX with template-instantiated matrix types of varying dimensions.",
+      "procedure": [
+        "Instantiate kmat matrix types of dimensions 1x1, 3x3, 4x4, and 16x16 in the test translation unit.",
+        "Use static_assert to verify the row count, column count, and storage size of each instantiation are compile-time constants.",
+        "Use static_assert to verify sizeof(matrix) equals rows*cols*sizeof(element_type).",
+        "Compile the test; the static_assert must hold without runtime evaluation."
+      ],
+      "acceptance_criteria": "All static_assert checks pass at compile time, confirming dimensions and storage are fixed at compile time with no runtime size metadata.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-002",
+      "title": "Matrix Multiplication - Square Matrices",
+      "requirement_ids": ["SW-REQ-KMAT-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two 3x3 matrices A and B with known values and a 3x3 result matrix C.",
+      "procedure": [
+        "Initialize A and B with hand-computed entries whose product is also hand-computed.",
+        "Invoke the kmat matrix multiplication operation C = A * B.",
+        "Compare each element of C against the hand-computed expected value within IEEE-754 rounding tolerance."
+      ],
+      "acceptance_criteria": "Every element of C equals the hand-computed expected product within 1e-9 absolute tolerance, and the operation returns a success status.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-003",
+      "title": "Matrix Multiplication - Rectangular Compatible Dimensions",
+      "requirement_ids": ["SW-REQ-KMAT-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 2x3 matrix A and a 3x4 matrix B with known values, plus a 2x4 result matrix C.",
+      "procedure": [
+        "Initialize A and B with hand-computed entries.",
+        "Invoke the kmat matrix multiplication operation C = A * B.",
+        "Compare each element of C against the hand-computed 2x4 expected product."
+      ],
+      "acceptance_criteria": "C matches the hand-computed 2x4 product element-wise within 1e-9 tolerance.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-004",
+      "title": "Matrix Transpose",
+      "requirement_ids": ["SW-REQ-KMAT-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 2x3 source matrix A with known values and a 3x2 destination matrix AT.",
+      "procedure": [
+        "Initialize A with distinct values in each cell.",
+        "Invoke the kmat transpose operation AT = transpose(A).",
+        "Verify AT(j,i) == A(i,j) for every i in [0,rows) and j in [0,cols)."
+      ],
+      "acceptance_criteria": "Every element of AT equals the corresponding swapped-index element of A exactly (bit-equal floating point).",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-005",
+      "title": "Matrix Addition",
+      "requirement_ids": ["SW-REQ-KMAT-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two 4x4 matrices A and B with known values and a 4x4 result matrix C.",
+      "procedure": [
+        "Initialize A and B with distinct values per cell.",
+        "Invoke the kmat addition operation C = A + B.",
+        "Verify C(i,j) == A(i,j) + B(i,j) for every cell."
+      ],
+      "acceptance_criteria": "Every element of C equals the corresponding element-wise sum within 1e-12 absolute tolerance.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-006",
+      "title": "Scalar Multiplication",
+      "requirement_ids": ["SW-REQ-KMAT-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 3x3 matrix A with known values and a 3x3 result matrix B.",
+      "procedure": [
+        "Initialize A with distinct non-zero values.",
+        "Invoke the kmat scalar multiplication B = A * k for k = 2.5 and again for k = -1.0 and k = 0.0.",
+        "Verify B(i,j) == A(i,j) * k for each cell and each scalar."
+      ],
+      "acceptance_criteria": "Every element of B equals the corresponding A element times the scalar within 1e-12 tolerance for all three scalar values.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-007",
+      "title": "Matrix Inversion - Identity Round-Trip",
+      "requirement_ids": ["SW-REQ-KMAT-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 3x3 invertible matrix A with known finite condition number.",
+      "procedure": [
+        "Initialize A with values yielding determinant 1 (e.g., a known invertible test matrix).",
+        "Invoke the kmat inverse operation Ainv = inverse(A) and check return status.",
+        "Compute P = A * Ainv using the kmat multiplication operation.",
+        "Compare P against the 3x3 identity matrix element-wise."
+      ],
+      "acceptance_criteria": "Inverse returns success status and A * Ainv equals the identity matrix within 1e-9 absolute tolerance per element.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-008",
+      "title": "Matrix Inversion - Known Numeric Inverse",
+      "requirement_ids": ["SW-REQ-KMAT-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 4x4 matrix A whose inverse is hand-computed and stored as expected_inverse.",
+      "procedure": [
+        "Initialize A with hand-chosen values whose inverse is precomputed.",
+        "Invoke kmat inverse Ainv = inverse(A) and check return status.",
+        "Compare each element of Ainv against expected_inverse."
+      ],
+      "acceptance_criteria": "Each element of Ainv matches expected_inverse within 1e-9 absolute tolerance and the inverse returns success.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-009",
+      "title": "Inversion Failure Status on Singular Matrix",
+      "requirement_ids": ["SW-REQ-KMAT-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 3x3 singular matrix S with a row of zeros (or two identical rows) so that det(S) == 0.",
+      "procedure": [
+        "Initialize S as a known singular matrix.",
+        "Invoke the kmat inverse operation Sinv = inverse(S).",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "The inverse operation returns a non-success failure status (e.g., JUNO_STATUS_ERR) and does not write a meaningful inverse.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-010",
+      "title": "Inversion Failure Status on Near-Singular Matrix",
+      "requirement_ids": ["SW-REQ-KMAT-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 3x3 matrix N whose determinant is below the implementation's singularity threshold.",
+      "procedure": [
+        "Initialize N with values producing a determinant of magnitude well below the singularity threshold (e.g., 1e-20).",
+        "Invoke the kmat inverse operation on N.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "The inverse operation returns a failure status indicating the matrix was treated as non-invertible.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-011",
+      "title": "No Dynamic Allocation - Symbol Inspection",
+      "requirement_ids": ["SW-REQ-KMAT-008"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the kmat static library archive on POSIX with default optimization.",
+      "procedure": [
+        "Run nm --undefined-only on the kmat archive (libjuno_kmat.a) and capture the output.",
+        "Programmatically grep the output for malloc, calloc, realloc, free, _Znwm, _Znam, _ZdlPv, _ZdaPv, mmap, sbrk, brk.",
+        "Assert the grep result is empty."
+      ],
+      "acceptance_criteria": "The kmat archive references zero allocator symbols, confirming no dynamic memory allocation is used.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-012",
+      "title": "Determinism - Repeated-Run Bit Equality",
+      "requirement_ids": ["SW-REQ-KMAT-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare fixed input matrices for multiplication, addition, transpose, scalar-multiply, and inverse operations.",
+      "procedure": [
+        "Run each operation on the fixed inputs and capture all output bytes via memcmp-friendly buffers.",
+        "Run each operation a second time and a third time on identical inputs in the same process.",
+        "Compare the three output buffers for each operation using memcmp."
+      ],
+      "acceptance_criteria": "memcmp returns 0 for every pair of runs of every operation, confirming bit-identical results across repeated executions.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-013",
+      "title": "POSIX vs Pico2 Numeric Equivalence",
+      "requirement_ids": ["SW-REQ-KMAT-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Capture golden output buffers for each kmat operation from a POSIX run; embed them as a header-included blob. The unit test compares the current build's outputs against the golden blob within IEEE-754 rounding tolerance, and the same test is run on the Pico2 target build via the cross-compiled test harness.",
+      "procedure": [
+        "On POSIX, run all kmat operations against fixed inputs and capture outputs to a golden header.",
+        "On both POSIX and Pico2 builds, run the same operations and compare each output element against the golden values.",
+        "Assert each element matches within 1 ULP (or a documented tolerance equivalent to IEEE-754 single rounding)."
+      ],
+      "acceptance_criteria": "Both POSIX and Pico2 builds produce outputs that match the golden values within the documented IEEE-754 rounding tolerance.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-014",
+      "title": "No Runtime Polymorphism - Symbol Inspection",
+      "requirement_ids": ["SW-REQ-KMAT-011"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the kmat static library archive with default flags.",
+      "procedure": [
+        "Run nm on libjuno_kmat.a and capture all defined and undefined symbols.",
+        "Programmatically grep symbols for vtable markers (e.g., _ZTV, vtable for, _ZTI for typeinfo) and for any function-pointer-table style symbols inside kmat translation units.",
+        "Assert no vtable or typeinfo symbols originate from kmat objects."
+      ],
+      "acceptance_criteria": "No vtable or typeinfo symbols are produced by kmat translation units, confirming static dispatch.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-015",
+      "title": "100 Percent Line Coverage of kmat Sources",
+      "requirement_ids": ["SW-REQ-KMAT-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build the POSIX unit-test binary with --coverage flags and run all kmat tests; collect gcov data for libs/kmat_lib sources.",
+      "procedure": [
+        "Run the kmat unit test suite with coverage instrumentation enabled.",
+        "Run gcov/lcov over libs/kmat_lib source files and produce a coverage summary.",
+        "Inspect the summary for line coverage percentage on each source file."
+      ],
+      "acceptance_criteria": "Reported line coverage is 100 percent for every source file under libs/kmat_lib (excluding test files themselves).",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-016",
+      "title": "Matrix Subtraction",
+      "requirement_ids": ["SW-REQ-KMAT-013"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two 4x4 matrices A and B with known values and a 4x4 result matrix C.",
+      "procedure": [
+        "Initialize A and B with distinct values per cell.",
+        "Invoke the kmat subtraction operation C = A - B.",
+        "Verify C(i,j) == A(i,j) - B(i,j) for every cell."
+      ],
+      "acceptance_criteria": "Every element of C equals the corresponding element-wise difference within 1e-12 absolute tolerance.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-017",
+      "title": "No Runtime Type Information - Build Flag and Symbol Inspection",
+      "requirement_ids": ["SW-REQ-KMAT-014"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the kmat library and unit tests with -fno-rtti enforced via CMake compile options.",
+      "procedure": [
+        "Programmatically inspect the CMake-generated compile_commands.json to assert -fno-rtti appears for every kmat compilation unit.",
+        "Run nm on libjuno_kmat.a and grep for _ZTI (typeinfo) and _ZTS (typeinfo name) symbols originating from kmat translation units.",
+        "Assert grep results are empty."
+      ],
+      "acceptance_criteria": "All kmat translation units are compiled with -fno-rtti and the produced archive has zero typeinfo symbols.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-018",
+      "title": "No Thrown Exceptions - Build Flag and Symbol Inspection",
+      "requirement_ids": ["SW-REQ-KMAT-015"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build the kmat library and unit tests with -fno-exceptions enforced via CMake compile options.",
+      "procedure": [
+        "Programmatically inspect compile_commands.json to assert -fno-exceptions appears for every kmat compilation unit.",
+        "Run nm --undefined-only on libjuno_kmat.a and grep for __cxa_throw, __cxa_allocate_exception, __cxa_begin_catch, __cxa_end_catch, _Unwind_Resume, and __gxx_personality_v0.",
+        "Assert grep results are empty."
+      ],
+      "acceptance_criteria": "All kmat translation units are compiled with -fno-exceptions and the archive references zero exception ABI symbols.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-019",
+      "title": "Matrix Multiplication - Identity Element",
+      "requirement_ids": ["SW-REQ-KMAT-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct an arbitrary 4x4 matrix A and a 4x4 identity matrix I.",
+      "procedure": [
+        "Compute B = A * I and C = I * A using the kmat multiplication operation.",
+        "Compare B and C against A element-wise."
+      ],
+      "acceptance_criteria": "Both B and C equal A bit-exactly, confirming identity is the multiplicative neutral element.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    },
+    {
+      "id": "SW-TC-KMAT-020",
+      "title": "Transpose Involution",
+      "requirement_ids": ["SW-REQ-KMAT-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a 3x4 matrix A with distinct values per cell.",
+      "procedure": [
+        "Compute AT = transpose(A) and ATT = transpose(AT) using the kmat transpose operation.",
+        "Compare ATT against A element-wise."
+      ],
+      "acceptance_criteria": "ATT equals A bit-exactly, confirming transpose is an involution.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/kmat_lib/tests/kmat_test.cpp"
+    }
+  ]
+}

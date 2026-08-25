@@ -1,0 +1,159 @@
+{
+  "module": "SIM-DYN",
+  "requirements": [
+    {
+      "id": "SW-REQ-SIM-DYN-001",
+      "title": "Six-DOF Rigid-Body Truth State",
+      "description": "The sim_dynamics module shall produce a six-degree-of-freedom rigid-body truth state during each simulation run.",
+      "rationale": "PM-defined sim_dynamics scope: provide truth state with three translational and three rotational DOFs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-002",
+      "title": "Truth State Composition",
+      "description": "The sim_dynamics truth state shall contain position, velocity, attitude quaternion, and angular velocity.",
+      "rationale": "PM-defined truth-state composition required by sim_sensors and sim_scenario consumers.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-003",
+      "title": "NED Position and Velocity Frame",
+      "description": "The sim_dynamics module shall express truth position and velocity in the NED frame consistent with the FSW.",
+      "rationale": "PM decision: truth frames must match FSW conventions (SYS-040) so sim_scenario can compare directly.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-004",
+      "title": "Body-to-NED Quaternion Attitude",
+      "description": "The sim_dynamics module shall express truth attitude as a unit quaternion rotating from body frame to NED.",
+      "rationale": "PM decision: truth attitude representation must match FSW convention (SYS-041, SYS-057).",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-005",
+      "title": "Motor Thrust Force",
+      "description": "The sim_dynamics module shall apply a time-varying motor thrust force from a configured thrust curve.",
+      "rationale": "PM-defined sim_dynamics scope: motor thrust is a primary force input to the EOM.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-006",
+      "title": "Gravitational Acceleration",
+      "description": "The sim_dynamics module shall apply a uniform gravitational acceleration to the vehicle truth state.",
+      "rationale": "PM-defined sim_dynamics scope: uniform gravity is the second primary force input.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-007",
+      "title": "Aerodynamic Drag Force",
+      "description": "The sim_dynamics module shall apply an aerodynamic drag force computed from drag coefficient, reference area, and airspeed.",
+      "rationale": "PM-defined sim_dynamics scope: simplified Cd and reference-area drag model is the third force input.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-008",
+      "title": "Configurable Mass and Inertia Properties",
+      "description": "The sim_dynamics module shall accept configured vehicle mass and inertia tensor as inputs.",
+      "rationale": "PM decision: mass properties are scenario inputs, not hard-coded in dynamics.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-009",
+      "title": "Fixed-Step Time Integration",
+      "description": "The sim_dynamics module shall integrate the equations of motion using a fixed-step deterministic integrator.",
+      "rationale": "PM-required determinism (SYS-044) and matching the Trick scheduler step rate.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-010",
+      "title": "Deterministic Truth Output",
+      "description": "The sim_dynamics module shall produce identical truth-state output given identical configured inputs.",
+      "rationale": "PM-required determinism for repeatable Trick sim runs and regression analysis (SYS-044).",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-011",
+      "title": "Truth State Update Cadence",
+      "description": "The sim_dynamics module shall publish truth state at every integration step of the Trick scheduler.",
+      "rationale": "PM decision: sim_sensors and sim_scenario consume truth state at the scheduler step rate.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-012",
+      "title": "Ground Impact Termination",
+      "description": "The sim_dynamics module shall stop integrating motion once the vehicle reaches ground level.",
+      "rationale": "PM-defined sim_dynamics scope: ground impact terminates dynamics; truth pinned at impact state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-013",
+      "title": "Post-Impact Truth State Hold",
+      "description": "The sim_dynamics module shall hold the truth-state position and orientation constant after ground impact.",
+      "rationale": "PM-defined sim_dynamics scope: post-impact truth state is pinned for downstream consumers.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-DYN-014",
+      "title": "SI Units for Truth State",
+      "description": "The sim_dynamics module shall express all truth-state quantities in SI units.",
+      "rationale": "PM decision (SYS-042): SI units throughout to eliminate unit-conversion ambiguity at the sim boundary.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    }
+  ]
+}

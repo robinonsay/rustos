@@ -1,0 +1,115 @@
+{
+  "module": "BARO-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-BARO-APP-001",
+      "title": "Execute Barometer App at 20 Hz",
+      "description": "The baro app shall execute at 20 Hz on the static schedule throughout the mission.",
+      "rationale": "Decomposes SW-REQ-SYS-008; system-mandated 20 Hz altimeter sample rate is realized by scheduling the baro app at 20 Hz.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-008",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-002",
+      "title": "Acquire One Sample Each Cycle",
+      "description": "The baro app shall acquire one barometer sample on each scheduled execution.",
+      "rationale": "Decomposes SW-REQ-SYS-008; per-cycle sample acquisition realizes the 20 Hz altimeter sample cadence.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-008",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-003",
+      "title": "Publish Barometer Message on Software Bus",
+      "description": "The baro app shall publish a barometer message on the software bus on each scheduled execution.",
+      "rationale": "Decomposes SW-REQ-SYS-001; raw baro samples reach the logging path via a software bus message published by the baro app.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-004",
+      "title": "Pure Pass-Through Without Filtering",
+      "description": "The baro app shall publish baro samples without applying filtering or modifying their numerical values.",
+      "rationale": "Decomposes SW-REQ-SYS-001; raw fidelity requires the app to forward unmodified baro samples to subscribers.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-005",
+      "title": "Timestamp Each Published Baro Message",
+      "description": "The baro app shall include a monotonic microsecond timestamp on each published barometer message.",
+      "rationale": "Decomposes SW-REQ-SYS-001; per-sample timestamps with the canonical time base support post-flight reconstruction.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-006",
+      "title": "Publish Baro Health on Software Bus",
+      "description": "The baro app shall publish barometer health status on the software bus on each scheduled execution.",
+      "rationale": "Decomposes SW-REQ-SYS-031; continuous per-sensor health bitmap requires the app to publish baro health each cycle.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-007",
+      "title": "Report Altitude Referenced to WGS-84 Ellipsoid",
+      "description": "The baro app shall report altitude in the published baro message referenced to the WGS-84 ellipsoid.",
+      "rationale": "Decomposes SW-REQ-SYS-039; system-wide HAE altitude reference applies to the baro app's published altitude.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-039",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-008",
+      "title": "Publish Baro Quantities in SI Units",
+      "description": "The baro app shall publish pressure in pascals and altitude in meters in the baro message.",
+      "rationale": "Decomposes SW-REQ-SYS-042; SI units globally apply to the baro app's published physical quantities.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-009",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The baro app POSIX build shall produce baro messages functionally equivalent to the Pico2 flight build.",
+      "rationale": "Decomposes SW-REQ-SYS-043; system-wide POSIX/Pico2 functional equivalence applies to the baro app's published baro messages so Trick simulation exercises the same software paths as flight.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-APP-010",
+      "title": "Deterministic Baro Message Output",
+      "description": "The baro app shall produce identical published baro messages given identical inputs.",
+      "rationale": "Decomposes SW-REQ-SYS-044; system-wide deterministic output requirement applies to the baro app for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

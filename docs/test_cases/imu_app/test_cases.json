@@ -1,0 +1,221 @@
+{
+  "module": "IMU-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-IMU-APP-001",
+      "title": "IMU App Scheduled at 200 Hz",
+      "requirement_ids": ["SW-REQ-IMU-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library and a fake monotonic clock. Register the app on a TDM static schedule configured for 200 Hz.",
+      "procedure": [
+        "Configure the TDM scheduler period to 5000 microseconds (200 Hz).",
+        "Advance the fake clock and dispatch the schedule for one second of simulated time.",
+        "Count the number of times the IMU app Execute() entry point was invoked during the run.",
+        "Record the timestamps of each invocation."
+      ],
+      "acceptance_criteria": "The IMU app Execute() is invoked exactly 200 times in one simulated second, with inter-invocation period of 5000 microseconds plus or minus the scheduler tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-002",
+      "title": "Single Library Sample Read Per Cycle",
+      "requirement_ids": ["SW-REQ-IMU-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that counts calls to its sample-read function. Initialize the app via its New() entry point.",
+      "procedure": [
+        "Reset the mock IMU library call counter to zero.",
+        "Invoke the IMU app Execute() entry point exactly one time.",
+        "Read the mock IMU library sample-read call counter.",
+        "Repeat the Execute() invocation ten times and re-check the counter."
+      ],
+      "acceptance_criteria": "The mock IMU library sample-read function is called exactly once per Execute() invocation; counter equals 1 after one call and 10 after ten calls.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-003",
+      "title": "IMU Sample Published on Software Bus",
+      "requirement_ids": ["SW-REQ-IMU-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library and a software bus instance with a recording subscriber on the IMU sample topic.",
+      "procedure": [
+        "Program the mock IMU library to return a known sample (ax=1.0, ay=2.0, az=3.0, gx=0.1, gy=0.2, gz=0.3).",
+        "Invoke the IMU app Execute() entry point one time.",
+        "Inspect the recording subscriber's received-message queue.",
+        "Decode the published message and compare each accelerometer and gyroscope field to the programmed values."
+      ],
+      "acceptance_criteria": "Exactly one IMU message is published on the software bus per Execute() call, and its accelerometer and gyroscope fields equal the values returned by the mock library.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-004",
+      "title": "Monotonic Microsecond Timestamp on Published Message",
+      "requirement_ids": ["SW-REQ-IMU-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library and a fake monotonic clock whose value is controllable in microseconds and a recording bus subscriber to capture published IMU messages.",
+      "procedure": [
+        "Set the fake monotonic clock to 1000 microseconds and invoke Execute(); capture the published message timestamp.",
+        "Advance the fake monotonic clock to 6000 microseconds and invoke Execute(); capture the published message timestamp.",
+        "Advance the fake monotonic clock to 11000 microseconds and invoke Execute(); capture the published message timestamp.",
+        "Compare each captured timestamp to the fake clock value at the time of the corresponding Execute() call."
+      ],
+      "acceptance_criteria": "Each published IMU message carries a timestamp equal to the fake clock value at Execute() entry, and timestamps are strictly monotonically non-decreasing across cycles.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-005",
+      "title": "Pass-Through Sample Content - No Transformation",
+      "requirement_ids": ["SW-REQ-IMU-APP-005"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that returns a scripted sequence of distinct samples and a recording bus subscriber.",
+      "procedure": [
+        "Program the mock library to return the sequence: sample A, sample B, sample C with arbitrary distinct field values.",
+        "Invoke the IMU app Execute() three consecutive times.",
+        "Capture the three published IMU messages from the recording subscriber.",
+        "Compare each published message's accelerometer and gyroscope fields byte-for-byte to the corresponding library sample (after axis-frame mapping only)."
+      ],
+      "acceptance_criteria": "Each published message's sample fields match the corresponding library sample exactly; no smoothing, integration, or value modification beyond the documented body-frame axis mapping is observed.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-006",
+      "title": "Body-Frame Axis Convention X-Forward Y-Right Z-Down",
+      "requirement_ids": ["SW-REQ-IMU-APP-006"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that returns sensor-frame samples whose mapping to body frame is documented.",
+      "procedure": [
+        "Program the mock library to return a sample with a unit vector along the sensor-frame X axis only.",
+        "Invoke Execute() and capture the published message's accelerometer vector.",
+        "Repeat with unit vectors along sensor-frame Y and Z axes, capturing each published vector.",
+        "Repeat the three unit-vector tests for the gyroscope channel."
+      ],
+      "acceptance_criteria": "Published accelerometer and gyroscope vectors match the documented X-forward, Y-right, Z-down body frame mapping for all six unit-vector inputs.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-007",
+      "title": "IMU Health Status Published Each Cycle",
+      "requirement_ids": ["SW-REQ-IMU-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that exposes a health status accessor and a recording subscriber on the IMU health topic.",
+      "procedure": [
+        "Program the mock library to report a HEALTHY status.",
+        "Invoke Execute() five consecutive times.",
+        "Count the IMU health messages received by the subscriber and verify each carries the HEALTHY value.",
+        "Reprogram the mock library to report a DEGRADED status, invoke Execute() once, and verify the next published health message carries DEGRADED."
+      ],
+      "acceptance_criteria": "Exactly one IMU health message is published per Execute() call; the message value tracks the mock library's reported health on every cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-008",
+      "title": "Deterministic Output for Identical Inputs",
+      "requirement_ids": ["SW-REQ-IMU-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate two independent IMU app instances, each with its own mock library and recording subscriber, configured with identical seeds and identical fake clocks.",
+      "procedure": [
+        "Program both mock libraries with the same scripted sample sequence of 100 samples.",
+        "Drive both apps through 100 Execute() calls each, advancing fake clocks identically.",
+        "Capture all published IMU sample messages and IMU health messages from both subscribers.",
+        "Perform a byte-for-byte comparison of the two recorded message streams."
+      ],
+      "acceptance_criteria": "The two recorded message streams (samples and health) are byte-for-byte identical across all 100 cycles.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-009",
+      "title": "Accelerometer Range Verification at +/-16 G",
+      "requirement_ids": ["SW-REQ-IMU-APP-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that exposes a configured accelerometer range accessor.",
+      "procedure": [
+        "Program the mock library to report an accelerometer range of plus or minus 16 G and initialize the IMU app via New().",
+        "Capture the IMU app initialization status and any logged or published configuration verification result.",
+        "Reprogram the mock library to report a range of plus or minus 8 G and re-initialize a fresh IMU app instance.",
+        "Capture the resulting initialization status or fault report."
+      ],
+      "acceptance_criteria": "Initialization succeeds with no fault when range is +/-16 G; when the library reports any other range, New() (or app initialization) returns a non-success status code distinct from JUNO_STATUS_SUCCESS, AND no IMU sample messages are published on the software bus during the test window.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-010",
+      "title": "Gyroscope Range Verification at +/-2000 dps",
+      "requirement_ids": ["SW-REQ-IMU-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a mock IMU library that exposes a configured gyroscope range accessor.",
+      "procedure": [
+        "Program the mock library to report a gyroscope range of plus or minus 2000 dps and initialize the IMU app via New().",
+        "Capture the IMU app initialization status and any logged or published configuration verification result.",
+        "Reprogram the mock library to report a range of plus or minus 500 dps and re-initialize a fresh IMU app instance.",
+        "Capture the resulting initialization status or fault report."
+      ],
+      "acceptance_criteria": "Initialization succeeds with no fault when range is +/-2000 dps; when the library reports any other range, New() (or app initialization) returns a non-success status code distinct from JUNO_STATUS_SUCCESS, AND no IMU sample messages are published on the software bus during the test window.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-011",
+      "title": "Sustained 200 Hz Sample Publication Over One Second",
+      "requirement_ids": ["SW-REQ-IMU-APP-001", "SW-REQ-IMU-APP-002", "SW-REQ-IMU-APP-003"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Instantiate the IMU app, a mock IMU library returning incrementing sequence numbers, the TDM scheduler at 200 Hz, and a recording subscriber on the IMU sample topic.",
+      "procedure": [
+        "Reset the recording subscriber and start the TDM scheduler.",
+        "Advance the fake clock by one second of simulated time while running the scheduler.",
+        "Stop the scheduler and read the count of received IMU sample messages.",
+        "Verify the sequence numbers in the received messages form a contiguous run starting from the first scheduled sample."
+      ],
+      "acceptance_criteria": "Exactly 200 IMU sample messages are published in one simulated second with strictly contiguous sequence numbers and no gaps or duplicates.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-APP-012",
+      "title": "Timestamp Monotonic Increase Across Many Cycles",
+      "requirement_ids": ["SW-REQ-IMU-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate the IMU app with a fake monotonic clock that advances by 5000 microseconds per Execute() call and a recording subscriber and a stubbed IMU library returning programmed sample values.",
+      "procedure": [
+        "Invoke Execute() 1000 consecutive times, advancing the fake clock by 5000 microseconds before each call.",
+        "Collect the timestamp field from every published IMU sample message.",
+        "Verify each timestamp is strictly greater than the previous timestamp.",
+        "Verify the difference between consecutive timestamps equals 5000 microseconds for every pair."
+      ],
+      "acceptance_criteria": "All 1000 published timestamps are strictly monotonically increasing with consecutive deltas equal to 5000 microseconds.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/imu_app/tests/imu_app_test.cpp"
+    }
+  ]
+}

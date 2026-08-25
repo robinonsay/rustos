@@ -1,0 +1,170 @@
+{
+  "module": "NAV-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-NAV-APP-001",
+      "title": "Nav App Scheduled at 100 Hz",
+      "description": "The nav app shall execute on the static schedule at 100 Hz throughout the mission.",
+      "rationale": "Parent SYS-012 fixes nav output cadence at 100 Hz; the app runs at this rate.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-012",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-002",
+      "title": "IMU Message Subscription",
+      "description": "The nav app shall subscribe to IMU messages on the software bus.",
+      "rationale": "Parent SYS-002 requires live nav; IMU input enters the app via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-003",
+      "title": "Barometer Message Subscription",
+      "description": "The nav app shall subscribe to barometric altimeter messages on the software bus.",
+      "rationale": "Parent SYS-002 requires live nav; baro input enters the app via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-004",
+      "title": "GPS Message Subscription",
+      "description": "The nav app shall subscribe to GPS fix messages on the software bus.",
+      "rationale": "Parent SYS-002 requires live nav; GPS input enters the app via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-005",
+      "title": "Nav State Published at 100 Hz",
+      "description": "The nav app shall publish a navigation state message on the software bus at 100 Hz.",
+      "rationale": "Parent SYS-012 mandates nav state output rate at the app level.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-012",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-006",
+      "title": "Sixteen-State Composition Published",
+      "description": "The nav app shall publish a navigation state containing position, velocity, attitude quaternion, and accelerometer and gyroscope biases.",
+      "rationale": "Parent SYS-013 defines the 16-state composition; the app publishes it.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-007",
+      "title": "Nav State Timestamp",
+      "description": "The nav app shall include a monotonic microsecond timestamp on every published navigation state message.",
+      "rationale": "Parent SYS-012 output cadence and SYS-026 monotonic time base require per-message timestamps.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-012",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-008",
+      "title": "Validity Flag Published",
+      "description": "The nav app shall publish a navigation validity flag on the software bus alongside each navigation state message.",
+      "rationale": "Parent SYS-015 requires the validity flag to be observable to consumers.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-015",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-009",
+      "title": "Validity False on Missing Inputs",
+      "description": "The nav app shall set the published validity flag false when required nav inputs are unavailable.",
+      "rationale": "Parent SYS-059 mandates validity reflects degraded input state at the app boundary.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-059",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-010",
+      "title": "Continue Publishing on Missing Inputs",
+      "description": "The nav app shall continue publishing navigation state at 100 Hz when one or more sensor inputs are unavailable.",
+      "rationale": "Parent SYS-034 requires nav propagation to continue when sensor inputs drop.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-034",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-011",
+      "title": "Position Bound to Latest GPS Fix",
+      "description": "The nav app shall keep its published position estimate within a configured horizontal distance of the latest GPS fix.",
+      "rationale": "Parent SYS-014 mandates a black-box GPS divergence bound at the app boundary.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-014",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-012",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The nav app shall produce identical published navigation state on POSIX and Pico2 builds for identical inputs.",
+      "rationale": "Parent SYS-043 requires the POSIX build to be functionally equivalent to the Pico2 build.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-013",
+      "title": "Deterministic Navigation Output",
+      "description": "The nav app shall produce deterministic navigation state output given identical sensor input sequences.",
+      "rationale": "Parent SYS-044 requires deterministic outputs for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-014",
+      "title": "Boost-Phase Sensor Update Skipping",
+      "description": "The nav app shall skip baro and GPS measurement updates during the boost phase.",
+      "rationale": "PM directive 2026-05-03: GPS multipath and baro shock during boost (high-G, transient pressure) make those measurements unreliable; IMU-only dead-reckoning is the safer fusion strategy during the ~500 ms boost interval.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-APP-015",
+      "title": "Post-Boost Settling Window for Sensor Re-Enablement",
+      "description": "The nav app shall delay baro and GPS update re-enablement by one second after boost-phase exit.",
+      "rationale": "PM directive 2026-05-03: 1-second settling window allows IMU bias estimates to converge after the boost-phase shock before fusion of GPS and baro resumes; configurable via NAV_APP_INIT_T for per-build tuning.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-NAV-APP-014",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

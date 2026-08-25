@@ -1,0 +1,247 @@
+{
+  "module": "BARO",
+  "test_cases": [
+    {
+      "id": "SW-TC-BARO-001",
+      "title": "Sample Throughput Sustains 20 Hz",
+      "requirement_ids": ["SW-REQ-BARO-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the barometric altimeter library with a POSIX mock device that returns synthetic samples on demand. Use a mocked clock advancing in 50 ms increments.",
+      "procedure": [
+        "Initialize the library via its New/Init entry point.",
+        "In a loop, advance the mock clock by 50 ms and invoke the library read interface to retrieve a sample.",
+        "Record the timestamp associated with each returned sample over a 2-second window (40 samples).",
+        "Compute the inter-sample interval between consecutive returned samples.",
+        "Verify that the library accepts the 20 Hz call cadence and returns one fresh sample per call."
+      ],
+      "acceptance_criteria": "The library returns 40 samples over the 2-second window with mean inter-sample interval of 50 ms +/- 1 ms and no dropped samples reported.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-002",
+      "title": "Pressure Reported in Pascals",
+      "requirement_ids": ["SW-REQ-BARO-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device configured to return a known raw pressure register value corresponding to 101325 Pa (standard sea-level pressure).",
+      "procedure": [
+        "Inject a raw pressure register pattern equivalent to 101325 Pa into the mock device.",
+        "Invoke the library read interface to retrieve a sample.",
+        "Read the pressure field from the returned sample structure.",
+        "Repeat with a second injected value corresponding to 90000 Pa and verify the conversion."
+      ],
+      "acceptance_criteria": "Pressure field equals 101325 Pa +/- 1 Pa for the first injection and 90000 Pa +/- 1 Pa for the second injection; field unit and scale documented as pascals.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-003",
+      "title": "Temperature Reported in Degrees Celsius",
+      "requirement_ids": ["SW-REQ-BARO-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device configured to return a known raw temperature register value corresponding to 25.0 degrees C.",
+      "procedure": [
+        "Inject a raw temperature register pattern equivalent to 25.0 degrees C into the mock device.",
+        "Invoke the library read interface to retrieve a sample.",
+        "Read the temperature field from the returned sample structure.",
+        "Repeat with a second injected value corresponding to -10.0 degrees C and verify the conversion."
+      ],
+      "acceptance_criteria": "Temperature field equals 25.0 degrees C +/- 0.1 degrees C for the first injection and -10.0 degrees C +/- 0.1 degrees C for the second injection.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-004",
+      "title": "Derived Altitude Reported in Meters",
+      "requirement_ids": ["SW-REQ-BARO-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device configured to return raw values corresponding to 101325 Pa (sea-level reference, 0 m) and 25.0 degrees C.",
+      "procedure": [
+        "Inject raw register values corresponding to 101325 Pa into the mock device.",
+        "Invoke the library read interface to retrieve a sample.",
+        "Read the altitude field from the returned sample structure.",
+        "Inject raw register values corresponding to 89876 Pa (approx 1000 m above the reference) and re-read.",
+        "Verify the altitude field tracks the pressure change in meters."
+      ],
+      "acceptance_criteria": "Altitude field reads 0 m +/- 1 m at sea-level pressure and approximately 1000 m +/- 5 m at the elevated injection pressure; field unit documented as meters.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-005",
+      "title": "POST Reports Device Present",
+      "requirement_ids": ["SW-REQ-BARO-005"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Flight Pico 2 board with MPL3115A2 altimeter wired to the configured I2C bus. Serial console open at 115200 baud capturing boot output.",
+      "procedure": [
+        "Power on the flight board with the MPL3115A2 altimeter connected.",
+        "Capture the boot serial output containing the POST report.",
+        "Locate the barometric altimeter POST line in the captured output.",
+        "Power off the board, disconnect the altimeter, and power on again.",
+        "Capture the second boot serial output.",
+        "Locate the barometric altimeter POST line in the second capture."
+      ],
+      "acceptance_criteria": "First boot POST line indicates barometric altimeter present and responsive; second boot POST line (device removed) indicates barometric altimeter absent or non-responsive.",
+      "expected_artifacts": [
+        {
+          "name": "post_present_serial.log",
+          "description": "Serial capture of boot POST output with altimeter connected",
+          "artifact_type": "serial_output"
+        },
+        {
+          "name": "post_absent_serial.log",
+          "description": "Serial capture of boot POST output with altimeter disconnected",
+          "artifact_type": "serial_output"
+        }
+      ],
+      "status": "Draft"
+    },
+    {
+      "id": "SW-TC-BARO-006",
+      "title": "Health Indicator Reflects Sample Flow",
+      "requirement_ids": ["SW-REQ-BARO-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device. Provide a mocked clock and a control to enable or stall mock sample production.",
+      "procedure": [
+        "Configure the mock to produce fresh samples on each read; advance the clock and call the read interface several times at 20 Hz cadence.",
+        "Query the library health indicator and record its value.",
+        "Configure the mock to stop producing fresh samples (stall reads or return stale data).",
+        "Continue advancing the clock past the configured staleness threshold and call the read interface.",
+        "Query the library health indicator and record its value."
+      ],
+      "acceptance_criteria": "Health indicator reports healthy while fresh samples flow and reports unhealthy after the staleness threshold is exceeded with no fresh samples.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-007",
+      "title": "Read Failure Returns Failure Status",
+      "requirement_ids": ["SW-REQ-BARO-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device that can be configured to inject I/O failures on the next read call.",
+      "procedure": [
+        "Configure the mock device to return an I/O error on the next read.",
+        "Invoke the library read interface and capture the returned status code.",
+        "Reset the mock to nominal behavior and invoke the library read interface again.",
+        "Capture the second returned status code."
+      ],
+      "acceptance_criteria": "First read returns a non-success JUNO_STATUS_T failure code; second read returns JUNO_STATUS_SUCCESS, demonstrating recovery and explicit failure reporting.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-008",
+      "title": "Non-Blocking Read Honors Timeout",
+      "requirement_ids": ["SW-REQ-BARO-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device configured to delay sample availability beyond the caller-supplied timeout. Use a mocked clock to measure elapsed time.",
+      "procedure": [
+        "Configure the mock device so that no sample is available within the next 100 ms of mocked time.",
+        "Call the library read interface with a timeout of 10 ms; record start and end mocked-clock timestamps and the returned status.",
+        "Configure the mock device so that a fresh sample is available immediately.",
+        "Call the library read interface with a timeout of 10 ms; record start and end mocked-clock timestamps and the returned status."
+      ],
+      "acceptance_criteria": "Timed-out call returns within 10 ms +/- 1 ms of mocked elapsed time with a timeout/no-data status; available-sample call returns success in less than 10 ms; neither call blocks past the timeout.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-009",
+      "title": "POSIX Implementation API Equivalence",
+      "requirement_ids": ["SW-REQ-BARO-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build the baro_lib_test target against the POSIX implementation. The test fixture exercises the public library API only. A pre-recorded reference dataset of Pico2-build outputs for an enumerated set of injected pressure, temperature, and altitude inputs is available to the test as a fixture file.",
+      "procedure": [
+        "Initialize the library via the public New/Init API on the POSIX build.",
+        "Inject the enumerated mock pressure, temperature, and altitude values via the POSIX device shim, matching the inputs used to produce the Pico2 reference dataset.",
+        "Invoke each public API entry point: read sample, query health, query POST result.",
+        "Capture each entry point's returned status code and the populated output structure fields (pressure, temperature, altitude, health, POST result).",
+        "Verify each entry point returns a JUNO_STATUS_T and populates the same output structures defined in the public header.",
+        "Compare each captured POSIX output value (pressure, temperature, altitude) against the recorded Pico2 reference output for the same injected inputs; assert byte-for-byte equality of populated structure fields.",
+        "Compare each captured POSIX status code against the recorded Pico2 reference status code for the same call; assert equality.",
+        "Tear down the library via its public destructor."
+      ],
+      "acceptance_criteria": "Each API entry point on POSIX produces output values byte-equivalent to those produced by the Pico2 build for identical injected mock pressure, temperature, and altitude values; status codes match per call; no entry point returns success without populating the output structure with the injected values.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-010",
+      "title": "Pico2 Hardware Sample Acquisition",
+      "requirement_ids": ["SW-REQ-BARO-010"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Flight Pico 2 board with MPL3115A2 altimeter wired to the configured I2C bus. Firmware built with the Pico2 baro_lib implementation. Serial console open at 115200 baud.",
+      "procedure": [
+        "Power on the flight board with the altimeter connected.",
+        "Wait for POST to complete and the application loop to begin.",
+        "Capture at least 30 seconds of serial output containing periodic baro sample logs (pressure, temperature, altitude).",
+        "Apply a known stimulus by lifting the board approximately 1 meter and lowering it.",
+        "Confirm the altitude field in the serial log responds to the stimulus.",
+        "Save the captured serial log to file."
+      ],
+      "acceptance_criteria": "Serial log shows continuous baro samples at the configured cadence; pressure stays within plausible local atmospheric range; altitude field changes by approximately 1 m during the lift stimulus.",
+      "expected_artifacts": [
+        {
+          "name": "pico2_baro_serial.log",
+          "description": "Serial capture of Pico2 firmware logging baro samples during the lift stimulus",
+          "artifact_type": "serial_output"
+        }
+      ],
+      "status": "Draft"
+    },
+    {
+      "id": "SW-TC-BARO-011",
+      "title": "Sample Rate Sustained Under Read Errors",
+      "requirement_ids": ["SW-REQ-BARO-001", "SW-REQ-BARO-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device. Mock clock advances in 50 ms steps. Configure the mock to inject one I/O failure every tenth read.",
+      "procedure": [
+        "Run the read interface in a loop for 4 seconds of mocked time at 50 ms cadence (80 calls).",
+        "Record each call's returned status and timestamp.",
+        "Count successful reads and failed reads.",
+        "Verify successful reads continue at 20 Hz cadence aside from the injected failures."
+      ],
+      "acceptance_criteria": "Approximately 72 successful reads and 8 failed reads recorded; successful reads maintain 50 ms +/- 1 ms cadence; failed reads return non-success status without stalling subsequent calls.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-012",
+      "title": "Health Reflects POST Failure at Startup",
+      "requirement_ids": ["SW-REQ-BARO-005", "SW-REQ-BARO-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the library with a POSIX mock device configured to fail the device probe (whoami/identification) during initialization.",
+      "procedure": [
+        "Configure the mock device so the POST probe returns a non-responsive result.",
+        "Initialize the library via its New/Init entry point.",
+        "Query the library POST result.",
+        "Query the library health indicator immediately after initialization."
+      ],
+      "acceptance_criteria": "POST result reports device absent or non-responsive; health indicator reports unhealthy; subsequent read calls return failure status without crashing.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/baro_lib/tests/baro_lib_test.cpp"
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "module": "MLOG",
+  "requirements": [
+    {
+      "id": "SW-REQ-MLOG-001",
+      "title": "Raw IMU Record API",
+      "description": "The mlog library shall accept raw IMU sample records and write them to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-001 and SW-REQ-SYS-022, raw IMU samples must be persisted to the SD card for post-flight analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-002",
+      "title": "Raw Barometer Record API",
+      "description": "The mlog library shall accept raw barometer sample records and write them to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-001 and SW-REQ-SYS-022, raw barometer samples must be persisted to the SD card.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-003",
+      "title": "Raw GPS NMEA Record API",
+      "description": "The mlog library shall accept raw GPS NMEA sentences and write them verbatim to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-024, raw GPS NMEA sentences must be preserved verbatim for post-flight reconstruction.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-004",
+      "title": "Navigation State Record API",
+      "description": "The mlog library shall accept navigation state records and write them to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-022, navigation state estimates must be persisted to the SD card for post-flight analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-005",
+      "title": "AFM Phase Event Record API",
+      "description": "The mlog library shall accept flight phase event records and write them to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-022, AFM flight phase events must be persisted to the SD card for post-flight analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-006",
+      "title": "GPS UTC Time Record API",
+      "description": "The mlog library shall accept GPS UTC time records and write them to non-volatile storage.",
+      "rationale": "Per SW-REQ-SYS-028, GPS UTC time records enable post-flight alignment of monotonic time to absolute UTC.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-028",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-007",
+      "title": "Per-Record Monotonic Microsecond Timestamp",
+      "description": "The mlog library shall stamp every written record with a monotonic microsecond timestamp.",
+      "rationale": "Per SW-REQ-SYS-026 and SW-REQ-SYS-027, every record (including per-sample raw records) must carry a monotonic microsecond stamp.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-008",
+      "title": "New Run Created at Initialization",
+      "description": "The mlog library shall create a new log run on each initialization.",
+      "rationale": "Per SW-REQ-SYS-025, each power-on must start a fresh log run distinct from prior runs.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-025",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-009",
+      "title": "Prior Run Preservation",
+      "description": "The mlog library shall not overwrite or delete any prior log run.",
+      "rationale": "Per SW-REQ-SYS-055, prior log runs must be preserved on the SD card until externally wiped.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-055",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-010",
+      "title": "Machine-Parseable Record Format",
+      "description": "The mlog library shall write records in a machine-parseable format that identifies each record's type.",
+      "rationale": "Per SW-REQ-SYS-023, log records must be machine-parseable; specific format details are deferred to design.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-023",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-011",
+      "title": "Write Failure Status Propagation",
+      "description": "The mlog library shall return a failure status to the caller when the underlying SD write fails.",
+      "rationale": "Per SW-REQ-SYS-035 and SW-REQ-SYS-060, SD write failures must be observable so callers can flag the SD unhealthy and continue.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-060",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-012",
+      "title": "Continue After Write Failure",
+      "description": "The mlog library shall accept and attempt subsequent record writes after a prior write failure.",
+      "rationale": "Per SW-REQ-SYS-035, the FSW must continue attempting SD writes after a write failure rather than halting.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-035",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-013",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "description": "The mlog library shall provide functionally equivalent behavior on the POSIX and Pico2 builds.",
+      "rationale": "Per SW-REQ-SYS-043, the POSIX build must be functionally equivalent to the Pico2 flight build for Trick simulation.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-014",
+      "title": "Deterministic Record Output",
+      "description": "The mlog library shall produce identical written record byte sequences given identical input record sequences.",
+      "rationale": "Per SW-REQ-SYS-044, deterministic output is required for repeatable Trick simulation runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "module": "GPS-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-GPS-APP-001",
+      "title": "GPS App Executes at 5 Hz on Static Schedule",
+      "requirement_ids": ["SW-REQ-GPS-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate gps_app with stubbed gps_lib, stubbed nmea_lib, and a stubbed bus broker. Drive the static TDM scheduler with simulated time.",
+      "procedure": [
+        "Initialize gps_app with the stubbed dependencies and register it on the static schedule.",
+        "Record the scheduler tick at the start of the test as T0.",
+        "Advance simulated time forward by 1.000 seconds while servicing the scheduler.",
+        "Count the number of times the gps_app execute hook was invoked between T0 and T0+1.000s.",
+        "Compare the invocation count against the expected 5 Hz cadence."
+      ],
+      "acceptance_criteria": "The gps_app execute hook is invoked exactly 5 times within the 1.000-second window, with inter-invocation interval of 200 ms +/- scheduler tolerance.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-002",
+      "title": "GPS App Reads NMEA Bytes from gps_lib Each Tick",
+      "requirement_ids": ["SW-REQ-GPS-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate gps_app with a stubbed gps_lib that records every read API call and returns canned NMEA bytes. Stub nmea_lib and bus broker.",
+      "procedure": [
+        "Initialize gps_app with the stubbed gps_lib.",
+        "Reset the gps_lib stub read-call counter to zero.",
+        "Invoke the gps_app execute hook N=10 times via the scheduler.",
+        "Read the gps_lib stub read-call counter.",
+        "Compare the counter to N."
+      ],
+      "acceptance_criteria": "The gps_lib stub records exactly N read API invocations after N gps_app execute hook invocations.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-003",
+      "title": "GPS App Forwards Raw Bytes to nmea_lib for Parsing",
+      "requirement_ids": ["SW-REQ-GPS-APP-003"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib delivers a known NMEA byte buffer. Stubbed nmea_lib captures every parse API invocation and the bytes passed to it.",
+      "procedure": [
+        "Configure the gps_lib stub to return a fixed NMEA buffer 'BUF' on its read API.",
+        "Invoke the gps_app execute hook once.",
+        "Inspect the nmea_lib stub for parse-API invocations.",
+        "Compare the bytes delivered to nmea_lib against BUF.",
+        "Inspect the gps_app source to confirm no in-app NMEA tokenization, checksum logic, or field extraction is performed outside nmea_lib."
+      ],
+      "acceptance_criteria": "nmea_lib parse API is invoked with bytes equal to BUF, and gps_app source contains no inline NMEA parsing logic.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-004",
+      "title": "GPS App Publishes Structured Fix on Successful Parse",
+      "requirement_ids": ["SW-REQ-GPS-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib supplies a valid NMEA buffer. Stubbed nmea_lib returns a successful parse with a known GPS fix structure. Stubbed bus broker captures all publish calls.",
+      "procedure": [
+        "Configure nmea_lib stub to return success with a known fix {lat=L, lon=G, alt=A, fix_quality=1}.",
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook once.",
+        "Read all publish calls captured by the bus broker stub.",
+        "Identify the structured GPS fix message and compare its fields {lat, lon, alt, fix_quality} against {L, G, A, 1}."
+      ],
+      "acceptance_criteria": "Exactly one structured GPS fix message is published on the bus per successful parse, with fields equal to {L, G, A, 1}.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-005",
+      "title": "GPS App Does Not Publish Fix on Parse Failure",
+      "requirement_ids": ["SW-REQ-GPS-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib supplies a buffer. Stubbed nmea_lib returns parse failure. Stubbed bus broker captures all publish calls.",
+      "procedure": [
+        "Configure nmea_lib stub to return a parse-failure status for the next invocation.",
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook once.",
+        "Inspect the bus broker capture buffer for any structured GPS fix messages on the fix topic."
+      ],
+      "acceptance_criteria": "Zero structured GPS fix messages are published on the fix topic when nmea_lib reports a parse failure.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-006",
+      "title": "GPS App Publishes Raw NMEA Bytes Verbatim on Bus",
+      "requirement_ids": ["SW-REQ-GPS-APP-005", "SW-REQ-GPS-APP-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib delivers a known raw NMEA buffer 'RAW' including CRLF. Stubbed bus broker captures all publish calls. nmea_lib stub returns success.",
+      "procedure": [
+        "Configure the gps_lib stub to return RAW on its read API.",
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook once.",
+        "Locate the raw-NMEA bus publication in the capture buffer.",
+        "Perform a byte-by-byte comparison between the published payload and RAW."
+      ],
+      "acceptance_criteria": "The raw NMEA bus publication payload matches RAW byte-for-byte with no characters added, removed, or modified.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-007",
+      "title": "GPS App Publishes Health Status Every Tick",
+      "requirement_ids": ["SW-REQ-GPS-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib returns success. Stubbed nmea_lib returns success. Stubbed bus broker captures all publish calls and tags them with their topic.",
+      "procedure": [
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook N=10 times.",
+        "Filter the captured publish calls to the gps health topic.",
+        "Count the number of health publications captured."
+      ],
+      "acceptance_criteria": "The bus broker captures exactly N health publications on the gps health topic after N gps_app execute invocations.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-008",
+      "title": "GPS App Reports Healthy When gps_lib Read Succeeds",
+      "requirement_ids": ["SW-REQ-GPS-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib returns success on every read. Stubbed nmea_lib returns success. Stubbed bus broker captures health publications.",
+      "procedure": [
+        "Configure gps_lib stub to return JUNO_STATUS_SUCCESS for all reads.",
+        "Invoke the gps_app execute hook once.",
+        "Locate the gps health publication captured by the bus broker.",
+        "Inspect the health field of the captured payload."
+      ],
+      "acceptance_criteria": "The captured gps health publication reports the healthy state when gps_lib read returns success.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-009",
+      "title": "GPS App Reports Unhealthy When gps_lib Read Fails",
+      "requirement_ids": ["SW-REQ-GPS-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib returns a failure status on read. Stubbed bus broker captures health publications.",
+      "procedure": [
+        "Configure gps_lib stub to return a non-success JUNO_STATUS_T on its next read.",
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook once.",
+        "Locate the gps health publication captured by the bus broker.",
+        "Inspect the health field of the captured payload."
+      ],
+      "acceptance_criteria": "The captured gps health publication reports the unhealthy state when gps_lib read returns a failure status.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-010",
+      "title": "GPS App Skips Fix Publication When Read Fails",
+      "requirement_ids": ["SW-REQ-GPS-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Stubbed gps_lib returns a failure status on read. Stubbed bus broker captures all publications.",
+      "procedure": [
+        "Configure gps_lib stub to return a non-success JUNO_STATUS_T on its next read.",
+        "Reset the bus broker capture buffer.",
+        "Invoke the gps_app execute hook once.",
+        "Inspect the bus broker capture for the structured GPS fix and raw NMEA topics."
+      ],
+      "acceptance_criteria": "Zero structured GPS fix messages and zero raw NMEA messages are published when the gps_lib read fails; only the (unhealthy) health status is published.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-011",
+      "title": "POSIX and Pico2 Builds Produce Identical Bus Messages",
+      "requirement_ids": ["SW-REQ-GPS-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Compile the gps_app unit test binary in both POSIX and Pico2 host-test configurations against identical stubbed gps_lib, nmea_lib, and bus broker fed with the same canned NMEA byte sequence.",
+      "procedure": [
+        "Build gps_app_test for the POSIX configuration and the Pico2 host-test configuration.",
+        "Run each test binary with the same fixed canned NMEA byte sequence as input to the gps_lib stub.",
+        "Capture every bus broker publication (topic, payload bytes) from each run into a serialized log.",
+        "Diff the POSIX log against the Pico2 host-test log byte-for-byte."
+      ],
+      "acceptance_criteria": "The captured bus publication logs from the POSIX and Pico2 host-test builds are byte-for-byte identical given the same input sequence.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-APP-012",
+      "title": "Published Fix Altitude Field Is HAE (WGS-84)",
+      "requirement_ids": ["SW-REQ-GPS-APP-010"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Stubbed nmea_lib returns a parsed fix with altitude tagged as HAE in its output structure. Bus broker captures the structured fix publication.",
+      "procedure": [
+        "Configure nmea_lib stub to return a parsed fix with altitude_hae=A and any geoid separation field populated.",
+        "Invoke the gps_app execute hook once.",
+        "Capture the structured GPS fix publication from the bus broker.",
+        "Inspect the altitude field of the published payload and the schema/typedef of the published message.",
+        "Confirm by inspection of the gps_app source that the altitude field assigned to the bus message is the HAE field, not a geoid-referenced (MSL) value."
+      ],
+      "acceptance_criteria": "The altitude field of the published GPS fix message equals A (the HAE value), and the message schema documents the altitude as WGS-84 ellipsoid-referenced.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/gps_app/tests/gps_app_test.cpp"
+    }
+  ]
+}

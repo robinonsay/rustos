@@ -1,0 +1,126 @@
+{
+  "module": "AFM",
+  "requirements": [
+    {
+      "id": "SW-REQ-AFM-001",
+      "title": "Sensor and Nav Input Acceptance",
+      "description": "The AFM library shall accept IMU, barometric, GPS, and navigation state measurements through its public interface.",
+      "rationale": "FT1 phase-detection demonstration consumes the full FSW sensor and nav suite as inputs to the AFM.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-016",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-002",
+      "title": "Flight Phase Enumeration",
+      "description": "The AFM library shall represent the current flight phase as one of pre-launch, boost, apogee, descent, or landing.",
+      "rationale": "PM-defined AFM phase set required for FT1 phase-detection demonstration and downstream telemetry consumers.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-016",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-003",
+      "title": "Current Phase Output",
+      "description": "The AFM library shall provide the current flight phase to callers through its public interface.",
+      "rationale": "FT1 AFM application reads phase from the library and publishes it onto the software bus.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-017",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-004",
+      "title": "Phase Transition Ordering",
+      "description": "The AFM library shall transition phases only in the order pre-launch, boost, apogee, descent, landing.",
+      "rationale": "PM-defined nominal flight sequence; out-of-order transitions are physically invalid for FT1.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-016",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-005",
+      "title": "No Phase Regression",
+      "description": "The AFM library shall not transition the current phase backward to any previously held phase.",
+      "rationale": "PM decision: phase progression is monotonic for the FT1 mission; regression is not permitted.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-016",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-006",
+      "title": "Transition Timestamp Output",
+      "description": "The AFM library shall provide the timestamp of each detected phase transition through its public interface.",
+      "rationale": "FT1 phase-detection demonstration requires per-transition timestamps for log correlation and ground-truth comparison.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-018",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-007",
+      "title": "Bounded Detection Latency",
+      "description": "The AFM library shall detect each phase transition within one second of its actual occurrence.",
+      "rationale": "PM-defined AFM acceptance tolerance for FT1 closure based on post-flight ground-truth determination.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-018",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-008",
+      "title": "Degraded Sensor Continuation",
+      "description": "The AFM library shall continue producing a current phase when a subset of sensor inputs is unavailable.",
+      "rationale": "PM decision: phase detection must remain available under degraded sensor conditions during the FT1 mission.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-016",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-009",
+      "title": "Callable Without Side Effects on Failure",
+      "description": "The AFM library shall return a status code on failure rather than aborting the calling application.",
+      "rationale": "PM AFM-loss tolerance: scheduler and other apps must continue when AFM cannot produce a phase.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-062",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-010",
+      "title": "POSIX and Pico2 Equivalence",
+      "description": "The AFM library shall produce identical phase outputs on the POSIX build and the Pico2 build for identical inputs.",
+      "rationale": "FT1 Trick simulation must exercise the same AFM behavior as the flight build for sim anchoring.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-AFM-011",
+      "title": "Deterministic Phase Output",
+      "description": "The AFM library shall produce identical phase outputs given identical sequences of inputs.",
+      "rationale": "PM-required determinism so Trick sim runs and regression analyses reproduce phase decisions.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+{
+  "module": "MLOG",
+  "test_cases": [
+    {
+      "id": "SW-TC-MLOG-001",
+      "title": "Raw IMU Record Write - Round Trip",
+      "requirement_ids": ["SW-REQ-MLOG-001", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Construct a raw IMU sample record with known accelerometer and gyroscope values.",
+        "Call the mlog write API for IMU records with the constructed sample.",
+        "Close or flush the run to ensure bytes are durable.",
+        "Re-open the produced log file and parse records using the documented format.",
+        "Locate the IMU record and compare every field against the input sample."
+      ],
+      "acceptance_criteria": "Write API returns success and the parsed IMU record exactly matches the input accelerometer and gyroscope values, with the record type identifying it as an IMU record.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-002",
+      "title": "Raw Barometer Record Write - Round Trip",
+      "requirement_ids": ["SW-REQ-MLOG-002", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Construct a raw barometer sample record with known pressure and temperature values.",
+        "Call the mlog write API for barometer records with the constructed sample.",
+        "Flush the run and re-open the produced log file.",
+        "Parse records and locate the barometer record.",
+        "Compare every barometer field against the input sample."
+      ],
+      "acceptance_criteria": "Write API returns success and the parsed barometer record exactly matches the input pressure and temperature values, with the record type identifying it as a barometer record.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-003",
+      "title": "Raw GPS NMEA Sentence Verbatim Preservation",
+      "requirement_ids": ["SW-REQ-MLOG-003", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Prepare a known NMEA sentence byte buffer including the leading '$' and trailing CRLF.",
+        "Call the mlog write API for NMEA records with the buffer and its length.",
+        "Flush the run and re-open the produced log file.",
+        "Parse records and extract the NMEA payload bytes from the located NMEA record.",
+        "Byte-compare the extracted payload against the original input buffer."
+      ],
+      "acceptance_criteria": "The bytes preserved in the NMEA record are byte-identical to the input sentence, with no truncation, escaping, reordering, or modification.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-004",
+      "title": "Navigation State Record Write - Round Trip",
+      "requirement_ids": ["SW-REQ-MLOG-004", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Construct a navigation state record with known position, velocity, and attitude fields.",
+        "Call the mlog write API for navigation records with the constructed state.",
+        "Flush the run and re-open the produced log file.",
+        "Parse records and locate the navigation record.",
+        "Compare every navigation field against the input state."
+      ],
+      "acceptance_criteria": "Write API returns success and the parsed navigation record exactly matches the input position, velocity, and attitude, with the record type identifying it as navigation state.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-005",
+      "title": "AFM Phase Event Record Write - Round Trip",
+      "requirement_ids": ["SW-REQ-MLOG-005", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Construct an AFM flight phase event record describing a known phase transition (e.g., PRE_LAUNCH to BOOST).",
+        "Call the mlog write API for AFM phase event records with the constructed event.",
+        "Flush the run and re-open the produced log file.",
+        "Parse records and locate the AFM event record.",
+        "Compare the recorded phase transition fields against the input event."
+      ],
+      "acceptance_criteria": "Write API returns success and the parsed AFM event record exactly matches the input phase transition, with the record type identifying it as an AFM event.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-006",
+      "title": "GPS UTC Time Record Write - Round Trip",
+      "requirement_ids": ["SW-REQ-MLOG-006", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library against a tmpfs/in-memory storage backend with a fresh run.",
+      "procedure": [
+        "Construct a GPS UTC time record with known UTC time-of-day and date fields plus a monotonic timestamp.",
+        "Call the mlog write API for GPS UTC records with the constructed record.",
+        "Flush the run and re-open the produced log file.",
+        "Parse records and locate the GPS UTC record.",
+        "Compare every UTC and timestamp field against the input record."
+      ],
+      "acceptance_criteria": "Write API returns success and the parsed GPS UTC record exactly matches the input UTC fields and the monotonic timestamp, with the record type identifying it as GPS UTC.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-007",
+      "title": "Per-Record Monotonic Microsecond Timestamp Stamping",
+      "requirement_ids": ["SW-REQ-MLOG-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog library with an injectable monotonic time source returning configurable microsecond values.",
+      "procedure": [
+        "Set the time source to return a sequence of strictly increasing microsecond values.",
+        "Write one record of each type (IMU, barometer, NMEA, navigation, AFM event, GPS UTC) interleaved with time advances.",
+        "Flush the run and re-open the produced log file.",
+        "Parse all records and extract the embedded timestamp from each.",
+        "Compare each record's embedded timestamp against the time source value at the moment of its write call."
+      ],
+      "acceptance_criteria": "Every parsed record carries the exact microsecond timestamp returned by the time source at its write call, and timestamps are strictly non-decreasing across the run.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-008",
+      "title": "New Run Created on Each Initialization",
+      "requirement_ids": ["SW-REQ-MLOG-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Point mlog at an empty storage directory.",
+      "procedure": [
+        "Initialize mlog, write at least one record, and tear down the library.",
+        "Initialize mlog a second time against the same storage directory and tear down.",
+        "Initialize mlog a third time against the same storage directory and tear down.",
+        "Enumerate the run artifacts present in the storage directory."
+      ],
+      "acceptance_criteria": "Three distinct, separately identifiable run artifacts exist in the storage directory after the three initializations, none aliasing one another.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-009",
+      "title": "Prior Run Preservation Across Reinitialization",
+      "requirement_ids": ["SW-REQ-MLOG-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Point mlog at an empty storage directory.",
+      "procedure": [
+        "Initialize mlog, write a known sequence of records ('Run A'), then tear down.",
+        "Capture the byte contents of the Run A artifact(s).",
+        "Initialize mlog a second time against the same directory, write a different sequence ('Run B'), then tear down.",
+        "Re-read the Run A artifact(s) from disk and compare bytes against the captured copy.",
+        "Confirm Run B artifact(s) exist and do not overlap or alias Run A storage."
+      ],
+      "acceptance_criteria": "Run A artifacts are byte-identical before and after Run B is created, and Run B did not delete or modify any Run A artifact.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-010",
+      "title": "Machine-Parseable Format with Record Type Identifier",
+      "requirement_ids": ["SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog and prepare one record of every supported type.",
+      "procedure": [
+        "Write one IMU, one barometer, one NMEA, one navigation, one AFM event, and one GPS UTC record in a known order.",
+        "Flush the run and re-open the produced log file.",
+        "Run the documented parser over the bytes from start to end without prior knowledge of record order.",
+        "For each parsed record, read the record type identifier and dispatch to the matching decoder.",
+        "Verify all six expected record types are recovered and decoded successfully."
+      ],
+      "acceptance_criteria": "The parser recovers exactly six records in the order written, each with a correctly identified record type, and decodes every payload without parse errors.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-011",
+      "title": "Write Failure Status Returned to Caller",
+      "requirement_ids": ["SW-REQ-MLOG-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog with a mock storage backend whose write call can be configured to return failure on demand.",
+      "procedure": [
+        "Configure the mock backend to succeed for the first write call.",
+        "Write one IMU record and verify success status is returned.",
+        "Configure the mock backend to fail on the next write call.",
+        "Write another IMU record and capture the returned status.",
+        "Inspect the returned status code."
+      ],
+      "acceptance_criteria": "The mlog write API returns a non-success failure status when the underlying backend write fails, distinguishable from the success status returned for the prior call.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-012",
+      "title": "Continue Accepting Writes After Failure",
+      "requirement_ids": ["SW-REQ-MLOG-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog with a mock storage backend whose write call can be configured to fail or succeed per call.",
+      "procedure": [
+        "Write one record (Record 1) with the backend in success mode and verify success.",
+        "Configure the backend to fail on the next write and write Record 2; verify failure status.",
+        "Reconfigure the backend to succeed on subsequent writes.",
+        "Write Record 3 and Record 4 and verify each returns success status.",
+        "Flush, re-open the run, and parse to enumerate persisted records."
+      ],
+      "acceptance_criteria": "The mlog library returns success for Record 1, Record 3, and Record 4 after the Record 2 failure, and Records 1, 3, and 4 are persisted in the run; the library does not refuse subsequent writes after a failure.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-013",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "requirement_ids": ["SW-REQ-MLOG-013", "SW-REQ-MLOG-014"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build mlog for both POSIX (host) and Pico2 (RP2350) targets. Prepare a fixed scripted record sequence covering all record types with deterministic timestamps.",
+      "procedure": [
+        "Run the scripted sequence on the POSIX build and capture the produced log file bytes.",
+        "Run the same scripted sequence on the Pico2 build and capture the produced log file bytes.",
+        "Compute a byte-level diff between the two captured outputs.",
+        "Parse both outputs with the documented parser and compare the recovered record sequences field-by-field."
+      ],
+      "acceptance_criteria": "Both builds accept every scripted call with the same status codes, and the parsed record sequences are field-by-field identical between POSIX and Pico2 outputs.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-014",
+      "title": "Deterministic Byte Output for Identical Input",
+      "requirement_ids": ["SW-REQ-MLOG-014"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog with a deterministic monotonic time source and a tmpfs storage backend.",
+      "procedure": [
+        "Run a fixed scripted sequence of writes covering all record types and capture the produced byte stream as Output A.",
+        "Tear down mlog and reset the storage directory and time source to identical initial state.",
+        "Run the exact same scripted sequence and capture the produced byte stream as Output B.",
+        "Compute SHA-256 hashes of Output A and Output B.",
+        "Perform a byte-level comparison of Output A against Output B."
+      ],
+      "acceptance_criteria": "Output A and Output B are byte-identical and their SHA-256 hashes match exactly.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-015",
+      "title": "Mixed Record Type Stream Round Trip",
+      "requirement_ids": [
+        "SW-REQ-MLOG-001",
+        "SW-REQ-MLOG-002",
+        "SW-REQ-MLOG-003",
+        "SW-REQ-MLOG-004",
+        "SW-REQ-MLOG-005",
+        "SW-REQ-MLOG-006",
+        "SW-REQ-MLOG-007",
+        "SW-REQ-MLOG-010"
+      ],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog with a deterministic monotonic time source and a tmpfs storage backend.",
+      "procedure": [
+        "Build a randomized-but-seeded sequence of 1000 records spanning all six record types with unique payloads per record.",
+        "Write the entire sequence and flush the run.",
+        "Re-open the produced log file and parse all records using the documented format.",
+        "Verify the parsed record count equals 1000 and every payload field matches the corresponding input record.",
+        "Verify every parsed record carries a monotonic microsecond timestamp consistent with the time source at the time of its write."
+      ],
+      "acceptance_criteria": "All 1000 records are recovered with correct record types, payloads matching the input by field, and monotonically non-decreasing timestamps consistent with the time source.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-016",
+      "title": "Run Identity Distinguishes Sequential Runs",
+      "requirement_ids": ["SW-REQ-MLOG-008", "SW-REQ-MLOG-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Point mlog at an empty storage directory.",
+      "procedure": [
+        "Initialize mlog and write a tagged 'A' record, then tear down.",
+        "Initialize mlog again and write a tagged 'B' record, then tear down.",
+        "Enumerate run artifacts and parse each.",
+        "Verify exactly one run contains the 'A' record and a distinct run contains the 'B' record.",
+        "Verify neither run contains records from the other."
+      ],
+      "acceptance_criteria": "Two distinct runs exist, each containing only its own tagged record, with no cross-contamination of records between runs.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-017",
+      "title": "Write Failure Does Not Corrupt Subsequent Records",
+      "requirement_ids": ["SW-REQ-MLOG-011", "SW-REQ-MLOG-012", "SW-REQ-MLOG-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog with a mock storage backend supporting per-call success/failure injection.",
+      "procedure": [
+        "Write IMU Record 1 in success mode.",
+        "Inject failure and write IMU Record 2; capture the returned failure status.",
+        "Restore success mode and write IMU Records 3, 4, and 5 with distinct known payloads.",
+        "Flush, re-open the run, and parse all records.",
+        "Verify each successfully-written record decodes cleanly with payload matching its input."
+      ],
+      "acceptance_criteria": "Records 1, 3, 4, and 5 are all recovered with correct payloads and identifiable record types; the failed Record 2 does not produce a malformed record that breaks parsing of subsequent records.",
+      "status": "Active",
+      "google_test_ref": "libs/mlog_lib/tests/mlog_lib_test.cpp"
+    }
+  ]
+}

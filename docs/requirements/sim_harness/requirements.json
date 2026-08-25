@@ -1,0 +1,115 @@
+{
+  "module": "SIM-HARN",
+  "requirements": [
+    {
+      "id": "SW-REQ-SIM-HARN-001",
+      "title": "Trick S_define Integration",
+      "description": "The sim harness shall integrate sim_dynamics, sim_sensors, sim_scenario, and FSW POSIX into a single Trick simulation.",
+      "rationale": "PM-required Trick top-level integration providing a single closed-loop SITL simulation for FT1 nav anchoring.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-002",
+      "title": "Time-Stepped Sim Orchestration",
+      "description": "The sim harness shall advance the simulation on a fixed time step driven by the Trick scheduler.",
+      "rationale": "PM-required deterministic time-stepped orchestration so dynamics, sensors, and FSW execute in a repeatable order.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-003",
+      "title": "Sensor-to-FSW Boundary",
+      "description": "The sim harness shall deliver simulated sensor measurements to the FSW POSIX driver inputs each step.",
+      "rationale": "PM-required boundary between Trick-side sensor models and the FSW POSIX driver layer for each scheduled step.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-004",
+      "title": "POSIX FSW Execution Inside Sim",
+      "description": "The sim harness shall execute the FSW POSIX applications and libraries in-process during each simulation step.",
+      "rationale": "PM-required so Trick exercises the same FSW software paths used on flight hardware via the POSIX build.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-005",
+      "title": "Scenario Configuration Selection",
+      "description": "The sim harness shall select the scenario configuration via Trick command-line arguments at run start.",
+      "rationale": "PM-required command-line scenario selection to enable batch runs and operator-driven configuration.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-006",
+      "title": "Reproducible Run Output",
+      "description": "The sim harness shall produce identical run outputs given identical scenario configuration and random seed inputs.",
+      "rationale": "PM-required reproducibility for regression analysis and FT1 nav anchoring across repeated Trick runs.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-007",
+      "title": "SD Log Artifact Emission",
+      "description": "The sim harness shall emit the FSW SD card log as a file artifact each run.",
+      "rationale": "PM-required SD log artifact captured during sim runs for post-run analysis and FT1 anchoring.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-008",
+      "title": "Telemetry Capture Artifact",
+      "description": "The sim harness shall capture FSW telemetry packets to a file artifact each run.",
+      "rationale": "PM-required telemetry transcript artifact captured during sim runs for ground-station behavioral verification.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-009",
+      "title": "Truth-vs-FSW Comparison Artifact",
+      "description": "The sim harness shall write a truth-versus-FSW comparison file containing simulated truth and FSW nav state.",
+      "rationale": "PM-required comparison artifact enabling nav-vs-truth post-run analysis for FT1 sim closure.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SIM-HARN-010",
+      "title": "Run Artifact Output Directory",
+      "description": "The sim harness shall collect all run output artifacts under a single configurable output directory.",
+      "rationale": "PM-required collection of all sim artifacts in one known location for downstream tooling and archival.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

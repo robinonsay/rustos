@@ -1,0 +1,135 @@
+{
+  "module": "SCH",
+  "requirements": [
+    {
+      "id": "SW-REQ-SCH-001",
+      "title": "Application Registration With Fixed Period",
+      "description": "The SCH library shall register applications with a fixed period at startup.",
+      "rationale": "PM-mandated static TDM model: every application has a compile-time period set during initialization.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-002",
+      "title": "Static Schedule After Initialization",
+      "description": "The SCH library shall reject application registration after scheduler initialization completes.",
+      "rationale": "PM decision SW-REQ-SYS-010: schedule is fixed at compile time; no dynamic registration permitted after init.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-003",
+      "title": "Periodic Application Invocation",
+      "description": "The SCH library shall invoke each registered application at its registered period.",
+      "rationale": "Core TDM behavior: apps run on their fixed cadence so sensor and nav rates are met deterministically.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-004",
+      "title": "Period Range Covers FSW Application Rates",
+      "description": "The SCH library shall support application periods spanning at least 5 milliseconds to 500 milliseconds.",
+      "rationale": "Constrains the static schedule (SW-REQ-SYS-010) to cover all FT1 app rates: IMU 200 Hz (SYS-005), altimeter 20 Hz (SYS-008), GPS 5 Hz (SYS-009), nav 100 Hz (SYS-012), and telemetry 2 Hz (SYS-019).",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-005",
+      "title": "Deterministic Invocation Order",
+      "description": "The SCH library shall invoke applications in a deterministic order on every scheduler cycle.",
+      "rationale": "PM-required determinism (SW-REQ-SYS-044) so Trick simulation and flight runs are repeatable.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-006",
+      "title": "Scheduler Continues After Application Failure",
+      "description": "The SCH library shall continue invoking other registered applications when one application returns a failure status.",
+      "rationale": "PM decision: app failures must not halt the scheduler; other apps continue running per SW-REQ-SYS-062.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-062",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-007",
+      "title": "Application Lifecycle Start Invocation",
+      "description": "The SCH library shall invoke each registered application's start hook once before its first periodic invocation.",
+      "rationale": "Required so apps initialize internal state once before periodic processing begins per LibJuno app lifecycle.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-008",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "description": "The SCH library shall produce equivalent application invocation sequences on POSIX and Pico2 builds.",
+      "rationale": "PM-required POSIX/Pico2 equivalence (SW-REQ-SYS-043) so Trick simulation exercises identical scheduling paths.",
+      "verification_method": "Test",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-009",
+      "title": "Scheduler Capacity Bounded At Compile Time",
+      "description": "The SCH library shall enforce a compile-time bound on the number of registered applications.",
+      "rationale": "PM constraint: no dynamic memory allocation; capacity must be a compile-time constant per SW-REQ-SYS-050.",
+      "verification_method": "Inspection",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-010",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    },
+    {
+      "id": "SW-REQ-SCH-010",
+      "title": "Caller-Owned Scheduler Storage",
+      "description": "The SCH library shall use only caller-provided storage and shall not allocate memory dynamically.",
+      "rationale": "PM NFR (SW-REQ-SYS-050): no dynamic allocation after boot; all storage caller-owned per LibJuno pattern.",
+      "verification_method": "Inspection",
+      "status": "Verified",
+      "parent_id": "SW-REQ-SYS-050",
+      "child_ids": [],
+      "tags": [
+        "FT1"
+      ]
+    }
+  ]
+}

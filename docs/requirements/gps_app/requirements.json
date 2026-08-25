@@ -1,0 +1,115 @@
+{
+  "module": "GPS-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-GPS-APP-001",
+      "title": "GPS App Scheduled at 5 Hz",
+      "description": "The GPS app shall execute on the static schedule at 5 Hz throughout the mission.",
+      "rationale": "Parent SW-REQ-SYS-009 fixes GPS rate at 5 Hz; the app realizes that cadence at the View layer.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-009",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-002",
+      "title": "Read NMEA Messages from GPS Library",
+      "description": "The GPS app shall read NMEA messages from the GPS library on each scheduled execution.",
+      "rationale": "Parent SW-REQ-SYS-009 requires sampling the GPS receiver; the app pulls data via gps_lib at its rate.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-009",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-003",
+      "title": "Delegate NMEA Parsing to NMEA Library",
+      "description": "The GPS app shall delegate NMEA sentence parsing to the NMEA library.",
+      "rationale": "Architecture-layering constraint derived from ai/memory/architecture.md (View vs Controller separation): apps are the View layer and contain no business logic, so parsing belongs to nmea_lib (Controller). Not a SYS L1 decomposition.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-004",
+      "title": "Publish Structured GPS Fix on Software Bus",
+      "description": "The GPS app shall publish a structured GPS fix message on the software bus on each successful parse.",
+      "rationale": "Parent SW-REQ-SYS-038 and SW-REQ-SYS-039 require geodetic position with HAE altitude available to consumers via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-005",
+      "title": "Publish Raw NMEA Bytes on Software Bus",
+      "description": "The GPS app shall publish the raw NMEA sentence bytes on the software bus without modification.",
+      "rationale": "Parent SW-REQ-SYS-024 requires verbatim NMEA logging; the app provides the verbatim bytes to mlog_lib via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-006",
+      "title": "Publish GPS Health Status",
+      "description": "The GPS app shall publish a GPS health status on the software bus on each scheduled execution.",
+      "rationale": "Parent SW-REQ-SYS-031 requires continuous per-sensor health observability for sys_app aggregation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-007",
+      "title": "Report GPS Unhealthy on Read Failure",
+      "description": "The GPS app shall report GPS unhealthy in its published health status when a GPS read fails.",
+      "rationale": "Parent SW-REQ-SYS-031 requires health reflect actual sensor state so sys_app aggregates an accurate bitmap.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-008",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "description": "The GPS app shall produce identical bus messages on POSIX and Pico2 builds given identical inputs.",
+      "rationale": "Parent SW-REQ-SYS-043 requires POSIX functional equivalence to the Pico2 flight build for Trick anchoring.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-009",
+      "title": "Raw GPS Bytes Available for Logging",
+      "description": "The GPS app shall provide raw NMEA bytes on the software bus for SD card logging consumers.",
+      "rationale": "Parent SW-REQ-SYS-001 requires raw sensor logging to the SD card; the GPS app makes raw NMEA bytes available on the bus for the logging consumer.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-APP-010",
+      "title": "HAE Altitude in Published GPS Fix",
+      "description": "The GPS app shall publish GPS altitude referenced to the WGS-84 ellipsoid.",
+      "rationale": "Parent SW-REQ-SYS-039 mandates HAE as the FSW altitude reference; the GPS app's published fix must use that reference.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-039",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

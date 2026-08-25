@@ -1,0 +1,339 @@
+{
+  "module": "NAV-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-NAV-APP-001",
+      "title": "Nav App Executes at 100 Hz on Static Schedule",
+      "requirement_ids": ["SW-REQ-NAV-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked TDM scheduler, mocked software bus, and a stubbed nav_lib whose outputs are controllable from the test. Configure scheduler to drive nav app at 100 Hz over a one-second simulated interval.",
+      "procedure": [
+        "Run the scheduler for 1.000 seconds of simulated time.",
+        "Count the number of times the nav app Execute() entry point is invoked.",
+        "Record the timestamps of each invocation.",
+        "Compute the mean inter-invocation period."
+      ],
+      "acceptance_criteria": "Nav app Execute() is invoked exactly 100 times in 1.000 simulated seconds, and the mean period equals 10.000 ms within 1 microsecond tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-002",
+      "title": "Nav App Subscribes to IMU Messages",
+      "requirement_ids": ["SW-REQ-NAV-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus that records all subscribe calls, and a stubbed nav_lib whose outputs are controllable from the test.",
+      "procedure": [
+        "Invoke the nav app initialization entry point.",
+        "Inspect the recorded list of subscriptions on the mocked bus.",
+        "Verify a subscription exists with the IMU message topic identifier."
+      ],
+      "acceptance_criteria": "The mocked software bus records exactly one subscription whose topic identifier matches the IMU message type after nav app initialization.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-003",
+      "title": "Nav App Subscribes to Barometer Messages",
+      "requirement_ids": ["SW-REQ-NAV-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus that records all subscribe calls, and a stubbed nav_lib whose outputs are controllable from the test.",
+      "procedure": [
+        "Invoke the nav app initialization entry point.",
+        "Inspect the recorded list of subscriptions on the mocked bus.",
+        "Verify a subscription exists with the barometric altimeter message topic identifier."
+      ],
+      "acceptance_criteria": "The mocked software bus records exactly one subscription whose topic identifier matches the barometer message type after nav app initialization.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-004",
+      "title": "Nav App Subscribes to GPS Fix Messages",
+      "requirement_ids": ["SW-REQ-NAV-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus that records all subscribe calls, and a stubbed nav_lib whose outputs are controllable from the test.",
+      "procedure": [
+        "Invoke the nav app initialization entry point.",
+        "Inspect the recorded list of subscriptions on the mocked bus.",
+        "Verify a subscription exists with the GPS fix message topic identifier."
+      ],
+      "acceptance_criteria": "The mocked software bus records exactly one subscription whose topic identifier matches the GPS fix message type after nav app initialization.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-005",
+      "title": "Nav State Published at 100 Hz on Software Bus",
+      "requirement_ids": ["SW-REQ-NAV-APP-005"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app with mocked software bus and scheduler driving nav app at 100 Hz, and a stubbed nav_lib whose outputs are controllable from the test. Mocked bus records all publish calls. Provide nominal IMU/baro/GPS inputs throughout.",
+      "procedure": [
+        "Run the scheduler for 1.000 seconds of simulated time.",
+        "Filter recorded publish calls to those whose topic equals the navigation state message topic.",
+        "Count the filtered publishes and compute their mean inter-publish period."
+      ],
+      "acceptance_criteria": "Exactly 100 navigation state messages are published during 1.000 simulated seconds, and the mean inter-publish period equals 10.000 ms within 1 microsecond tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-006",
+      "title": "Published Nav State Contains Sixteen-State Composition",
+      "requirement_ids": ["SW-REQ-NAV-APP-006"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus and a stubbed nav_lib whose outputs are controllable from the test. Provide one cycle of nominal IMU/baro/GPS inputs.",
+      "procedure": [
+        "Run a single nav app Execute() cycle.",
+        "Capture the navigation state message published on the mocked bus.",
+        "Inspect the message payload structure and field names.",
+        "Verify the payload contains position, velocity, attitude quaternion, accelerometer bias, and gyroscope bias fields."
+      ],
+      "acceptance_criteria": "The published navigation state message payload contains all of: 3-element position, 3-element velocity, 4-element attitude quaternion, 3-element accelerometer bias, and 3-element gyroscope bias.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-007",
+      "title": "Nav State Carries Monotonic Microsecond Timestamp",
+      "requirement_ids": ["SW-REQ-NAV-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus, a fake time source providing monotonic microsecond ticks, and a stubbed nav_lib whose outputs are controllable from the test. Schedule nav app for 100 cycles at 100 Hz.",
+      "procedure": [
+        "Run 100 nav app Execute() cycles.",
+        "Collect the timestamp field from each published navigation state message.",
+        "Verify each timestamp is strictly greater than the previous timestamp.",
+        "Verify timestamp units match microseconds by comparing successive deltas to the configured 10000 us period."
+      ],
+      "acceptance_criteria": "All 100 timestamps are strictly monotonically increasing, and successive deltas equal 10000 microseconds within 1 microsecond tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-008",
+      "title": "Validity Flag Published With Each Nav State Message",
+      "requirement_ids": ["SW-REQ-NAV-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus and a stubbed nav_lib whose outputs are controllable from the test. Provide nominal sensor inputs and run multiple cycles.",
+      "procedure": [
+        "Run 10 nav app Execute() cycles.",
+        "Inspect the publish records on the mocked software bus.",
+        "Verify that for each navigation state message there is a corresponding validity flag publication (or validity field) with the same timestamp.",
+        "Verify the validity flag is observable as a boolean-valued field on the bus."
+      ],
+      "acceptance_criteria": "Every navigation state message published on the bus is accompanied by a validity flag value with the same timestamp.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-009",
+      "title": "Validity Flag False When Required Inputs Are Missing",
+      "requirement_ids": ["SW-REQ-NAV-APP-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app with mocked software bus, configurable sensor input injectors for IMU, baro, and GPS, and a stubbed nav_lib whose outputs are controllable from the test.",
+      "procedure": [
+        "Run 50 cycles with all required sensor inputs present and record validity flag values.",
+        "Stop injecting IMU messages and run 50 additional cycles, recording validity flag values.",
+        "Resume injecting IMU messages and run 50 more cycles, recording validity flag values."
+      ],
+      "acceptance_criteria": "Validity flag is true during all cycles in phase 1, transitions to false within one cycle of inputs becoming unavailable in phase 2, and returns to true in phase 3 after inputs are restored.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-010",
+      "title": "Nav State Continues Publishing at 100 Hz With Missing Inputs",
+      "requirement_ids": ["SW-REQ-NAV-APP-010"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app with mocked software bus, configurable sensor input injectors, and a stubbed nav_lib whose outputs are controllable from the test. Drive scheduler at 100 Hz.",
+      "procedure": [
+        "Run 100 cycles with all sensor inputs nominal.",
+        "Disable GPS injection and run 100 cycles.",
+        "Disable both GPS and barometer injection and run 100 cycles.",
+        "Disable all sensor injection and run 100 cycles.",
+        "Count navigation state publishes per phase and compute the mean period."
+      ],
+      "acceptance_criteria": "Each phase produces exactly 100 navigation state publishes with mean period 10.000 ms within 1 microsecond tolerance, regardless of which sensor inputs are unavailable.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-011",
+      "title": "Published Position Stays Within Configured Bound of GPS Fix",
+      "requirement_ids": ["SW-REQ-NAV-APP-011"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app with mocked software bus, a recorded sensor input dataset (IMU, baro, GPS) representative of an FT1 flight profile, and a stubbed nav_lib whose outputs are controllable from the test. Configure the divergence bound parameter to its mission value.",
+      "procedure": [
+        "Replay the recorded sensor dataset through the nav app for the full duration.",
+        "For each published navigation state, compute the horizontal distance between the published position and the most recent GPS fix on the bus.",
+        "Record the maximum horizontal distance observed across the run."
+      ],
+      "acceptance_criteria": "The maximum horizontal distance between published position and the latest GPS fix never exceeds the configured divergence bound for the entire dataset.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-012",
+      "title": "Position Divergence Bound Hardware Demonstration",
+      "requirement_ids": ["SW-REQ-NAV-APP-011"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico2 flight board powered with GPS, IMU, and barometer connected. Telemetry logger capturing software bus traffic. Outdoor location with clear sky view. Divergence bound configured to mission value.",
+      "procedure": [
+        "Power the flight board and confirm boot log on the serial console.",
+        "Wait for GPS fix acquisition and confirm validity flag transitions to true on the telemetry log.",
+        "Walk the board on a 100 meter horizontal path at walking pace for at least 5 minutes while logging all bus traffic.",
+        "Stop the run and save the telemetry log to file.",
+        "Run the post-processing script to compute, for each nav state, the horizontal distance to the latest GPS fix."
+      ],
+      "acceptance_criteria": "Across the entire logged run, the maximum horizontal distance between published navigation position and the latest GPS fix never exceeds the configured divergence bound; the post-processing plot shows the bound is respected throughout.",
+      "expected_artifacts": [
+        {
+          "name": "nav_bus_log.csv",
+          "description": "Bus telemetry capture containing time-aligned navigation state, validity flag, and GPS fix records.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "divergence_plot.png",
+          "description": "Plot of horizontal distance between published nav position and latest GPS fix versus time, with the configured bound overlaid.",
+          "artifact_type": "plot"
+        },
+        {
+          "name": "demo_serial.log",
+          "description": "Serial console output for the duration of the demonstration.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-NAV-APP-013",
+      "title": "POSIX and Pico2 Builds Produce Identical Nav State Outputs",
+      "requirement_ids": ["SW-REQ-NAV-APP-012"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build nav app for both POSIX and Pico2 targets from the same source tree, with a stubbed nav_lib whose outputs are controllable from the test. Prepare a deterministic recorded sensor input dataset (IMU, baro, GPS).",
+      "procedure": [
+        "Replay the dataset through the POSIX build and capture every published navigation state message to file A.",
+        "Replay the same dataset through the Pico2 build (or its host-emulated equivalent) and capture every published navigation state message to file B.",
+        "Diff file A and file B byte-for-byte on the published nav state payload fields and timestamps."
+      ],
+      "acceptance_criteria": "File A and file B contain the same number of records and every nav state field (position, velocity, attitude quaternion, biases, timestamp, validity) matches byte-for-byte across both builds.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-014",
+      "title": "Deterministic Nav Output Across Repeated Runs",
+      "requirement_ids": ["SW-REQ-NAV-APP-013"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app on POSIX build with mocked software bus and a stubbed nav_lib whose outputs are controllable from the test. Prepare a fixed recorded sensor input dataset.",
+      "procedure": [
+        "Replay the dataset through a fresh nav app instance and capture every published nav state message to file R1.",
+        "Tear down and re-initialize the nav app, replay the same dataset, and capture nav state messages to file R2.",
+        "Repeat once more to produce file R3.",
+        "Diff R1, R2, and R3 byte-for-byte on the nav state payload fields and timestamps."
+      ],
+      "acceptance_criteria": "R1, R2, and R3 are byte-for-byte identical across all nav state payload fields and timestamps.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-015",
+      "title": "Validity Flag True Under Nominal Inputs",
+      "requirement_ids": ["SW-REQ-NAV-APP-008", "SW-REQ-NAV-APP-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize nav app with mocked software bus, steady nominal IMU, baro, and GPS injection, and a stubbed nav_lib whose outputs are controllable from the test.",
+      "procedure": [
+        "Run 200 nav app Execute() cycles.",
+        "Collect every validity flag value published with each navigation state.",
+        "Verify all 200 validity flag values are true."
+      ],
+      "acceptance_criteria": "All 200 published validity flag values are true while all required inputs are present.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-016",
+      "title": "Nav State Schedule Holds Across Long Run",
+      "requirement_ids": ["SW-REQ-NAV-APP-001", "SW-REQ-NAV-APP-005"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize nav app with mocked software bus, scheduler driving nav app at 100 Hz, and a stubbed nav_lib whose outputs are controllable from the test. Provide nominal sensor inputs throughout.",
+      "procedure": [
+        "Run the scheduler for 60.000 seconds of simulated time.",
+        "Count Execute() invocations and navigation state publish events.",
+        "Compute the maximum jitter (max deviation from 10.000 ms) of the inter-publish interval."
+      ],
+      "acceptance_criteria": "Exactly 6000 Execute() invocations and 6000 navigation state publishes occur, and maximum inter-publish jitter is below 10 microseconds.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-017",
+      "title": "Boost-Phase Update Skipping Verification",
+      "requirement_ids": ["SW-REQ-NAV-APP-014"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct nav_app with: stub broker (delivers IMU/baro/GPS samples + a JUNO_MSG_AFM_PHASE_T with ePhase=JUNO_PHASE_BOOST), stub nav_lib (test vtable that records every UpdateBaro/UpdateGps/PredictImu call), stub time. Initialize nav_app via NavAppInit; OnStart returns SUCCESS.",
+      "procedure": [
+        "Inject a JUNO_MSG_AFM_PHASE_T with ePhase=JUNO_PHASE_BOOST into the broker.",
+        "Call nav_app's OnProcess hook three times (3 x 10 ms ticks).",
+        "On each tick the broker delivers one IMU sample, one baro sample, and one GPS fix.",
+        "Inspect the stub nav_lib call log."
+      ],
+      "acceptance_criteria": "stub nav_lib received 3 PredictImu calls (one per tick, IMU updates always allowed). stub nav_lib received ZERO UpdateBaro calls and ZERO UpdateGps calls during BOOST. nav_app returns JUNO_STATUS_SUCCESS on every OnProcess invocation. JUNO_MSG_NAV_STATE_T published on every tick with bValid forwarded from stub nav_lib.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-APP-018",
+      "title": "Post-Boost Settling Window for Sensor Re-Enablement",
+      "requirement_ids": ["SW-REQ-NAV-APP-015"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct nav_app with: stub broker (delivers a phase-transition sequence BOOST -> APOGEE), stub nav_lib (records every UpdateBaro/UpdateGps call), stub time (allows time-warping for the test). NavAppInit + OnStart succeed.",
+      "procedure": [
+        "Inject JUNO_MSG_AFM_PHASE_T with ePhase=JUNO_PHASE_BOOST; advance 5 ticks while delivering IMU/baro/GPS samples (no Update calls expected).",
+        "Inject JUNO_MSG_AFM_PHASE_T with ePhase=JUNO_PHASE_APOGEE; record the boost-exit time as t_exit.",
+        "Advance time by 0.5 seconds (50 x 10 ms ticks); on each tick deliver IMU/baro/GPS samples and call OnProcess. Verify NO UpdateBaro/UpdateGps calls (still inside settling window).",
+        "Advance time to (t_exit + 1.001 seconds); call OnProcess; deliver IMU/baro/GPS.",
+        "Continue for 3 more ticks; verify UpdateBaro and UpdateGps are now called on every tick."
+      ],
+      "acceptance_criteria": "During the 0.5-second post-boost interval, stub nav_lib received ZERO UpdateBaro and ZERO UpdateGps calls. After (t_exit + 1.0 s), stub nav_lib received UpdateBaro and UpdateGps calls on every subsequent tick. PredictImu called on every OnProcess invocation throughout. nav_app returned JUNO_STATUS_SUCCESS throughout.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_test.cpp"
+    }
+  ]
+}

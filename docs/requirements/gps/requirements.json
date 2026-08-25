@@ -1,0 +1,115 @@
+{
+  "module": "GPS",
+  "requirements": [
+    {
+      "id": "SW-REQ-GPS-001",
+      "title": "Receive Raw NMEA Bytes from GPS Receiver",
+      "description": "The GPS library shall receive raw NMEA byte data from the GPS receiver hardware interface.",
+      "rationale": "Decomposes SW-REQ-SYS-001 and SW-REQ-SYS-024; raw NMEA acquisition is the library's primary responsibility.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-002",
+      "title": "Verbatim Pass-Through of NMEA Sentences",
+      "description": "The GPS library shall expose received NMEA sentences to the caller without modifying their byte content.",
+      "rationale": "Decomposes SW-REQ-SYS-024; verbatim raw NMEA logging requires the library not to alter bytes before parsing.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-003",
+      "title": "Support 5 Hz GPS Sampling",
+      "description": "The GPS library shall deliver received NMEA sentences to the caller at a rate supporting 5 Hz sampling.",
+      "rationale": "Decomposes SW-REQ-SYS-009; library throughput must support the system-mandated 5 Hz GPS sample rate.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-009",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-004",
+      "title": "Non-Blocking Read Interface",
+      "description": "The GPS library shall provide a non-blocking read interface that returns within a caller-supplied timeout.",
+      "rationale": "Decomposes SW-REQ-SYS-044; deterministic execution requires the library never to block the TDM scheduler indefinitely.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-005",
+      "title": "Power-On Self-Test Device Probe",
+      "description": "The GPS library shall report at startup whether the GPS receiver is present and responsive.",
+      "rationale": "Decomposes SW-REQ-SYS-029; POST requires probing each sensor device once at startup including the GPS.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-006",
+      "title": "Continuous GPS Health Reporting",
+      "description": "The GPS library shall expose a health indicator reflecting whether NMEA data is flowing from the receiver.",
+      "rationale": "Decomposes SW-REQ-SYS-031; continuous per-sensor health bitmap requires the library to surface its data-flow state.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-007",
+      "title": "Read Failure Status Reporting",
+      "description": "The GPS library shall return a failure status code when a read from the GPS receiver fails.",
+      "rationale": "Decomposes SW-REQ-SYS-031 and supports SW-REQ-SYS-033; explicit failure status enables caller to flag sensor unhealthy and continue.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-008",
+      "title": "POSIX Implementation Functional Equivalence",
+      "description": "The GPS library shall provide a POSIX implementation functionally equivalent to the Pico2 implementation.",
+      "rationale": "Decomposes SW-REQ-SYS-043; Trick simulation requires POSIX builds that exercise the same library API as flight.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-009",
+      "title": "Pico2 Implementation for Flight Hardware",
+      "description": "The GPS library shall provide a Pico2 implementation that reads NMEA sentences from the flight UART.",
+      "rationale": "Decomposes SW-REQ-SYS-043; flight hardware build requires a Pico2 implementation paired with the POSIX implementation.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-GPS-010",
+      "title": "Preserve Geodetic Position and HAE Altitude",
+      "description": "The GPS library shall preserve the receiver's WGS-84 geodetic position and HAE altitude fields in delivered sentences.",
+      "rationale": "Decomposes SW-REQ-SYS-038 and SW-REQ-SYS-039; verbatim pass-through must not corrupt the receiver's native WGS-84 / HAE output.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-039",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

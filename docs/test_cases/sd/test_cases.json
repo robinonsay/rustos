@@ -1,0 +1,280 @@
+{
+  "module": "SD",
+  "test_cases": [
+    {
+      "id": "SW-TC-SD-001",
+      "title": "SD Card Initialization Returns Success on Healthy Card",
+      "requirement_ids": ["SW-REQ-SD-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build with backing-file SD mock pointing to a freshly created empty image. SD library root structure allocated by caller.",
+      "procedure": [
+        "Invoke SdLib_New()/Init() against the mock SD backend.",
+        "Capture the returned JUNO_STATUS_T value.",
+        "Query the library state to confirm initialized flag is set."
+      ],
+      "acceptance_criteria": "Init returns JUNO_STATUS_SUCCESS and the library reports an initialized state suitable for subsequent writes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-002",
+      "title": "SD Card Initialization Reports Failure When Card Absent",
+      "requirement_ids": ["SW-REQ-SD-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build with SD mock configured to simulate no card present (CMD0/CMD8 negative response).",
+      "procedure": [
+        "Invoke SdLib_Init() against the absent-card mock.",
+        "Capture the returned status code.",
+        "Verify the library does not transition to initialized state."
+      ],
+      "acceptance_criteria": "Init returns a non-success JUNO_STATUS_T error and the library remains in an uninitialized state.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-003",
+      "title": "Capacity Reported After Successful Initialization",
+      "requirement_ids": ["SW-REQ-SD-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock configured with a known capacity (e.g., 512 MiB image file).",
+      "procedure": [
+        "Initialize the SD library against the mock.",
+        "Call SdLib_GetCapacity() (or equivalent capacity accessor).",
+        "Compare the returned byte count to the known mock image size."
+      ],
+      "acceptance_criteria": "Capacity accessor returns SUCCESS and the reported byte count equals the configured mock capacity.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-004",
+      "title": "New Run Directory Created on First Power-On",
+      "requirement_ids": ["SW-REQ-SD-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock pointing at an empty FAT image (no existing run directories).",
+      "procedure": [
+        "Initialize the SD library.",
+        "Invoke run-directory creation (e.g., SdLib_OpenRun()).",
+        "Enumerate top-level directories in the SD image after the call."
+      ],
+      "acceptance_criteria": "Exactly one new run directory exists on the SD image and the library reports its name as the active run.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-005",
+      "title": "Distinct Run Directory Created on Subsequent Power-On",
+      "requirement_ids": ["SW-REQ-SD-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock with a FAT image already containing one prior run directory from an earlier session.",
+      "procedure": [
+        "Initialize the SD library against the pre-populated image.",
+        "Invoke run-directory creation.",
+        "Enumerate top-level directories and compare names against the pre-existing set."
+      ],
+      "acceptance_criteria": "A new run directory is created with a name distinct from every prior run directory on the card.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-006",
+      "title": "Prior Run Directories Preserved Across Power-On",
+      "requirement_ids": ["SW-REQ-SD-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock with a FAT image containing two prior run directories, each with known files and bytes.",
+      "procedure": [
+        "Snapshot the contents (file list and byte hashes) of each prior run directory.",
+        "Initialize the SD library and create a new run directory.",
+        "Write some bytes into the new run directory and close it.",
+        "Re-snapshot the contents of the prior run directories."
+      ],
+      "acceptance_criteria": "Every file in every prior run directory has unchanged size and unchanged byte hash after the new session completes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-007",
+      "title": "Sequential Byte Writes Land in Current Run Directory File",
+      "requirement_ids": ["SW-REQ-SD-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock with empty image. SD library initialized and a run directory opened.",
+      "procedure": [
+        "Open a log file inside the current run directory via the library API.",
+        "Issue three sequential SdLib_Write() calls with chunks of 256, 1024, and 4096 bytes.",
+        "Flush/close the file.",
+        "Read the file from the SD image and compare bytes to the concatenation of the three input chunks."
+      ],
+      "acceptance_criteria": "The on-disk file contains exactly the concatenated input bytes in the order written and resides under the current run directory.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-008",
+      "title": "Bytes Written Verbatim Without Modification",
+      "requirement_ids": ["SW-REQ-SD-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock; SD library initialized; run directory opened; log file open.",
+      "procedure": [
+        "Generate a 64 KiB buffer containing every byte value 0x00..0xFF repeating, plus embedded 0x00 and 0xFF runs.",
+        "Write the buffer in a single SdLib_Write() call.",
+        "Flush and close the file.",
+        "Read the file back and compare byte-for-byte against the original buffer."
+      ],
+      "acceptance_criteria": "Every byte read from disk matches the corresponding source byte; no insertions, deletions, escaping, or transformations occur.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-009",
+      "title": "Sustained Logging Throughput on Pico 2 Hardware",
+      "requirement_ids": ["SW-REQ-SD-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 flashed with FT1 FSW image. Class 10 (or better) SD card inserted. Serial terminal open at 115200 baud. Stopwatch or host logger ready.",
+      "procedure": [
+        "Power on the Pico 2 and wait for POST to complete on the serial terminal.",
+        "Trigger the throughput demo command (or run the production logging path with all sensors enabled).",
+        "Run the system for 120 seconds while it logs full-rate sensor, nav, and event data.",
+        "Observe the serial terminal for any backpressure, dropped-write, or queue-full warnings.",
+        "Power down the Pico 2, remove the SD card, and read the active run directory on a host PC.",
+        "Compute the total bytes written and divide by elapsed run duration to obtain sustained throughput."
+      ],
+      "acceptance_criteria": "No backpressure or dropped-write warnings appear on serial; sustained throughput meets or exceeds the FT1 full-rate logging budget recorded in the design doc.",
+      "expected_artifacts": [
+        {
+          "name": "throughput_serial_log.txt",
+          "description": "Serial terminal capture for the 120 s run showing absence of backpressure warnings.",
+          "artifact_type": "serial_output"
+        },
+        {
+          "name": "run_dir_byte_count.txt",
+          "description": "Host-side report of total bytes written, run duration, and computed sustained throughput.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SD-010",
+      "title": "Writes Continue After Injected Transient Failure",
+      "requirement_ids": ["SW-REQ-SD-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock that returns a transient write error on the Nth write call and succeeds on subsequent calls. SD library initialized; log file open.",
+      "procedure": [
+        "Issue write A (expect success).",
+        "Issue write B with the mock primed to return a transient error (expect failure status).",
+        "Issue write C with the mock returning success.",
+        "Flush and close, then read the file from the image."
+      ],
+      "acceptance_criteria": "Write C returns SUCCESS and its bytes appear on disk; the library does not enter a permanently-disabled state after write B fails.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-011",
+      "title": "Failed Write Returns Non-Success Status",
+      "requirement_ids": ["SW-REQ-SD-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock configured to fail a specific write call with a simulated CRC or bus error. SD library initialized; log file open.",
+      "procedure": [
+        "Issue an SdLib_Write() call against the failure-primed mock.",
+        "Capture the returned JUNO_STATUS_T value.",
+        "Verify the failing call's bytes are not reported as committed by the library."
+      ],
+      "acceptance_criteria": "The failing write returns a non-success JUNO_STATUS_T error code distinct from JUNO_STATUS_SUCCESS.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-012",
+      "title": "Health Status Reflects Recent Write Success",
+      "requirement_ids": ["SW-REQ-SD-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock with programmable per-call results. SD library initialized; log file open; health accessor available.",
+      "procedure": [
+        "Issue several successful writes; query SdLib_GetHealth().",
+        "Inject a write failure on the next call; query health again.",
+        "Issue several successful writes after the failure; query health again."
+      ],
+      "acceptance_criteria": "Health reports healthy after the success run, transitions to unhealthy after the failure, and returns to healthy after sustained subsequent successes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-013",
+      "title": "POSIX Build Exposes Same Write API As Flight Build",
+      "requirement_ids": ["SW-REQ-SD-011"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build of sd_lib linked into the test harness with a backing-file SD image. Identical caller code as the flight build's logging path.",
+      "procedure": [
+        "Invoke the same Init, OpenRun, OpenFile, Write, and Close call sequence used by the flight FSW.",
+        "Write a fixed reference payload of 16 KiB.",
+        "Read back the resulting file from the POSIX backing image.",
+        "Compare the on-disk file bytes against the reference payload."
+      ],
+      "acceptance_criteria": "Every call returns SUCCESS and the on-disk bytes match the reference payload, demonstrating API and behavior parity with the flight build.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-014",
+      "title": "Run Directory Layout Matches Between POSIX and Flight",
+      "requirement_ids": ["SW-REQ-SD-011"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build of sd_lib with empty backing image. Naming/sequencing seed identical to the flight build's first power-on.",
+      "procedure": [
+        "Run the same Init + OpenRun + Close sequence twice in a row, simulating two power-ons.",
+        "Enumerate the resulting run directories from the backing image.",
+        "Compare the directory naming pattern and sequencing rule against the documented flight behavior."
+      ],
+      "acceptance_criteria": "Two distinct run directories appear, named per the same pattern and sequence as documented for the Pico 2 flight build.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-SD-015",
+      "title": "Identical Inputs Produce Identical On-Disk Bytes",
+      "requirement_ids": ["SW-REQ-SD-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX SD mock with two independent backing images, both starting empty. Fixed seed for any naming counters.",
+      "procedure": [
+        "Run the SD library Init/OpenRun/Write/Close sequence against image A with a fixed input payload.",
+        "Repeat the identical sequence against image B with the same payload and seed.",
+        "Read the active run directory file back from each image.",
+        "Compute and compare byte hashes (or do a byte-for-byte memcmp) of the two files."
+      ],
+      "acceptance_criteria": "The two on-disk files are byte-for-byte identical, demonstrating deterministic write behavior given identical inputs.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/sd_lib/tests/sd_lib_test.cpp"
+    }
+  ]
+}

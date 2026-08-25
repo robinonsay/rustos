@@ -1,0 +1,82 @@
+{
+  "module": "DEVICE",
+  "requirements": [
+    {
+      "id": "SW-REQ-DEVICE-001",
+      "title": "UART1 Hardware Initialization",
+      "description": "The device library shall initialize the UART1 hardware interface at a caller-specified baud rate.",
+      "rationale": "Brief: device_lib provides the UART1 hardware abstraction consumed by gps_lib for NMEA reception on Pico2.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-002",
+      "title": "UART1 Initialization Status Reporting",
+      "description": "The device library shall return a status code indicating success or failure from UART1 initialization.",
+      "rationale": "Brief: enables POST and continuous health to observe whether the UART hardware came up successfully.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-003",
+      "title": "Non-Blocking UART1 Read",
+      "description": "The device library shall return immediately from a UART1 read with the bytes currently available.",
+      "rationale": "Brief: deterministic TDM scheduling requires non-blocking reads so apps run at fixed rates.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-004",
+      "title": "UART1 Buffered Reception",
+      "description": "The device library shall buffer received UART1 bytes and report a status when ring overflow drops bytes.",
+      "rationale": "Brief: GPS NMEA arrives continuously between scheduled reads; data persists until next read, and overflow must be observable to callers per PM Decision 4 (sprint 2026-05-02).",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-005",
+      "title": "UART1 Read Null-Pointer Rejection",
+      "description": "The device library shall return a null-pointer error status when UART1 read receives a null buffer.",
+      "rationale": "Brief: explicit error paths required; no silent failures or undefined behavior on bad inputs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-006",
+      "title": "UART1 Read Byte Count Reporting",
+      "description": "The device library shall report the byte count copied to the caller buffer per UART1 read.",
+      "rationale": "Brief: callers must know how many bytes were returned to advance their parsing state deterministically.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-DEVICE-007",
+      "title": "UART1 Caller-Buffered Write",
+      "description": "The device library shall transmit a caller-supplied byte buffer over UART1 and report bytes written.",
+      "rationale": "Brief: lora_lib drives the RYLR896 LoRa modem via AT commands over UART1; PM Decision 5 (sprint 2026-05-02).",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

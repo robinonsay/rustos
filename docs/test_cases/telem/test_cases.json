@@ -1,0 +1,290 @@
+{
+  "module": "TELEM",
+  "test_cases": [
+    {
+      "id": "SW-TC-TELEM-001",
+      "title": "Build Packet From Caller-Provided Inputs",
+      "requirement_ids": ["SW-REQ-TELEM-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize telem_lib with a caller-owned output buffer. Construct a representative TELEM_INPUT_T with non-default values for every field.",
+      "procedure": [
+        "Populate the input struct with deterministic non-zero values for timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health.",
+        "Call the telem_lib build function passing the input struct and output buffer.",
+        "Capture the returned status and produced byte length.",
+        "Decode the produced buffer using a reference parser fixture."
+      ],
+      "acceptance_criteria": "Build call returns JUNO_STATUS_SUCCESS and decoded packet fields equal the input struct fields exactly.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-002",
+      "title": "Serialization Writes Only To Caller Buffer",
+      "requirement_ids": ["SW-REQ-TELEM-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Allocate a caller-owned byte buffer surrounded by guard regions filled with a sentinel pattern (0xA5).",
+      "procedure": [
+        "Pre-fill guard bytes before and after the output buffer with 0xA5.",
+        "Invoke the telem_lib build function with the bounded buffer.",
+        "Read the guard regions after the call and compare against the sentinel pattern.",
+        "Read the buffer interior and verify it has been written."
+      ],
+      "acceptance_criteria": "Guard bytes remain 0xA5 (no out-of-bounds writes) and the buffer interior contains the serialized packet.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-003",
+      "title": "Packet Includes All Required Content Fields",
+      "requirement_ids": ["SW-REQ-TELEM-003"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build a packet from an input struct in which timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health each carry a unique sentinel value.",
+      "procedure": [
+        "Populate each required input field with a distinct sentinel value.",
+        "Call the telem_lib build function.",
+        "Decode the produced buffer with the reference parser.",
+        "Assert that every required field is present and equal to its sentinel."
+      ],
+      "acceptance_criteria": "Decoded packet contains timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health, each matching its sentinel value.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-004",
+      "title": "Serialized Size Within Configured Maximum",
+      "requirement_ids": ["SW-REQ-TELEM-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Read the telem_lib configured maximum packet size constant. Allocate a buffer exactly equal to that maximum.",
+      "procedure": [
+        "Build a packet using maximum-magnitude inputs (e.g., max int values, all health bits set).",
+        "Capture the produced byte length from the build call.",
+        "Compare the produced length to the configured maximum size.",
+        "Repeat the build with several distinct input sets representative of flight ranges."
+      ],
+      "acceptance_criteria": "Produced byte length is less than or equal to the configured maximum for every tested input set.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-005",
+      "title": "Buffer Smaller Than Packet Returns Error",
+      "requirement_ids": ["SW-REQ-TELEM-002", "SW-REQ-TELEM-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Allocate an output buffer one byte smaller than the minimum encoded packet size. Place 0xA5 sentinels around it.",
+      "procedure": [
+        "Provide the undersized buffer to the telem_lib build function.",
+        "Capture the returned status.",
+        "Verify guard bytes remain 0xA5."
+      ],
+      "acceptance_criteria": "Build returns a non-success JUNO_STATUS_T error code and guard bytes are unmodified.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-006",
+      "title": "Integrity Field Validates Unmodified Packet",
+      "requirement_ids": ["SW-REQ-TELEM-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build a packet from a representative input struct.",
+      "procedure": [
+        "Call the telem_lib build function and obtain the output buffer.",
+        "Locate the integrity field at its documented offset.",
+        "Recompute the expected integrity value over the packet contents.",
+        "Compare the embedded integrity value with the recomputed value."
+      ],
+      "acceptance_criteria": "Embedded integrity field is non-zero and matches the value recomputed over the packet contents.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-007",
+      "title": "Integrity Field Detects Single-Bit Corruption",
+      "requirement_ids": ["SW-REQ-TELEM-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build a valid packet into a caller-owned buffer.",
+      "procedure": [
+        "Build a packet and capture its byte length.",
+        "Flip a single bit in the packet payload (not the integrity field).",
+        "Recompute the integrity value over the corrupted contents.",
+        "Compare against the embedded integrity value."
+      ],
+      "acceptance_criteria": "Recomputed integrity value differs from the embedded integrity field after a single-bit flip.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-008",
+      "title": "Packet Produced Across All Flight Phases",
+      "requirement_ids": ["SW-REQ-TELEM-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Enumerate all flight phase enum values defined for the telemetry packet.",
+      "procedure": [
+        "For each phase value, populate the input struct with that phase.",
+        "Call the telem_lib build function.",
+        "Capture the returned status and decoded phase field.",
+        "Repeat for every defined phase."
+      ],
+      "acceptance_criteria": "Build returns JUNO_STATUS_SUCCESS for every phase and the decoded phase field equals the input phase.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-009",
+      "title": "Sensor Health Bitmap Round-Trip",
+      "requirement_ids": ["SW-REQ-TELEM-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare a set of distinct health bitmap values: 0x00000000, 0xFFFFFFFF, walking-ones pattern, walking-zeros pattern.",
+      "procedure": [
+        "For each bitmap value, populate the input struct health field.",
+        "Call the telem_lib build function.",
+        "Decode the produced buffer.",
+        "Compare the decoded health field with the input value."
+      ],
+      "acceptance_criteria": "Decoded health bitmap equals the input health bitmap exactly for every tested value.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-010",
+      "title": "Monotonic Microsecond Timestamp Round-Trip",
+      "requirement_ids": ["SW-REQ-TELEM-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare a set of timestamp values: 0, 1, mid-range, and the maximum representable microsecond value.",
+      "procedure": [
+        "For each timestamp value, populate the input struct timestamp field.",
+        "Call the telem_lib build function.",
+        "Decode the produced buffer.",
+        "Compare the decoded timestamp with the input value."
+      ],
+      "acceptance_criteria": "Decoded timestamp equals the input timestamp exactly for every tested value, including the boundary values.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-011",
+      "title": "Deterministic Output For Identical Inputs",
+      "requirement_ids": ["SW-REQ-TELEM-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Allocate two separate caller-owned output buffers of equal size.",
+      "procedure": [
+        "Construct one TELEM_INPUT_T struct with representative values.",
+        "Call the telem_lib build function with the input and the first buffer.",
+        "Call the telem_lib build function again with the same input and the second buffer.",
+        "Compare the two buffers byte-by-byte over the produced length."
+      ],
+      "acceptance_criteria": "Both buffers contain identical bytes over the produced length for identical inputs.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-012",
+      "title": "Different Inputs Produce Different Output",
+      "requirement_ids": ["SW-REQ-TELEM-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two TELEM_INPUT_T structs that differ only in a single field (e.g., timestamp).",
+      "procedure": [
+        "Build a packet from the first input struct into buffer A.",
+        "Build a packet from the second input struct into buffer B.",
+        "Compare the two buffers byte-by-byte."
+      ],
+      "acceptance_criteria": "Buffers A and B differ in at least the bytes corresponding to the changed field, confirming the field is encoded.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-013",
+      "title": "Golden Vector Wire Format Stability",
+      "requirement_ids": ["SW-REQ-TELEM-009", "SW-REQ-TELEM-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Embed a fixed golden TELEM_INPUT_T and the corresponding reference golden byte vector in the test fixture.",
+      "procedure": [
+        "Build a packet from the embedded golden input struct.",
+        "Compare the produced byte buffer against the embedded golden byte vector.",
+        "Run the test on the POSIX host build of telem_lib.",
+        "Run the same test compiled for the Pico2 target via the cross-build test harness."
+      ],
+      "acceptance_criteria": "Produced bytes match the golden vector exactly on both POSIX and Pico2 builds.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-014",
+      "title": "No UART Or Radio I/O Performed",
+      "requirement_ids": ["SW-REQ-TELEM-011"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Static inspection fixture: review libs/telem_lib sources and link against a stub harness that exposes no UART or radio symbols.",
+      "procedure": [
+        "Grep libs/telem_lib sources for symbols matching uart, lora, radio, and printf.",
+        "Confirm the telem_lib_test target links successfully without any UART or radio drivers.",
+        "Run the build_packet test under the link harness and confirm no I/O symbol is referenced.",
+        "Record the grep output and link map in the test log."
+      ],
+      "acceptance_criteria": "No UART or radio API calls appear in libs/telem_lib sources and the test target links with zero unresolved I/O symbols.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-015",
+      "title": "Navigation Validity Flag Round-Trip",
+      "requirement_ids": ["SW-REQ-TELEM-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare two input structs identical except that one has nav validity = false and the other nav validity = true.",
+      "procedure": [
+        "Build a packet from the validity=false input struct.",
+        "Decode the buffer and read the validity field.",
+        "Build a packet from the validity=true input struct.",
+        "Decode the buffer and read the validity field."
+      ],
+      "acceptance_criteria": "Decoded validity field equals false in the first case and true in the second case.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-016",
+      "title": "Null Buffer Pointer Returns Error",
+      "requirement_ids": ["SW-REQ-TELEM-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a valid TELEM_INPUT_T.",
+      "procedure": [
+        "Call the telem_lib build function passing a null output buffer pointer.",
+        "Capture the returned status.",
+        "Confirm no crash occurs and the function returns to the caller."
+      ],
+      "acceptance_criteria": "Build returns a non-success JUNO_STATUS_T error code without crashing.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/telem_lib/tests/telem_lib_test.cpp"
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "module": "TIME",
+  "test_cases": [
+    {
+      "id": "SW-TC-TIME-001",
+      "title": "Monotonic Microsecond Time Source Returns Value",
+      "requirement_ids": ["SW-REQ-TIME-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build time_lib against the POSIX implementation and link the Google Test binary; initialize a juno::time::TIME_ROOT_T via juno::time::TimeInit using the POSIX tApi.",
+      "procedure": [
+        "Initialize tTime via juno::time::TimeInit(tTime, tApi, nullptr, nullptr).",
+        "Call tTime.ptApi->Now(tTime) once and derive the microsecond value via tTime.TimestampToMicros(tNow.tOk).tOk.",
+        "Sample monotonic time twice with std::this_thread::sleep_for in between; assert second microsecond sample > first sample by at least the sleep duration.",
+        "Verify the Now call returns JUNO_STATUS_SUCCESS and the derived microsecond value is non-zero after FSW startup has elapsed at least one microsecond."
+      ],
+      "acceptance_criteria": "Two consecutive Now()/TimestampToMicros samples with a 1 ms sleep between them differ by at least 1000 microseconds.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-002",
+      "title": "Time Values Are Non-Decreasing Across Successive Queries",
+      "requirement_ids": ["SW-REQ-TIME-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build time_lib against the POSIX implementation and link the Google Test binary; initialize a juno::time::TIME_ROOT_T via juno::time::TimeInit using the POSIX tApi.",
+      "procedure": [
+        "Capture an initial microsecond value t0 by calling tTime.ptApi->Now(tTime) and tTime.TimestampToMicros(tNow.tOk).tOk.",
+        "Loop at least 10000 iterations, calling Now and TimestampToMicros on each iteration to obtain ti.",
+        "On each iteration assert that ti is greater than or equal to the previous value t(i-1).",
+        "After the loop, assert that the final value is strictly greater than t0."
+      ],
+      "acceptance_criteria": "Across 10000+ successive calls, no microsecond value is less than its predecessor, and the final value strictly exceeds the initial value.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-003",
+      "title": "Time Value Type Width Is 64-Bit Unsigned",
+      "requirement_ids": ["SW-REQ-TIME-003"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build time_lib and link the Google Test binary with <type_traits> and <cstdint> available.",
+      "procedure": [
+        "In a Google Test, take the microsecond value type returned by tTime.TimestampToMicros(tTs).tOk (the .tOk field of RESULT_T<uint64_t>).",
+        "Use static_assert or EXPECT to confirm sizeof(decltype(tOk)) == 8.",
+        "Use std::is_unsigned and std::is_integral to confirm the type is an unsigned integral type.",
+        "Confirm the type is std::is_same<decltype(tOk), uint64_t>::value == true."
+      ],
+      "acceptance_criteria": "The microsecond value derived from TimestampToMicros is 8 bytes wide, unsigned, integral, and equivalent to uint64_t.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-004",
+      "title": "Per-Call Time Query Returns Updated Values",
+      "requirement_ids": ["SW-REQ-TIME-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build time_lib against the POSIX implementation and link the Google Test binary; initialize a juno::time::TIME_ROOT_T via juno::time::TimeInit using the POSIX tApi.",
+      "procedure": [
+        "Call tTime.ptApi->Now(tTime) and TimestampToMicros to obtain t0_us.",
+        "Sleep for at least 1 millisecond using std::this_thread::sleep_for.",
+        "Call tTime.ptApi->Now(tTime) and TimestampToMicros again to obtain t1_us.",
+        "Assert t1_us > t0_us and that (t1_us - t0_us) is at least 1000 microseconds.",
+        "Repeat the query a third time after another 1 ms wait and confirm t2_us > t1_us."
+      ],
+      "acceptance_criteria": "Each successive Now() call returns a freshly sampled, larger microsecond value, demonstrating per-call sampling rather than a cached constant.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-005",
+      "title": "Time Query Latency Is Bounded And Non-Blocking",
+      "requirement_ids": ["SW-REQ-TIME-005"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build time_lib against the POSIX implementation and link the Google Test binary on a host capable of std::chrono::steady_clock.",
+      "procedure": [
+        "Record a wall-clock start timestamp using std::chrono::steady_clock.",
+        "Call tTime.ptApi->Now(tTime) 100000 times in a tight loop.",
+        "Record a wall-clock stop timestamp using std::chrono::steady_clock.",
+        "Compute the average per-call duration as (stop - start) / 100000.",
+        "Assert that the average per-call duration is less than 50 microseconds (well below any blocking I/O or scheduling cost)."
+      ],
+      "acceptance_criteria": "Average per-call latency over 100000 Now() invocations is below 50 microseconds, demonstrating that the time query does not block on I/O or scheduling.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-006",
+      "title": "POSIX Implementation Public API Equivalence",
+      "requirement_ids": ["SW-REQ-TIME-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build time_lib with the POSIX backend selected. The same LibJuno public header (libjuno/include/juno/time/time_api.hpp) used by the Pico2 build must compile and link in the POSIX build.",
+      "procedure": [
+        "In a Google Test compiled against the POSIX backend, include the LibJuno public header juno/time/time_api.hpp.",
+        "Call each function reference in juno::time::TIME_API_T (Now, SleepTo, Sleep) through tTime.ptApi and verify each returns a successful status.",
+        "Verify the value derived from tTime.TimestampToMicros(tNow.tOk).tOk is a 64-bit unsigned monotonic microsecond value (reuse the type checks from SW-TC-TIME-003).",
+        "Confirm the test compiles and links against the same LibJuno header that the Pico2 build uses (no POSIX-only symbols leak into the public API)."
+      ],
+      "acceptance_criteria": "All juno::time::TIME_API_T function references are callable through the POSIX backend, return successful status, produce 64-bit monotonic microsecond values via TimestampToMicros, and compile against the unified LibJuno public header shared with the Pico2 build.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-007",
+      "title": "POSIX Time Source Tracks Wall Clock Elapsed Duration",
+      "requirement_ids": ["SW-REQ-TIME-006", "SW-REQ-TIME-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build time_lib against the POSIX implementation and link the Google Test binary; initialize a juno::time::TIME_ROOT_T via juno::time::TimeInit using the POSIX tApi.",
+      "procedure": [
+        "Call tTime.ptApi->Now(tTime) and tTime.TimestampToMicros to obtain t0_us.",
+        "Sleep for exactly 100 milliseconds using std::this_thread::sleep_for.",
+        "Call tTime.ptApi->Now(tTime) and tTime.TimestampToMicros to obtain t1_us.",
+        "Compute delta_us = t1_us - t0_us.",
+        "Assert delta_us is greater than or equal to 95000 and less than or equal to 200000 (allowing for scheduler jitter on the host)."
+      ],
+      "acceptance_criteria": "The POSIX implementation reports an elapsed delta within [95000, 200000] microseconds for a 100 ms sleep, demonstrating monotonic microsecond tracking equivalent to flight.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/time_lib/tests/time_test.cpp"
+    },
+    {
+      "id": "SW-TC-TIME-008",
+      "title": "Pico2 Implementation Hardware Demonstration",
+      "requirement_ids": ["SW-REQ-TIME-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Flash a demo firmware onto the Raspberry Pi Pico 2 that prints time_lib microsecond values (via tTime.ptApi->Now and tTime.TimestampToMicros) over USB serial at 1 Hz for at least 30 seconds. Open a host serial terminal at 115200 baud and capture the output to a log file.",
+      "procedure": [
+        "Connect the Pico2 board to the host via USB.",
+        "Flash the time-demo firmware onto the Pico2.",
+        "Open the serial terminal at 115200 baud and begin logging to time_demo_serial.log.",
+        "Reset the Pico2 and let the firmware run for at least 30 seconds.",
+        "Stop logging and inspect time_demo_serial.log.",
+        "Verify each printed value is a 64-bit unsigned microsecond count and that successive values are strictly increasing.",
+        "Verify the difference between the first and last printed value approximates the elapsed wall-clock time within 5 percent."
+      ],
+      "acceptance_criteria": "The Pico2 firmware prints a monotonically increasing 64-bit microsecond stream for at least 30 seconds, with the first-to-last delta matching the elapsed wall-clock duration within 5 percent.",
+      "expected_artifacts": [
+        {
+          "name": "time_demo_serial.log",
+          "description": "USB-serial capture of Pico2 firmware printing time_lib microsecond values at 1 Hz for at least 30 seconds.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "module": "SIM-SENS",
+  "requirements": [
+    {
+      "id": "SW-REQ-SIM-SENS-001",
+      "title": "Synthetic Sensor Measurements from Truth State",
+      "description": "The sim_sensors module shall generate synthetic IMU, barometer, and GPS measurements from the sim_dynamics truth state.",
+      "rationale": "PM-required SITL sensor models feed the FSW POSIX driver layer in place of real hardware for closed-loop Trick simulation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-002",
+      "title": "Synthetic IMU Sample Rate",
+      "description": "The sim_sensors module shall produce synthetic IMU measurements at 200 Hz.",
+      "rationale": "PM-required match to SW-REQ-SYS-005 so FSW POSIX drivers consume sim IMU at the same rate as real IMU.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-005",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-003",
+      "title": "Synthetic IMU Accelerometer Range Saturation",
+      "description": "The sim_sensors module shall saturate synthetic accelerometer outputs at plus or minus 16 G.",
+      "rationale": "PM-required match to SW-REQ-SYS-006 so sim IMU exhibits the same saturation behavior as the real accelerometer.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-006",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-004",
+      "title": "Synthetic IMU Gyroscope Range Saturation",
+      "description": "The sim_sensors module shall saturate synthetic gyroscope outputs at plus or minus 2000 degrees per second.",
+      "rationale": "PM-required match to SW-REQ-SYS-007 so sim IMU exhibits the same saturation behavior as the real gyroscope.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-007",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-005",
+      "title": "Synthetic IMU Quantization",
+      "description": "The sim_sensors module shall quantize synthetic IMU measurements to 16-bit signed integers across the configured range.",
+      "rationale": "PM-required ADC quantization match to real IMU so FSW driver layer observes identical resolution behavior.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-006",
+      "title": "Configurable IMU Noise and Bias",
+      "description": "The sim_sensors module shall apply configurable white noise and bias to synthetic IMU measurements.",
+      "rationale": "PM-required realism so nav-evaluation runs reflect realistic IMU error characteristics; parameters loaded from sim_scenario.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-007",
+      "title": "Synthetic Barometer Sample Rate",
+      "description": "The sim_sensors module shall produce synthetic barometer measurements at 20 Hz.",
+      "rationale": "PM-required match to SW-REQ-SYS-008 so FSW POSIX drivers consume sim baro at the same cadence as real baro.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-008",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-008",
+      "title": "Standard Atmosphere Pressure and Temperature",
+      "description": "The sim_sensors module shall derive synthetic pressure and temperature from truth altitude using a standard atmosphere model.",
+      "rationale": "PM-required physically consistent baro outputs anchored to truth altitude for closed-loop nav evaluation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-009",
+      "title": "Configurable Barometer Noise",
+      "description": "The sim_sensors module shall apply configurable noise to synthetic barometer measurements.",
+      "rationale": "PM-required realism so nav baro fusion is exercised under realistic noise; parameters loaded from sim_scenario.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-010",
+      "title": "Synthetic GPS Sample Rate",
+      "description": "The sim_sensors module shall produce synthetic GPS position fixes at 5 Hz.",
+      "rationale": "PM-required match to SW-REQ-SYS-009 so FSW POSIX drivers consume sim GPS at the same cadence as real GPS.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-009",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-011",
+      "title": "Configurable GPS Quality and Latency",
+      "description": "The sim_sensors module shall apply configurable HDOP, VDOP, fix latency, and satellite count to synthetic GPS fixes.",
+      "rationale": "PM-required realism so nav GPS fusion is exercised under realistic quality variation; parameters loaded from sim_scenario.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-012",
+      "title": "Configurable GPS Dropout Windows",
+      "description": "The sim_sensors module shall suppress synthetic GPS fixes during configured dropout windows.",
+      "rationale": "PM-required ability to inject GPS outages so nav degraded-input continuation is exercised in simulation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-013",
+      "title": "Sensor Output Frames and Units Match Real Hardware",
+      "description": "The sim_sensors module shall emit measurements in the same frames and SI units as the real sensors.",
+      "rationale": "PM-required so FSW POSIX driver layer consumes sim measurements identically per SW-REQ-SYS-038 through 042 and 057.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SENS-014",
+      "title": "Sensor Model Parameters from Sim Scenario",
+      "description": "The sim_sensors module shall load all noise, bias, and dropout parameters from the sim_scenario configuration.",
+      "rationale": "PM-required configurability so different sim runs exercise different sensor error profiles without code changes.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    }
+  ]
+}

@@ -1,0 +1,253 @@
+{
+  "module": "SIM-HARN",
+  "test_cases": [
+    {
+      "id": "SW-TC-SIM-HARN-001",
+      "title": "S_define Wires Dynamics, Sensors, Scenario, and FSW POSIX",
+      "requirement_ids": ["SW-REQ-SIM-HARN-001"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Open the sim harness Trick S_define source and the parsed Trick sim object listing produced by the harness build.",
+      "procedure": [
+        "Inspect the sim harness S_define and confirm sim_dynamics, sim_sensors, sim_scenario, and FSW POSIX sim objects are declared.",
+        "Build the Trick sim and confirm the resulting executable links the FSW POSIX library archives.",
+        "Run the sim harness with --help and inspect the printed sim object listing for all four components.",
+        "Record the S_define section, the linker map snippet, and the sim object listing as inspection evidence."
+      ],
+      "acceptance_criteria": "S_define declares sim_dynamics, sim_sensors, sim_scenario, and FSW POSIX sim objects; harness executable links the FSW POSIX archives; sim object listing reports all four components present.",
+      "expected_artifacts": [
+        {
+          "name": "s_define_inspection.md",
+          "description": "Signed inspection log of the S_define section showing all four sim modules + FSW POSIX wired",
+          "artifact_type": "log"
+        },
+        {
+          "name": "linker_map_snippet.txt",
+          "description": "Linker map excerpt showing all expected sim_dynamics, sim_sensors, sim_scenario, FSW POSIX symbols resolved",
+          "artifact_type": "log"
+        },
+        {
+          "name": "sim_object_listing.txt",
+          "description": "Trick sim object listing at runtime showing all integrated modules",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SIM-HARN-002",
+      "title": "Trick Scheduler Drives Fixed Time Step Across Components",
+      "requirement_ids": ["SW-REQ-SIM-HARN-002"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure the sim harness with a fixed time step and a fault-free scenario; instrument dynamics, sensors, and FSW with per-step timestamp recorders.",
+      "procedure": [
+        "Run the sim harness for at least 1000 scheduled steps.",
+        "Read the recorded sim_time values from each component each step.",
+        "Compute the per-step delta between consecutive sim_time samples for each component.",
+        "Compare the per-step deltas to the configured time step."
+      ],
+      "acceptance_criteria": "All components report identical sim_time values each step and the per-step delta equals the configured time step for every step in the run.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-003",
+      "title": "Time-Step Order Is Dynamics, Sensors, Then FSW",
+      "requirement_ids": ["SW-REQ-SIM-HARN-002"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Instrument the sim harness with a per-step ordering log emitted from dynamics, sensors, and FSW callbacks.",
+      "procedure": [
+        "Run the sim harness for 100 steps with a fault-free scenario.",
+        "Read the ordering log emitted each step.",
+        "Compare the per-step entries to the expected dynamics, sensors, FSW order."
+      ],
+      "acceptance_criteria": "Every step in the ordering log shows dynamics executed before sensors and sensors executed before FSW with no out-of-order entries.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-004",
+      "title": "Simulated Sensor Sample Reaches FSW POSIX Driver Input",
+      "requirement_ids": ["SW-REQ-SIM-HARN-003"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure sim_sensors to emit a known IMU sample sequence each step; tap the FSW POSIX IMU driver input buffer.",
+      "procedure": [
+        "Run the sim harness for 50 steps with the deterministic IMU sequence.",
+        "Read the FSW POSIX IMU driver input buffer contents each step.",
+        "Compare each captured sample to the expected sim_sensors output for the same step."
+      ],
+      "acceptance_criteria": "FSW POSIX IMU driver input buffer contains the exact sim_sensors sample emitted for the same step, with no missing or duplicated samples across the run.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-005",
+      "title": "Sensor-to-FSW Delivery Occurs Every Scheduled Step",
+      "requirement_ids": ["SW-REQ-SIM-HARN-003"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Instrument the sim harness sensor-to-FSW boundary with a per-step delivery counter for each simulated sensor channel.",
+      "procedure": [
+        "Run the sim harness for at least 500 steps.",
+        "Read the per-step delivery counters for each simulated sensor channel.",
+        "Compare delivery counts against the scheduled step count."
+      ],
+      "acceptance_criteria": "Each simulated sensor channel reports a delivery count equal to the scheduled step count over the run.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-006",
+      "title": "FSW POSIX Applications Execute In-Process Each Step",
+      "requirement_ids": ["SW-REQ-SIM-HARN-004"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Instrument the FSW POSIX application entry points (nav, command, telem) to record their PID, TID, and per-step execution count.",
+      "procedure": [
+        "Run the sim harness for 200 steps.",
+        "Read the recorded PID, TID, and execution counts for each FSW POSIX application.",
+        "Compare PIDs to the harness process PID and execution counts to the scheduled step count."
+      ],
+      "acceptance_criteria": "Each FSW POSIX application records the harness PID, executes once per scheduled step, and accumulates an execution count equal to the scheduled step count.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-007",
+      "title": "Scenario Selection Via Trick Command-Line Argument",
+      "requirement_ids": ["SW-REQ-SIM-HARN-005"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Provide two distinct scenario configuration files with different initial states and durations.",
+      "procedure": [
+        "Run the sim harness with the first scenario passed via the Trick scenario CLI argument.",
+        "Read the loaded scenario identifier and initial state from the run startup log.",
+        "Run the sim harness with the second scenario passed via the same CLI argument.",
+        "Read the loaded scenario identifier and initial state from the second run startup log.",
+        "Compare each loaded scenario identifier and initial state to the corresponding CLI selection."
+      ],
+      "acceptance_criteria": "Each run loads the scenario identifier and initial state matching the scenario named on the Trick command-line argument with no fallback to a default scenario.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-008",
+      "title": "Identical Config and Seed Produce Bit-Identical Outputs",
+      "requirement_ids": ["SW-REQ-SIM-HARN-006"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Select a fixed scenario configuration and a fixed random seed; designate a clean output directory for each repeat.",
+      "procedure": [
+        "Run the sim harness with the chosen scenario and seed into output directory A.",
+        "Run the sim harness again with the same scenario and seed into output directory B.",
+        "Compute SHA-256 digests of the SD log, telemetry capture, and truth-vs-FSW comparison files in each directory.",
+        "Compare digests across directory A and directory B."
+      ],
+      "acceptance_criteria": "SHA-256 digests for the SD log, telemetry capture, and truth-vs-FSW comparison are byte-identical between directory A and directory B.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-009",
+      "title": "Different Seed Produces Different Outputs With Same Config",
+      "requirement_ids": ["SW-REQ-SIM-HARN-006"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Select a fixed scenario configuration; choose two different random seeds; designate clean output directories for each run.",
+      "procedure": [
+        "Run the sim harness with the fixed scenario and the first seed into directory A.",
+        "Run the sim harness with the fixed scenario and the second seed into directory B.",
+        "Compute SHA-256 digests of the SD log, telemetry capture, and truth-vs-FSW comparison files in each directory.",
+        "Compare digests across directory A and directory B."
+      ],
+      "acceptance_criteria": "SHA-256 digests for the SD log, telemetry capture, and truth-vs-FSW comparison differ between directory A and directory B, confirming seed influences output.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-010",
+      "title": "SD Log Artifact Emitted Each Run",
+      "requirement_ids": ["SW-REQ-SIM-HARN-007"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure the sim harness with a fault-free scenario that exercises FSW SD log writes; designate a clean output directory.",
+      "procedure": [
+        "Run the sim harness to completion.",
+        "Read the configured output directory and locate the SD log artifact file.",
+        "Open the SD log file and parse its records.",
+        "Compare the parsed record count against the expected non-zero count for the scenario."
+      ],
+      "acceptance_criteria": "SD log artifact file exists in the output directory after the run, is non-empty, parses successfully, and contains the expected non-zero record count.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-011",
+      "title": "Telemetry Capture Artifact Emitted Each Run",
+      "requirement_ids": ["SW-REQ-SIM-HARN-008"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure the sim harness with a scenario that exercises FSW telemetry packet emission; designate a clean output directory.",
+      "procedure": [
+        "Run the sim harness to completion.",
+        "Read the configured output directory and locate the telemetry capture artifact file.",
+        "Decode the captured telemetry packets and count valid CCSDS packets.",
+        "Compare the decoded packet count and contents against the expected scenario telemetry profile."
+      ],
+      "acceptance_criteria": "Telemetry capture file exists in the output directory after the run, decodes into the expected number of valid CCSDS packets, and matches the scenario telemetry profile.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-012",
+      "title": "Truth-vs-FSW Comparison Artifact Contents",
+      "requirement_ids": ["SW-REQ-SIM-HARN-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure the sim harness with a scenario that exercises nav state estimation; designate a clean output directory.",
+      "procedure": [
+        "Run the sim harness to completion.",
+        "Read the configured output directory and locate the truth-vs-FSW comparison file.",
+        "Parse the comparison file and confirm each row contains sim_time, simulated truth nav state, and FSW nav state columns.",
+        "Compare the row count against the scheduled step count for the run."
+      ],
+      "acceptance_criteria": "Truth-vs-FSW comparison file exists, contains sim_time, simulated truth nav state, and FSW nav state columns, and has a row count equal to the scheduled step count.",
+      "status": "Draft",
+      "google_test_ref": "sim/sim_harness/tests/sim_harness_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-HARN-013",
+      "title": "All Run Artifacts Collected Under Configured Output Directory",
+      "requirement_ids": ["SW-REQ-SIM-HARN-010"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Choose a non-default output directory path; configure the sim harness to use it via the output directory CLI argument.",
+      "procedure": [
+        "Run the sim harness to completion with the configured output directory argument.",
+        "List the contents of the configured output directory.",
+        "Inspect the working directory and any other candidate paths for stray artifact files.",
+        "Confirm the SD log, telemetry capture, and truth-vs-FSW comparison artifacts are all under the configured directory.",
+        "Record the directory listing and the absence of stray files as inspection evidence."
+      ],
+      "acceptance_criteria": "Configured output directory contains the SD log, telemetry capture, and truth-vs-FSW comparison artifacts; no run artifact files are written outside the configured directory.",
+      "expected_artifacts": [
+        {
+          "name": "output_directory_listing.txt",
+          "description": "Directory listing of the configured output directory after a run, showing all expected artifacts present",
+          "artifact_type": "log"
+        },
+        {
+          "name": "stray_files_check.md",
+          "description": "Signed inspection record confirming absence of artifacts outside the configured output directory",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

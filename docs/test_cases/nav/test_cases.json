@@ -1,0 +1,440 @@
+{
+  "module": "NAV",
+  "test_cases": [
+    {
+      "id": "SW-TC-NAV-001",
+      "title": "Accept IMU Sample via Public API",
+      "requirement_ids": ["SW-REQ-NAV-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library to its ready state with caller-owned storage. Construct an IMU sample containing finite accelerometer (m/s^2) and gyroscope (rad/s) values and a monotonically increasing timestamp.",
+      "procedure": [
+        "Submit the IMU sample through the public IMU-input API.",
+        "Read the returned status code.",
+        "Query the nav estimate output after submission."
+      ],
+      "acceptance_criteria": "The IMU-input API returns a success status, no error is reported, and the nav estimate updates such that subsequent reads reflect the propagation triggered by the submitted sample (estimate timestamp advances or state changes versus the pre-submission snapshot).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-002",
+      "title": "Accept GPS Position Measurement via Public API",
+      "requirement_ids": ["SW-REQ-NAV-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library and bring it through any required initialization phase using IMU samples. Construct a GPS measurement containing finite WGS-84 latitude, longitude, altitude, and a valid timestamp.",
+      "procedure": [
+        "Submit the GPS measurement through the public GPS-input API.",
+        "Read the returned status code.",
+        "Read the nav estimate output."
+      ],
+      "acceptance_criteria": "The GPS-input API returns a success status and the nav estimate horizontal position differs from a parallel run that did not receive the GPS measurement, demonstrating the input was consumed.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-003",
+      "title": "Accept Barometric Altimeter Measurement via Public API",
+      "requirement_ids": ["SW-REQ-NAV-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library and propagate it briefly with IMU samples. Construct a baro measurement containing a finite altitude (or pressure converted to altitude) and a valid timestamp.",
+      "procedure": [
+        "Submit the baro measurement through the public baro-input API.",
+        "Read the returned status code.",
+        "Read the nav estimate output."
+      ],
+      "acceptance_criteria": "The baro-input API returns a success status and the nav estimate vertical state (altitude or down-velocity) differs from a parallel run that did not receive the baro measurement.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-004",
+      "title": "Sixteen-State Nav Estimate Structure Inspection",
+      "requirement_ids": ["SW-REQ-NAV-004"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Locate the public nav estimate output type declaration in the nav library headers.",
+      "procedure": [
+        "Inspect the nav estimate output type definition.",
+        "Enumerate the fields exposed for position (3), velocity (3), attitude quaternion (4), accelerometer bias (3), and gyroscope bias (3).",
+        "Verify the total scalar count of these fields equals sixteen.",
+        "Confirm a populated nav estimate from a unit test exposes all sixteen scalar fields with finite values."
+      ],
+      "acceptance_criteria": "The nav estimate output type exposes exactly the sixteen scalar state components (position x3, velocity x3, quaternion x4, accel bias x3, gyro bias x3), all readable by the caller after a successful update.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-005",
+      "title": "Nav Estimate Updated at 100 Hz Cadence",
+      "requirement_ids": ["SW-REQ-NAV-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library. Prepare a synthetic IMU sample stream at 100 Hz (10 ms intervals) and any other inputs required to keep the estimate valid for one second of simulated time.",
+      "procedure": [
+        "Drive the nav library with 100 IMU samples spanning one second of simulated time.",
+        "After each sample, read the nav estimate output and record its timestamp.",
+        "Compute the inter-sample timestamp deltas of the recorded outputs."
+      ],
+      "acceptance_criteria": "An updated nav estimate is observable to the caller after each 10 ms IMU sample, yielding 100 distinct estimates over one simulated second with output timestamp deltas equal to 10 ms within numerical tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-006",
+      "title": "Geodetic Position Output in Degrees and Meters",
+      "requirement_ids": ["SW-REQ-NAV-006"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize the nav library at a known WGS-84 geodetic location (e.g. lat 34.0 deg, lon -117.0 deg, alt 500 m).",
+      "procedure": [
+        "Inspect the nav estimate position field documentation/units in the public header.",
+        "Read the nav estimate output position fields.",
+        "Confirm latitude is in [-90, 90] degrees, longitude is in [-180, 180] degrees, and altitude is a meter-scale value.",
+        "Verify the reported position lies within a small tolerance of the initialization location."
+      ],
+      "acceptance_criteria": "Header documentation specifies WGS-84 geodetic latitude/longitude in degrees and altitude in meters, and the output values match the initialization location within tolerance and stay within valid geodetic ranges.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-007",
+      "title": "Altitude Output Referenced to WGS-84 Ellipsoid",
+      "requirement_ids": ["SW-REQ-NAV-007"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize the nav library with a GPS measurement reporting WGS-84 ellipsoidal altitude (HAE) at a known test location whose HAE and MSL values differ by a documented geoid offset.",
+      "procedure": [
+        "Inspect the nav library header documentation for the altitude field.",
+        "Submit the HAE GPS measurement and step the nav library long enough for the altitude estimate to track the GPS input.",
+        "Read the nav estimate altitude.",
+        "Compare against both the input HAE value and the geoid-offset MSL value."
+      ],
+      "acceptance_criteria": "Header documents altitude as WGS-84 HAE; output altitude tracks the input HAE value (not the MSL value) within tolerance after the GPS measurement is incorporated.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-008",
+      "title": "Velocity Output in NED Frame",
+      "requirement_ids": ["SW-REQ-NAV-008"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize the nav library at rest at a known location. Prepare a deterministic IMU/GPS scenario where the platform moves due north at 5 m/s with no east or vertical motion.",
+      "procedure": [
+        "Inspect the nav library header documentation for the velocity field axes and units.",
+        "Drive the nav library through the synthetic northbound scenario for several seconds.",
+        "Read the nav estimate velocity components."
+      ],
+      "acceptance_criteria": "Header documents velocity as North-East-Down components in m/s; the reported velocity has positive North component near 5 m/s, East and Down components near zero within tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-009",
+      "title": "Attitude Output as Body-to-NED Unit Quaternion",
+      "requirement_ids": ["SW-REQ-NAV-009"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize the nav library on a level, stationary platform aligned with the local NED frame (X-forward pointing north). Provide consistent IMU and GPS inputs for several seconds.",
+      "procedure": [
+        "Inspect the nav library header documentation for the attitude quaternion convention.",
+        "Read the nav estimate attitude quaternion after convergence.",
+        "Compute the quaternion magnitude and verify it is unit-norm within tolerance.",
+        "Apply the quaternion as a body-to-NED rotation to the body-frame X-axis unit vector and check the result aligns with NED north."
+      ],
+      "acceptance_criteria": "Header documents attitude as a unit quaternion rotating body to NED; the quaternion magnitude equals 1.0 within 1e-6 and rotating the body X-axis by it yields the NED north unit vector within tolerance for the level/north-aligned scenario.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-010",
+      "title": "Nav Estimate Quantities Expressed in SI Units",
+      "requirement_ids": ["SW-REQ-NAV-010"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open the nav library public header containing the nav estimate output type.",
+      "procedure": [
+        "Inspect the documented units of every field in the nav estimate output.",
+        "Confirm position altitude is in meters, velocity in m/s, attitude is dimensionless quaternion, accel bias in m/s^2, gyro bias in rad/s, and timestamp in seconds (or documented SI-derived unit).",
+        "Confirm geodetic latitude/longitude are in degrees as the documented angular convention permitted under SI usage.",
+        "Verify no field uses imperial, CGS, or unit-less raw counts."
+      ],
+      "acceptance_criteria": "Every nav estimate field has its units documented in the header and every documented unit is SI or an SI-derived unit; no imperial or raw-count fields are exposed.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-011",
+      "title": "Validity Flag Present and Toggleable in Nav Output",
+      "requirement_ids": ["SW-REQ-NAV-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library and prepare two scenarios: (a) a nominal scenario with all required inputs supplied, and (b) a degraded scenario in which the library is queried before any inputs are supplied.",
+      "procedure": [
+        "Run scenario (b): query the nav estimate immediately after initialization with no inputs supplied; record the validity flag.",
+        "Run scenario (a): supply nominal IMU/GPS/baro inputs for several seconds and query again; record the validity flag."
+      ],
+      "acceptance_criteria": "The nav estimate exposes a boolean validity flag accessible to the caller; the flag is observable in both scenarios and takes at least two distinct values across scenarios (false in (b), true in (a)).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-012",
+      "title": "Validity Flag False When Required Inputs Missing",
+      "requirement_ids": ["SW-REQ-NAV-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize a fresh nav library instance. Do not supply any IMU samples or initialization GPS fix.",
+      "procedure": [
+        "Immediately read the nav estimate output and record the validity flag.",
+        "Withhold all inputs and continue reading the output for several query cycles."
+      ],
+      "acceptance_criteria": "The validity flag reads false on every query while required nav inputs (IMU at minimum) have not yet been supplied.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-013",
+      "title": "Continued Nav Estimate Production With GPS and Baro Withheld",
+      "requirement_ids": ["SW-REQ-NAV-013"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library and bring it to a valid state using nominal IMU, GPS, and baro inputs for at least one simulated second.",
+      "procedure": [
+        "Stop supplying GPS and baro measurements while continuing to supply IMU samples at 100 Hz.",
+        "Continue driving the library for at least five additional simulated seconds.",
+        "After each IMU sample, read the nav estimate output and confirm the API call returns success and produces an updated estimate."
+      ],
+      "acceptance_criteria": "The nav library returns success on every output query and produces an updated nav estimate (advancing timestamp and propagating state) for the entire duration during which GPS and baro inputs are withheld.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-014",
+      "title": "Horizontal Position Bounded Within Configured Distance of GPS",
+      "requirement_ids": ["SW-REQ-NAV-014"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Build the nav library POSIX target. Prepare a recorded or replay-able dataset of IMU, GPS, and baro measurements representing a representative FT1 trajectory. Configure the divergence bound parameter to its operational value.",
+      "procedure": [
+        "Run the nav library against the recorded dataset on POSIX, logging at each output cycle the nav estimate latitude/longitude and the most recent GPS fix latitude/longitude with timestamps.",
+        "Convert each (nav_lat, nav_lon, gps_lat, gps_lon) pair to a horizontal great-circle (or local ENU) distance in meters.",
+        "Plot the horizontal distance versus time alongside the configured divergence bound.",
+        "Save the time series CSV and plot."
+      ],
+      "acceptance_criteria": "Across the entire dataset (excluding any documented warm-up window), the horizontal distance between the nav estimate and the latest GPS fix never exceeds the configured divergence bound, and the artifact plot shows the bound is respected.",
+      "expected_artifacts": [
+        {
+          "name": "nav_vs_gps_distance.csv",
+          "description": "Time series of nav-vs-GPS horizontal distance with timestamps and configured bound.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "nav_vs_gps_distance.png",
+          "description": "Plot of horizontal nav-vs-GPS distance against the configured divergence bound over time.",
+          "artifact_type": "plot"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-NAV-015",
+      "title": "Deterministic Nav Output for Identical Input Sequences",
+      "requirement_ids": ["SW-REQ-NAV-015"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare a recorded sequence of IMU, GPS, and baro measurements with identical timestamps and values. Provide two independently constructed nav library instances with identical configuration.",
+      "procedure": [
+        "Drive instance A through the recorded sequence and capture every nav estimate output into list A.",
+        "Drive instance B through the identical sequence in a fresh process invocation and capture every nav estimate output into list B.",
+        "Compare the two output lists element-by-element across all sixteen state fields, the validity flag, and the output timestamp."
+      ],
+      "acceptance_criteria": "List A and list B match bit-for-bit (or within a documented zero-tolerance equality check) for every field of every output across the entire sequence.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-016",
+      "title": "POSIX and Pico2 Nav Output Functional Equivalence",
+      "requirement_ids": ["SW-REQ-NAV-016"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Build the nav library for both POSIX and the Pico 2 RP2350 target with identical source revision and configuration. Prepare a recorded sequence of IMU, GPS, and baro measurements packaged in a format both targets can replay deterministically.",
+      "procedure": [
+        "Replay the recorded sequence through the POSIX build and log every nav estimate to a CSV.",
+        "Replay the same recorded sequence through the Pico 2 build (output streamed over serial) and log every nav estimate to a CSV.",
+        "Align the two CSVs by output timestamp.",
+        "Compute per-field differences for the sixteen state components and the validity flag at every aligned sample.",
+        "Generate a difference summary plot and statistics."
+      ],
+      "acceptance_criteria": "Across the full aligned sequence, validity flag agrees at every sample and per-field numerical differences stay within the documented functional-equivalence tolerance (e.g. position <= 0.5 m, velocity <= 0.05 m/s, quaternion components <= 1e-3, biases within sensor noise floor).",
+      "expected_artifacts": [
+        {
+          "name": "nav_posix.csv",
+          "description": "Nav estimate time series produced by the POSIX build.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "nav_pico2.csv",
+          "description": "Nav estimate time series produced by the Pico 2 build over serial.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "posix_vs_pico2_diff.png",
+          "description": "Plot of per-field differences between POSIX and Pico2 nav outputs over time.",
+          "artifact_type": "plot"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-NAV-017",
+      "title": "Body Axis Convention Documented as X-Forward Y-Right Z-Down",
+      "requirement_ids": ["SW-REQ-NAV-017"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Open the nav library public header that documents the IMU input type and the body-frame convention.",
+      "procedure": [
+        "Inspect the header documentation for the IMU input type.",
+        "Confirm the body-frame axes are documented as X-forward, Y-right, Z-down.",
+        "Confirm accelerometer and gyroscope component ordering matches that convention."
+      ],
+      "acceptance_criteria": "The header documentation explicitly states the body-frame convention is X-forward, Y-right, Z-down for IMU inputs and labels accelerometer/gyroscope components accordingly.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-018",
+      "title": "IMU-Only Propagation Produces Updated Estimate",
+      "requirement_ids": ["SW-REQ-NAV-001", "SW-REQ-NAV-013"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library and bring it to a valid state with nominal inputs. Capture a baseline nav estimate snapshot.",
+      "procedure": [
+        "Stop supplying GPS and baro measurements.",
+        "Submit a synthetic IMU sample stream representing constant body-frame acceleration of 1 m/s^2 along X-forward for one simulated second at 100 Hz.",
+        "Read the final nav estimate output."
+      ],
+      "acceptance_criteria": "The nav library accepts every IMU sample, returns success on every output query, and the final NED velocity differs from the baseline along an axis consistent with X-forward acceleration in the initialized body orientation.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-019",
+      "title": "Body-X Gyro Rotation Yields Roll About NED-Aligned X Axis",
+      "requirement_ids": ["SW-REQ-NAV-009", "SW-REQ-NAV-017"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library on a level platform aligned so the body frame coincides with the NED frame (X-forward pointing north, Y-right east, Z-down down). Allow attitude to converge.",
+      "procedure": [
+        "Submit IMU samples at 100 Hz for one simulated second with gyroscope X = +1 rad/s and other gyro/accel components consistent with stationary level flight.",
+        "Read the final attitude quaternion.",
+        "Compute the equivalent body-to-NED rotation angle/axis from the quaternion."
+      ],
+      "acceptance_criteria": "The recovered rotation has axis aligned with body/NED X within tolerance and rotation magnitude near 1 rad, with the output quaternion remaining unit-norm to within 1e-6.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-020",
+      "title": "Synthetic Divergence Test Triggers Bounded Behavior",
+      "requirement_ids": ["SW-REQ-NAV-014"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize the nav library at a known location with the divergence bound configured to a small known value D. Provide consistent IMU, GPS, and baro inputs to converge the estimate.",
+      "procedure": [
+        "Continue driving the library with nominal IMU samples while supplying a stationary GPS fix at the known location for the duration of the test.",
+        "At each output cycle, compute the horizontal great-circle distance between the nav estimate and the latest GPS fix.",
+        "Run for at least five simulated seconds at 100 Hz."
+      ],
+      "acceptance_criteria": "After the documented warm-up window, the horizontal distance between the nav estimate and the latest GPS fix is less than or equal to the configured bound D at every output cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-021",
+      "title": "EKF Prediction Step Verification",
+      "requirement_ids": ["SW-REQ-NAV-018"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize NAV_LIB_IMPL_T with deterministic NAV_INIT_T (zero biases, fInitialCovDiag = small values [1e-6 across all 16 entries, expressing high confidence in the seed], kNavGpsBoundM_default, all noise sigmas set to the algorithm.md §5.2 reference values). Inject a known-good IMU_SAMPLE_T sequence (3 samples at 5 ms intervals) covering a small acceleration in body X-axis. Reference EKF script: libs/nav_lib/tests/ekf_reference.py — Python NumPy implementation using the analytic F derived from Groves 2013 §14.2 (the same normative reference the IMPL uses per algorithm.md §3.2 step 8); seeded from the same NAV_INIT_T values; double precision throughout.",
+      "procedure": [
+        "Call `nav_lib::Init()` with the deterministic NAV_INIT_T.",
+        "Call `nav_lib::PredictImu(sample0)` and capture the resulting NAV_STATE.",
+        "Call `nav_lib::PredictImu(sample1)` and `nav_lib::PredictImu(sample2)` in sequence.",
+        "Call `nav_lib::GetState()` and capture the final NAV_STATE.",
+        "Run libs/nav_lib/tests/ekf_reference.py with the same NAV_INIT_T and IMU sequence; capture its final NAV_STATE_REF as the ground-truth comparison vector.",
+        "Compare position, velocity, and quaternion components element-wise: |NAV_STATE - NAV_STATE_REF|."
+      ],
+      "acceptance_criteria": "Final NAV_STATE position differs from NAV_STATE_REF by less than 1 cm (Euclidean horizontal-position distance after lat/lon-to-meter conversion at the seed latitude); velocity by less than 1 cm/s (Euclidean magnitude over the 3-element NED triple); quaternion components by less than 1e-6 each (per-component absolute difference; quaternion is dimensionless — Euclidean component distance, NOT radians). bValid=true throughout. JUNO_STATUS_SUCCESS on every call.",
+      "expected_artifacts": [
+        {
+          "name": "ekf_reference.py",
+          "description": "Python NumPy reference EKF implementation using analytic F per Groves 2013 §14.2; produces ground-truth NAV_STATE_REF for SW-TC-NAV-021 acceptance comparison",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-022",
+      "title": "NAV_INIT_T Configurable Noise Covariance Loading",
+      "requirement_ids": ["SW-REQ-NAV-019"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two distinct NAV_INIT_T instances with the same biases and bounds but different noise covariance values (e.g., NAV_INIT_T_A with sigma_accel = 1e-3 m/s^2/sqrt(Hz) and sigma_GPS_horiz = 1.0 m; NAV_INIT_T_B with sigma_accel = 1e-2 m/s^2/sqrt(Hz) and sigma_GPS_horiz = 5.0 m). Prepare an identical input sequence (3 IMU samples + 1 GPS update).",
+      "procedure": [
+        "Initialize a fresh NAV_LIB_IMPL_T_A with NAV_INIT_T_A; feed the input sequence; capture final NAV_STATE_A.",
+        "Initialize a fresh NAV_LIB_IMPL_T_B with NAV_INIT_T_B; feed the same input sequence; capture final NAV_STATE_B.",
+        "Compare NAV_STATE_A.tPosLla[0..2] vs NAV_STATE_B.tPosLla[0..2]; compute the position-difference magnitude.",
+        "Verify that NAV_STATE_A and NAV_STATE_B differ — the higher-noise covariance instance should weight the IMU prediction more strongly relative to the GPS update."
+      ],
+      "acceptance_criteria": "Both invocations return JUNO_STATUS_SUCCESS. NAV_STATE_A.tPosLla differs from NAV_STATE_B.tPosLla by greater than 0.1 m, demonstrating the covariance values were loaded and used by the filter (not silently discarded). Both NAV_STATE bValid=true.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-NAV-023",
+      "title": "NAV_INIT_T Configurable Initial State Covariance Loading",
+      "requirement_ids": ["SW-REQ-NAV-020"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct two distinct NAV_INIT_T instances with the same biases, bounds, and noise covariances but different initial state covariance diagonals: NAV_INIT_T_LOW with fInitialCovDiag set to small values (e.g., 1e-6 across all 16 states, expressing high confidence in the seed); NAV_INIT_T_HIGH with fInitialCovDiag set to large values (e.g., 1e2 across all 16 states, expressing low confidence). Prepare an identical input sequence (1 IMU sample + 1 GPS update with a position 100 m offset from the NAV_INIT_T.tInitialState seed).",
+      "procedure": [
+        "Initialize a fresh NAV_LIB_IMPL_T_LOW with NAV_INIT_T_LOW; feed the input sequence; capture final NAV_STATE_LOW.",
+        "Initialize a fresh NAV_LIB_IMPL_T_HIGH with NAV_INIT_T_HIGH; feed the same input sequence; capture final NAV_STATE_HIGH.",
+        "Compute horizontal-position deviation of NAV_STATE_LOW from the NAV_INIT_T.tInitialState seed and from the GPS observation; same for NAV_STATE_HIGH.",
+        "Verify that NAV_STATE_LOW remains close to the seed (high P_0 confidence weights GPS less) and NAV_STATE_HIGH moves close to the GPS observation (low P_0 confidence weights GPS more)."
+      ],
+      "acceptance_criteria": "Both invocations return JUNO_STATUS_SUCCESS. NAV_STATE_LOW horizontal position is within 10 m of the NAV_INIT_T.tInitialState seed and more than 50 m from the GPS observation. NAV_STATE_HIGH horizontal position is within 10 m of the GPS observation and more than 50 m from the seed. The contrast demonstrates that the fInitialCovDiag values were loaded into P_0 and used by the filter at first measurement update.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/nav_lib/tests/nav_lib_test.cpp"
+    }
+  ]
+}

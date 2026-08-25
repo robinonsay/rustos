@@ -1,0 +1,137 @@
+{
+  "module": "LORA",
+  "requirements": [
+    {
+      "id": "SW-REQ-LORA-001",
+      "title": "Transmit Raw Byte Payload",
+      "description": "The LoRa library shall transmit caller-supplied raw byte payloads over the RYLR896 radio.",
+      "rationale": "Telem_lib provides serialized telemetry bytes; lora_lib is responsible for getting them on the air.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-002",
+      "title": "Payload Content Opacity",
+      "description": "The LoRa library shall not interpret or modify the content of caller-supplied payload bytes.",
+      "rationale": "PM decision: lora_lib is a transport-only driver; telem_lib owns packet structure and content.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-003",
+      "title": "Sustain 2 Hz Send Cadence",
+      "description": "The LoRa library shall complete each transmit call within the period required to sustain 2 Hz downlink.",
+      "rationale": "Derived from SW-REQ-SYS-019; driver send time must not stall the 2 Hz telemetry app.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-019",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-004",
+      "title": "AT-Command Configuration Interface",
+      "description": "The LoRa library shall configure the radio address, network ID, frequency, spreading factor, and bandwidth at initialization.",
+      "rationale": "RYLR896 requires AT-command configuration of these parameters before payload transmission is reliable.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-005",
+      "title": "Power-On Self-Test Probe",
+      "description": "The LoRa library shall probe the RYLR896 with an AT command and verify an OK response at startup.",
+      "rationale": "Derived from SW-REQ-SYS-029; POST must confirm the radio module is responsive before flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-006",
+      "title": "Continuous Health Reporting",
+      "description": "The LoRa library shall report a health status reflecting the most recent transmit and module-response outcome.",
+      "rationale": "Derived from SW-REQ-SYS-031 and SW-REQ-SYS-061; ongoing health observability for the radio is required.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-007",
+      "title": "Unhealthy on Send Failure",
+      "description": "The LoRa library shall report unhealthy status when a transmit attempt fails.",
+      "rationale": "Derived from SW-REQ-SYS-061; transmission failures must be surfaced via health state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-061",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-008",
+      "title": "Unhealthy on Missing Module Response",
+      "description": "The LoRa library shall report unhealthy status when the RYLR896 fails to respond to an AT command.",
+      "rationale": "Derived from SW-REQ-SYS-061; lack of module response indicates a non-functional radio path.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-061",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-009",
+      "title": "Return Status on Send Failure",
+      "description": "The LoRa library shall return a non-success status when a transmit call fails.",
+      "rationale": "Derived from SW-REQ-SYS-036; callers must observe failure to continue operating without halting.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-036",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-010",
+      "title": "POSIX and Pico2 Implementations",
+      "description": "The LoRa library shall provide functionally equivalent POSIX and Pico2 implementations behind one API.",
+      "rationale": "Derived from SW-REQ-SYS-043; Trick simulation must exercise the same lora_lib API as flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-011",
+      "title": "Deterministic Behavior",
+      "description": "The LoRa library shall produce deterministic outputs and status codes given identical inputs.",
+      "rationale": "Derived from SW-REQ-SYS-044; deterministic driver behavior is required for repeatable Trick runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LORA-012",
+      "title": "Configurable UART Baud Rate",
+      "description": "The LoRa library shall accept a UART baud rate as a configuration parameter at initialization.",
+      "rationale": "PM decision: baud rate is configurable to match RYLR896 module settings without code changes.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

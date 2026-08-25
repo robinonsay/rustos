@@ -1,0 +1,439 @@
+{
+  "module": "SYS",
+  "requirements": [
+    {
+      "id": "SW-REQ-SYS-001",
+      "title": "Raw Sensor Logging to SD Card",
+      "description": "The FSW shall log all raw sensor measurements to the SD card during the mission.",
+      "rationale": "FT1 mission role requires preservation of raw sensor data for post-flight analysis and Trick simulation anchoring.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-002",
+      "title": "Live In-Flight Navigation Estimation",
+      "description": "The FSW shall execute a live navigation algorithm in flight to estimate and propagate nav state.",
+      "rationale": "FT1 is a nav-evaluation flight; the navigation algorithm must run on flight hardware in real time.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-003",
+      "title": "Live Telemetry Downlink Over LoRa",
+      "description": "The FSW shall transmit live telemetry over the LoRa radio during the mission.",
+      "rationale": "FT1 requires real-time ground visibility into vehicle state and recovery beaconing post-landing.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-004",
+      "title": "No Actuation on FT1",
+      "description": "The FSW shall not command any vehicle actuator during the FT1 mission.",
+      "rationale": "FT1 scope is nav evaluation and sim anchoring; actuation is explicitly out of scope.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-005",
+      "title": "IMU Sample Rate",
+      "description": "The FSW shall sample the IMU at 200 Hz throughout the mission.",
+      "rationale": "PM-fixed IMU rate to bound boost-phase motion (~13 G, 500 ms) and support nav at 100 Hz.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-006",
+      "title": "IMU Accelerometer Range",
+      "description": "The FSW shall configure the IMU accelerometer range to plus or minus 16 G.",
+      "rationale": "Flight envelope reaches 13 G; 16 G range provides margin without saturation during boost.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-007",
+      "title": "IMU Gyroscope Range",
+      "description": "The FSW shall configure the IMU gyroscope range to plus or minus 2000 degrees per second.",
+      "rationale": "Maximum rotation rate envelope for FT1; 2000 dps avoids saturation during boost and recovery.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-008",
+      "title": "Altimeter Sample Rate",
+      "description": "The FSW shall sample the barometric altimeter at 20 Hz throughout the mission.",
+      "rationale": "PM-fixed rate sufficient for apogee detection (~600 m) and nav baro fusion at 20 Hz cadence.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-009",
+      "title": "GPS Sample Rate",
+      "description": "The FSW shall sample the GPS receiver at 5 Hz throughout the mission.",
+      "rationale": "PM-fixed GPS rate matches FGPMMOPA6H capability and supports horizontal nav bounding.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-010",
+      "title": "Static Compile-Time Schedule",
+      "description": "The FSW shall execute all applications on a static schedule fixed at compile time.",
+      "rationale": "PM decision: no dynamic rate changes; deterministic TDM scheduling for repeatable nav and logging.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-011",
+      "title": "No Sensor Downsampling for Logging",
+      "description": "The FSW shall log each sensor at its full sample rate without downsampling.",
+      "rationale": "PM decision: preserve raw fidelity for post-flight analysis and Trick sim anchoring.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-012",
+      "title": "Nav State Output Rate",
+      "description": "The FSW shall publish navigation state estimates at 100 Hz during the mission.",
+      "rationale": "PM-fixed nav output cadence supports telemetry, AFM, and consistent post-flight analysis.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-013",
+      "title": "Sixteen-State Navigation Estimate",
+      "description": "The FSW shall produce a navigation estimate containing position, velocity, attitude quaternion, and accelerometer and gyroscope biases.",
+      "rationale": "PM-defined nav state composition: 3 position, 3 velocity, 4 quaternion, 3 accel bias, 3 gyro bias.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": ["SW-REQ-NAV-018", "SW-REQ-NAV-APP-014"], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-014",
+      "title": "Navigation Position Bound to GPS",
+      "description": "The FSW shall keep the navigation position estimate within a configured horizontal distance of the GPS fix.",
+      "rationale": "PM-required black-box divergence sanity bound; numeric threshold lives in design, not requirement.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-015",
+      "title": "Navigation Validity Flag",
+      "description": "The FSW shall publish a navigation validity flag indicating whether the nav estimate is currently trustworthy.",
+      "rationale": "PM-required observable state so consumers (telemetry, post-flight) can gate use of nav output.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-016",
+      "title": "Automatic Flight Phase Detection",
+      "description": "The FSW shall automatically detect boost, apogee, descent, and landing transitions from pre-launch initial phase.",
+      "rationale": "PM-required AFM capability; pre-launch is the at-power-on initial phase per SW-REQ-AFM-002; algorithm choice deferred to design.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-017",
+      "title": "Flight Phase Published to Software Bus",
+      "description": "The FSW shall publish the current flight phase on the software bus.",
+      "rationale": "PM decision: phase is an observable consumed by telemetry and logging via the bus.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-018",
+      "title": "Flight Phase Transition Timestamp Accuracy",
+      "description": "The FSW shall timestamp each flight phase transition within one second of post-flight ground-truth determination.",
+      "rationale": "PM-defined AFM acceptance tolerance for FT1 closure based on log analysis ground truth.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-019",
+      "title": "Telemetry Downlink Rate",
+      "description": "The FSW shall transmit telemetry packets over the LoRa radio at 2 Hz.",
+      "rationale": "PM-fixed telemetry rate balancing LoRa link budget against ground-station observability.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-020",
+      "title": "Telemetry Packet Content",
+      "description": "The FSW telemetry packet shall include timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health.",
+      "rationale": "PM-specified packet content covering mission state required for ground monitoring and recovery.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-021",
+      "title": "Continuous Telemetry Coverage",
+      "description": "The FSW shall transmit telemetry continuously from power-on until external power is removed.",
+      "rationale": "PM decision: continuous coverage including post-landing recovery beaconing.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-022",
+      "title": "SD Card Log Content",
+      "description": "The FSW shall log all raw sensor samples, navigation state, and flight phase events to the SD card.",
+      "rationale": "PM-specified log content enabling post-flight analysis and Trick sim anchoring.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-023",
+      "title": "Machine-Parseable Log Format",
+      "description": "The FSW shall write SD card log records in a machine-parseable format.",
+      "rationale": "PM decision: format details deferred to design but parseability is a requirement.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-024",
+      "title": "Verbatim Raw NMEA Logging",
+      "description": "The FSW shall log raw GPS NMEA sentences verbatim to the SD card.",
+      "rationale": "PM decision: preserve unmodified GPS source data for post-flight reconstruction.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-025",
+      "title": "New Log Run Per Power-On",
+      "description": "The FSW shall create a new log run on each power-on.",
+      "rationale": "PM decision: each power-on starts a fresh log run distinct from prior runs.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-026",
+      "title": "Monotonic Microsecond Time Base",
+      "description": "The FSW shall stamp every record using monotonic microseconds since startup as the single time base.",
+      "rationale": "PM decision: one canonical time source across all records ensures cross-record alignment.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-027",
+      "title": "Per-Sample Timestamping",
+      "description": "The FSW shall include a timestamp on every individual sensor sample record, not only batch headers.",
+      "rationale": "PM decision: per-sample timestamps required for accurate post-flight nav reconstruction.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-028",
+      "title": "GPS UTC Time Logging",
+      "description": "The FSW shall log a GPS UTC time record whenever the GPS receiver provides UTC time.",
+      "rationale": "PM decision: enables post-flight alignment of monotonic time to absolute UTC.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-029",
+      "title": "Power-On Self-Test",
+      "description": "The FSW shall execute a power-on self-test probing each sensor device once at startup.",
+      "rationale": "PM-required POST so the operator knows pre-flight whether all sensors are responsive.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-030",
+      "title": "POST Result Logging",
+      "description": "The FSW shall log the per-sensor POST pass-or-fail result to the SD card once at startup.",
+      "rationale": "PM decision: POST result is a one-shot record persisted on the SD card.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-031",
+      "title": "Continuous Sensor Health Bitmap",
+      "description": "The FSW shall publish a per-sensor health bitmap continuously throughout the mission.",
+      "rationale": "PM-required ongoing health observability included in every telemetry packet and log.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-032",
+      "title": "Operator Health Indicator LED",
+      "description": "The FSW shall drive a physical LED reflecting all-healthy versus error state for the operator.",
+      "rationale": "PM-required pre-flight visual go/no-go indication for the operator on the pad.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-033",
+      "title": "Sensor Read Failure Continuation",
+      "description": "The FSW shall continue operating when a sensor read fails.",
+      "rationale": "PM decision: never halt mission on sensor failure; continue execution.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-034",
+      "title": "Navigation Degraded-Input Continuation",
+      "description": "The FSW shall continue propagating navigation with reduced inputs when sensor inputs are unavailable.",
+      "rationale": "PM decision: nav must never crash; degrade gracefully when sensors drop.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-035",
+      "title": "SD Write Failure Continuation",
+      "description": "The FSW shall continue attempting SD card writes after a write failure.",
+      "rationale": "PM decision: SD failures must not halt mission; retry writes.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-036",
+      "title": "Radio Failure Continuation",
+      "description": "The FSW shall continue all other operations after a telemetry transmission failure.",
+      "rationale": "PM decision: radio loss must not impair logging or nav.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-037",
+      "title": "No Auto-Reboot During Mission",
+      "description": "The FSW shall not autonomously reboot or reset itself during the mission.",
+      "rationale": "PM decision: failures flag and continue; FIDR is out of scope for FT1.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-038",
+      "title": "Geodetic Position Frame",
+      "description": "The FSW shall represent position as WGS-84 geodetic latitude and longitude in degrees with altitude in meters.",
+      "rationale": "PM-defined coordinate convention for FT1 telemetry, logging, and nav output.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-039",
+      "title": "Height-Above-Ellipsoid Altitude Reference",
+      "description": "The FSW shall reference reported altitudes to the WGS-84 ellipsoid (HAE).",
+      "rationale": "PM decision: HAE chosen as the unambiguous reference shared with GPS output.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-040",
+      "title": "NED Velocity Frame",
+      "description": "The FSW shall express velocity in the North-East-Down (NED) frame.",
+      "rationale": "PM-defined aerospace-standard velocity frame for FT1 nav and telemetry.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-041",
+      "title": "Body-to-NED Quaternion Attitude",
+      "description": "The FSW shall represent attitude as a unit quaternion (w, x, y, z) rotating from body frame to NED.",
+      "rationale": "PM-defined attitude representation for FT1 nav output and telemetry consumers.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-042",
+      "title": "SI Units Throughout",
+      "description": "The FSW shall use SI units for all logged and downlinked physical quantities.",
+      "rationale": "PM decision: globally SI to eliminate unit-conversion ambiguity.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-043",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The FSW POSIX build shall be functionally equivalent to the Pico2 flight build.",
+      "rationale": "PM-required so Trick simulation exercises the same software paths as flight.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-044",
+      "title": "Deterministic Execution",
+      "description": "The FSW shall produce deterministic outputs given identical inputs.",
+      "rationale": "PM-required determinism for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-045",
+      "title": "Trick Simulation Integration",
+      "description": "The FSW shall be runnable inside a NASA Trick simulation accepting simulated IMU, baro, and GPS inputs.",
+      "rationale": "PM-required closed-loop SITL capability anchored to FT1 sensor suite.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-046",
+      "title": "Operational on Power-On Without Arming",
+      "description": "The FSW shall become fully operational immediately at power-on without any external arm signal.",
+      "rationale": "PM decision: no arming step; power-on equals mission start.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-047",
+      "title": "Run Until External Power Removed",
+      "description": "The FSW shall continue executing until external power is removed, never initiating its own shutdown.",
+      "rationale": "PM decision: no FSW-initiated shutdown; operator controls end of mission via power.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-048",
+      "title": "Post-Landing Recovery Beacon",
+      "description": "The FSW shall continue transmitting 2 Hz telemetry indefinitely after landing until power is removed.",
+      "rationale": "PM-required recovery beaconing supports locating the rocket after landing.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-049",
+      "title": "FT1 Flight Verification Artifacts",
+      "description": "The FSW FT1 verification shall produce SD log, telemetry transcript, operator video, signed checklist, and recovered hardware.",
+      "rationale": "PM-defined required closure artifacts for FT1 flight-side requirements.",
+      "verification_method": "Demonstration", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-050",
+      "title": "No Dynamic Memory Allocation After Boot",
+      "description": "The FSW shall not perform dynamic memory allocation after boot completes.",
+      "rationale": "PM NFR: heap is forbidden post-boot to ensure deterministic memory behavior.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-SYS-051",
+      "title": "No Runtime Polymorphism After Init",
+      "description": "The FSW shall not employ runtime polymorphism after initialization completes.",
+      "rationale": "PM NFR: dynamic polymorphism only permitted during initialization for vtable wiring.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-SYS-052",
+      "title": "No RTTI",
+      "description": "The FSW shall be built without runtime type information.",
+      "rationale": "PM NFR: RTTI is prohibited; enforced via -fno-rtti compiler flag.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-SYS-053",
+      "title": "No Thrown Exceptions",
+      "description": "The FSW shall not throw C++ exceptions.",
+      "rationale": "PM NFR: exceptions are prohibited; enforced via -fno-exceptions compiler flag.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-SYS-054",
+      "title": "Unit Test Line Coverage",
+      "description": "The FSW unit test suite shall achieve 100 percent line coverage.",
+      "rationale": "PM NFR: 100% line coverage mandated; no branch coverage requirement applies.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-SYS-055",
+      "title": "Prior Log Run Preservation",
+      "description": "The FSW shall preserve prior log runs on the SD card until externally wiped.",
+      "rationale": "PM decision: protect prior flight data against accidental overwrite between runs.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-056",
+      "title": "POST Result Downlink",
+      "description": "The FSW shall downlink the per-sensor POST pass-or-fail result over the radio once at startup.",
+      "rationale": "PM decision: POST result is a one-shot record visible on the ground station at startup.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-057",
+      "title": "Body Axes Convention",
+      "description": "The FSW shall define body axes as X-forward, Y-right, and Z-down.",
+      "rationale": "PM-defined aerospace-standard body axis convention for FT1 nav and telemetry.",
+      "verification_method": "Inspection", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-058",
+      "title": "Mark Sensor Unhealthy on Read Failure",
+      "description": "The FSW shall mark a sensor unhealthy when a read from that sensor fails.",
+      "rationale": "PM decision: failed sensors are flagged unhealthy in the published health state.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-059",
+      "title": "Navigation Validity False on Missing Inputs",
+      "description": "The FSW shall set the navigation validity flag false when required nav inputs are unavailable.",
+      "rationale": "PM decision: validity flag must reflect degraded input state so consumers gate use.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-060",
+      "title": "Flag SD Card Unhealthy on Write Failure",
+      "description": "The FSW shall flag the SD card unhealthy when an SD card write fails.",
+      "rationale": "PM decision: SD write failures are surfaced via the published health state.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-061",
+      "title": "Flag Radio Unhealthy on Transmission Failure",
+      "description": "The FSW shall flag the radio unhealthy when a telemetry transmission fails.",
+      "rationale": "PM decision: radio transmission failures are surfaced via the published health state.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-062",
+      "title": "AFM-Loss Tolerance",
+      "description": "The FSW shall continue executing applications at their static rates when flight phase detection is unavailable.",
+      "rationale": "PM decision: loss of AFM does not halt the mission; apps run at static rates regardless.",
+      "verification_method": "Test", "status": "Active", "parent_id": null, "child_ids": [], "tags": ["FT1"]
+    }
+  ]
+}

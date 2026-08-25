@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Juno FSW Test Cases",
+  "description": "Test case JSON schema for Juno FSW. IDs use SW-TC-MODULE-NNN format.",
+  "type": "object",
+  "required": ["module", "test_cases"],
+  "properties": {
+    "module": {
+      "type": "string",
+      "description": "Module identifier (uppercase, matching requirements module)"
+    },
+    "test_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "requirement_ids",
+          "verification_method",
+          "type",
+          "procedure",
+          "acceptance_criteria",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SW-TC-[A-Z][A-Z0-9]*(-[A-Z][A-Z0-9]*)*-[0-9]{3}$",
+            "description": "Unique test case ID: SW-TC-MODULE-NNN"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short descriptive title"
+          },
+          "requirement_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "SW-REQ IDs this test case verifies"
+          },
+          "verification_method": {
+            "type": "string",
+            "enum": ["Test", "Inspection", "Demonstration"]
+          },
+          "type": {
+            "type": "string",
+            "enum": ["Unit", "Integration", "Demonstration"]
+          },
+          "setup": {
+            "type": "string",
+            "description": "Preconditions and environment setup"
+          },
+          "procedure": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Ordered execution steps"
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "description": "Observable outcome that constitutes passing"
+          },
+          "expected_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "description", "artifact_type"],
+              "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "artifact_type": {
+                  "type": "string",
+                  "enum": ["log", "csv", "plot", "photo", "video", "serial_output", "other"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Draft", "Active", "Passed", "Failed", "Blocked"]
+          },
+          "google_test_ref": {
+            "type": ["string", "null"],
+            "description": "Path to Google Test file for Unit/Integration types"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

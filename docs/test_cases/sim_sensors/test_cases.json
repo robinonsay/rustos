@@ -1,0 +1,293 @@
+{
+  "module": "SIM-SENS",
+  "test_cases": [
+    {
+      "id": "SW-TC-SIM-SENS-001",
+      "title": "Synthetic Sensor Generation From Truth State",
+      "requirement_ids": ["SW-REQ-SIM-SENS-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with a deterministic sim_dynamics truth state providing fixed position, velocity, attitude, angular rate, and specific force.",
+      "procedure": [
+        "Initialize sim_sensors with zero noise, zero bias, and zero dropout configuration.",
+        "Step the model once with a known truth state vector.",
+        "Read the synthetic IMU, barometer, and GPS outputs from the model.",
+        "Compare each output against the analytically-expected value derived from the truth state."
+      ],
+      "acceptance_criteria": "All three sensor outputs (IMU, baro, GPS) are populated and match the analytical expectations within floating-point tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-002",
+      "title": "Synthetic IMU Sample Rate Is 200 Hz",
+      "requirement_ids": ["SW-REQ-SIM-SENS-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors and run for one simulated second with a constant truth state.",
+      "procedure": [
+        "Configure sim_sensors with default parameters and a 1.0 s run duration.",
+        "Advance simulated time at the smallest sub-step the model supports.",
+        "Count the number of distinct synthetic IMU samples emitted during the run.",
+        "Record timestamps of consecutive IMU samples."
+      ],
+      "acceptance_criteria": "Exactly 200 synthetic IMU samples are emitted in 1.0 s and inter-sample period is 5.0 ms within +/-1 sub-step tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-003",
+      "title": "Synthetic Accelerometer Saturates At Plus Or Minus 16 G",
+      "requirement_ids": ["SW-REQ-SIM-SENS-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero noise and zero bias.",
+      "procedure": [
+        "Drive truth specific force on the X axis to +50 G and step the model.",
+        "Read the synthetic accelerometer X output and record it.",
+        "Drive truth specific force on the X axis to -50 G and step the model.",
+        "Read the synthetic accelerometer X output and record it.",
+        "Repeat for the Y and Z axes."
+      ],
+      "acceptance_criteria": "Accelerometer outputs are clamped to +16 G for positive overrange inputs and -16 G for negative overrange inputs on all three axes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-004",
+      "title": "Synthetic Gyroscope Saturates At Plus Or Minus 2000 dps",
+      "requirement_ids": ["SW-REQ-SIM-SENS-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero noise and zero bias.",
+      "procedure": [
+        "Drive truth angular rate on the X axis to +5000 dps and step the model.",
+        "Read the synthetic gyroscope X output and record it.",
+        "Drive truth angular rate on the X axis to -5000 dps and step the model.",
+        "Read the synthetic gyroscope X output and record it.",
+        "Repeat for the Y and Z axes."
+      ],
+      "acceptance_criteria": "Gyroscope outputs are clamped to +2000 dps for positive overrange inputs and -2000 dps for negative overrange inputs on all three axes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-005",
+      "title": "Synthetic IMU 16-bit Quantization Resolution",
+      "requirement_ids": ["SW-REQ-SIM-SENS-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero noise and zero bias and configured full-scale ranges of +/-16 G and +/-2000 dps.",
+      "procedure": [
+        "Sweep truth specific force across the full +/-16 G range in fine steps and record raw counts emitted.",
+        "Sweep truth angular rate across the full +/-2000 dps range in fine steps and record raw counts emitted.",
+        "Verify emitted counts are signed 16-bit integers.",
+        "Verify the count delta per LSB matches the configured full-scale divided by 32768."
+      ],
+      "acceptance_criteria": "Emitted IMU counts span the signed 16-bit range, increment monotonically with input, and match the configured LSB scaling within one count.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-006",
+      "title": "Configurable IMU White Noise Statistics",
+      "requirement_ids": ["SW-REQ-SIM-SENS-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero bias, a constant zero-input truth state, and a configured noise standard deviation sigma_a for accelerometer and sigma_g for gyroscope.",
+      "procedure": [
+        "Run the model for at least 10000 IMU samples with the configured noise parameters.",
+        "Collect the synthetic accelerometer and gyroscope sample streams per axis.",
+        "Compute the sample mean and sample standard deviation per axis.",
+        "Compare results against the configured sigma values."
+      ],
+      "acceptance_criteria": "Per-axis sample mean is zero within 3*sigma/sqrt(N), and sample standard deviation matches configured sigma within 5 percent.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-007",
+      "title": "Configurable IMU Bias Offsets Mean Output",
+      "requirement_ids": ["SW-REQ-SIM-SENS-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero noise and a configured non-zero bias vector for accelerometer and gyroscope.",
+      "procedure": [
+        "Hold truth specific force and angular rate at zero.",
+        "Step the model for at least 1000 IMU samples.",
+        "Compute the per-axis sample mean of accelerometer and gyroscope outputs.",
+        "Compare the per-axis means against the configured bias values."
+      ],
+      "acceptance_criteria": "Per-axis sample mean equals the configured bias for both accelerometer and gyroscope within floating-point tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-008",
+      "title": "Synthetic Barometer Sample Rate Is 20 Hz",
+      "requirement_ids": ["SW-REQ-SIM-SENS-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with default parameters and a constant truth altitude.",
+      "procedure": [
+        "Run the model for 1.0 s of simulated time.",
+        "Count the number of synthetic barometer samples emitted.",
+        "Record timestamps of consecutive barometer samples."
+      ],
+      "acceptance_criteria": "Exactly 20 synthetic barometer samples are emitted in 1.0 s and inter-sample period is 50.0 ms within +/-1 sub-step tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-009",
+      "title": "Standard Atmosphere Pressure And Temperature From Altitude",
+      "requirement_ids": ["SW-REQ-SIM-SENS-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with zero baro noise and configured to use the standard atmosphere model.",
+      "procedure": [
+        "Set truth altitude to 0 m MSL and read pressure and temperature.",
+        "Set truth altitude to 1000 m MSL and read pressure and temperature.",
+        "Set truth altitude to 5000 m MSL and read pressure and temperature.",
+        "Compare each (pressure, temperature) pair against the U.S. Standard Atmosphere 1976 reference values."
+      ],
+      "acceptance_criteria": "Pressure matches reference within 0.1 percent and temperature matches within 0.1 K at all three altitudes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-010",
+      "title": "Configurable Barometer Noise Statistics",
+      "requirement_ids": ["SW-REQ-SIM-SENS-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with constant truth altitude and configured baro noise standard deviation sigma_p.",
+      "procedure": [
+        "Run the model for at least 5000 barometer samples.",
+        "Subtract the noise-free standard-atmosphere pressure from each sample to obtain residuals.",
+        "Compute sample mean and sample standard deviation of the residual stream.",
+        "Compare against the configured sigma_p."
+      ],
+      "acceptance_criteria": "Residual mean is zero within 3*sigma/sqrt(N), and residual standard deviation matches configured sigma_p within 5 percent.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-011",
+      "title": "Synthetic GPS Sample Rate Is 5 Hz",
+      "requirement_ids": ["SW-REQ-SIM-SENS-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with default parameters and a constant truth position.",
+      "procedure": [
+        "Run the model for 1.0 s of simulated time.",
+        "Count the number of synthetic GPS fixes emitted.",
+        "Record timestamps of consecutive GPS fixes."
+      ],
+      "acceptance_criteria": "Exactly 5 synthetic GPS fixes are emitted in 1.0 s and inter-sample period is 200.0 ms within +/-1 sub-step tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-012",
+      "title": "Configurable GPS Quality Fields Propagated To Fix",
+      "requirement_ids": ["SW-REQ-SIM-SENS-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with configured HDOP=1.5, VDOP=2.0, fix_latency=120 ms, and satellites=8.",
+      "procedure": [
+        "Step the model and capture the next emitted GPS fix.",
+        "Read HDOP, VDOP, and satellite-count fields from the fix.",
+        "Compare the fix timestamp against the truth-state timestamp at which the fix was sampled.",
+        "Verify the timestamp delta equals the configured fix_latency."
+      ],
+      "acceptance_criteria": "Emitted GPS fix carries HDOP=1.5, VDOP=2.0, satellites=8, and a sample-to-emit delay equal to 120 ms within one sim sub-step.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-013",
+      "title": "GPS Dropout Window Suppresses Fixes",
+      "requirement_ids": ["SW-REQ-SIM-SENS-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sim_sensors with a configured dropout window from t=2.0 s to t=4.0 s.",
+      "procedure": [
+        "Run the model from t=0.0 s to t=6.0 s with a constant truth position.",
+        "Record the timestamps of all emitted GPS fixes.",
+        "Count fixes in the intervals [0,2), [2,4], and (4,6]."
+      ],
+      "acceptance_criteria": "Zero GPS fixes are emitted during [2,4] s, and fixes resume at the configured 5 Hz cadence in (4,6].",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-014",
+      "title": "Sensor Output Frames And Units Parity Inspection",
+      "requirement_ids": ["SW-REQ-SIM-SENS-013"],
+      "verification_method": "Inspection",
+      "type": "Integration",
+      "setup": "Open the sim_sensors header defining the synthetic sensor output structures and the FSW real-sensor driver headers (IMU, baro, GPS).",
+      "procedure": [
+        "Compare the accelerometer output frame and units (body frame, m/s^2 or raw counts with documented LSB) between sim_sensors and the FSW IMU driver.",
+        "Compare the gyroscope output frame and units (body frame, rad/s or raw counts with documented LSB) between sim_sensors and the FSW IMU driver.",
+        "Compare the barometer output units (Pa for pressure, K for temperature) between sim_sensors and the FSW baro driver.",
+        "Compare the GPS fix fields (latitude/longitude in degrees, altitude in meters MSL, HDOP/VDOP unitless, satellite count integer) between sim_sensors and the FSW GPS driver.",
+        "Record any frame or unit mismatch."
+      ],
+      "acceptance_criteria": "Reviewer confirms every sensor output field in sim_sensors uses the same frame and units as the corresponding FSW real-sensor driver field.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SIM-SENS-015",
+      "title": "Sensor Parameters Loaded From Sim Scenario",
+      "requirement_ids": ["SW-REQ-SIM-SENS-014"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Author a sim_scenario configuration containing distinct values for IMU noise, IMU bias, baro noise, GPS quality, and a GPS dropout window.",
+      "procedure": [
+        "Load the configured sim_scenario into sim_sensors at initialization.",
+        "Read back the in-memory IMU noise, IMU bias, baro noise, and GPS quality parameters from the model.",
+        "Read back the configured GPS dropout window from the model.",
+        "Compare every read-back value against the corresponding sim_scenario field."
+      ],
+      "acceptance_criteria": "All noise, bias, GPS quality, and dropout parameters present in the model exactly match the sim_scenario configuration values.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SENS-016",
+      "title": "Closed-Loop Sim Sensors Feed FSW POSIX Drivers",
+      "requirement_ids": ["SW-REQ-SIM-SENS-001", "SW-REQ-SIM-SENS-013"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build the Trick sim with sim_dynamics, sim_sensors, and the FSW POSIX driver layer connected. Configure a benign trajectory scenario.",
+      "procedure": [
+        "Run the Trick sim for 10 s of simulated time.",
+        "Record the synthetic measurements emitted by sim_sensors.",
+        "Record the measurements consumed by the FSW IMU, baro, and GPS POSIX drivers.",
+        "Compare the consumed values against the emitted values sample-by-sample."
+      ],
+      "acceptance_criteria": "Every measurement consumed by an FSW POSIX driver matches the corresponding sim_sensors emission in value, frame, and units.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_sensors/tests/sim_sensors_test.cpp"
+    }
+  ]
+}

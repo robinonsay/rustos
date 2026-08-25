@@ -1,0 +1,225 @@
+{
+  "module": "NAV",
+  "requirements": [
+    {
+      "id": "SW-REQ-NAV-001",
+      "title": "Accept IMU Samples",
+      "description": "The nav library shall accept IMU samples containing accelerometer and gyroscope measurements via its public API.",
+      "rationale": "FT1 nav estimation derived from SW-REQ-SYS-002 requires IMU input as the primary propagation source.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-002",
+      "title": "Accept GPS Measurements",
+      "description": "The nav library shall accept GPS position measurements via its public API.",
+      "rationale": "FT1 nav estimation per SW-REQ-SYS-002 requires GPS input to bound horizontal position.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-003",
+      "title": "Accept Barometric Altimeter Measurements",
+      "description": "The nav library shall accept barometric altimeter measurements via its public API.",
+      "rationale": "FT1 nav estimation per SW-REQ-SYS-002 requires baro input to constrain vertical state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-002",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-004",
+      "title": "Sixteen-State Nav Estimate Output",
+      "description": "The nav library shall output a sixteen-state estimate of position, velocity, attitude quaternion, accelerometer bias, and gyroscope bias.",
+      "rationale": "Decomposes SW-REQ-SYS-013 nav state composition into the library-level output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-005",
+      "title": "Nav Estimate Available at 100 Hz",
+      "description": "The nav library shall make an updated nav estimate available to the caller at 100 Hz.",
+      "rationale": "Decomposes SW-REQ-SYS-012 publish rate into the library-level production cadence.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-012",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-006",
+      "title": "Geodetic Position Output",
+      "description": "The nav library shall output position as WGS-84 geodetic latitude and longitude in degrees with altitude in meters.",
+      "rationale": "Decomposes SW-REQ-SYS-038 geodetic frame into the library-level position output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-038",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-007",
+      "title": "HAE Altitude Reference",
+      "description": "The nav library shall reference output altitude to the WGS-84 ellipsoid.",
+      "rationale": "Decomposes SW-REQ-SYS-039 HAE convention into the library-level altitude output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-039",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-008",
+      "title": "NED Velocity Output",
+      "description": "The nav library shall output velocity in the North-East-Down frame.",
+      "rationale": "Decomposes SW-REQ-SYS-040 NED velocity convention into the library-level output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-040",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-009",
+      "title": "Body-to-NED Quaternion Output",
+      "description": "The nav library shall output attitude as a unit quaternion rotating from body frame to NED.",
+      "rationale": "Decomposes SW-REQ-SYS-041 attitude representation into the nav library output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-041",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-010",
+      "title": "SI Units for Nav Outputs",
+      "description": "The nav library shall express all nav estimate quantities in SI units.",
+      "rationale": "Decomposes SW-REQ-SYS-042 SI-units mandate into the library-level output contract.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-011",
+      "title": "Nav Validity Flag Output",
+      "description": "The nav library shall output a validity flag indicating whether the current nav estimate is trustworthy.",
+      "rationale": "Decomposes SW-REQ-SYS-015 validity flag into the library-level output contract.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-015",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-012",
+      "title": "Validity False on Missing Inputs",
+      "description": "The nav library shall set the validity flag false when required nav inputs are unavailable.",
+      "rationale": "Decomposes SW-REQ-SYS-059 validity behavior into the library-level observable contract.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-059",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-013",
+      "title": "Continued Propagation With Reduced Inputs",
+      "description": "The nav library shall continue producing a nav estimate when GPS or baro inputs are unavailable.",
+      "rationale": "Decomposes SW-REQ-SYS-034 degraded-input continuation into the library-level behavior.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-034",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-014",
+      "title": "Bounded Position Divergence From GPS",
+      "description": "The nav library shall keep its horizontal position output within a configured distance of the latest GPS fix.",
+      "rationale": "Decomposes SW-REQ-SYS-014 divergence sanity bound into the library-level observable contract.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-014",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-015",
+      "title": "Deterministic Nav Output",
+      "description": "The nav library shall produce identical nav estimates given identical input measurement sequences.",
+      "rationale": "Decomposes SW-REQ-SYS-044 determinism into the library-level reproducibility contract.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-016",
+      "title": "POSIX and Pico2 Functional Equivalence",
+      "description": "The nav library POSIX build shall produce nav estimates functionally equivalent to its Pico2 build.",
+      "rationale": "Decomposes SW-REQ-SYS-043 POSIX equivalence so Trick simulation exercises the same nav behavior as flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-017",
+      "title": "Body Axes Convention for IMU Inputs",
+      "description": "The nav library shall treat IMU body-frame inputs as X-forward, Y-right, Z-down.",
+      "rationale": "Decomposes SW-REQ-SYS-057 body axes convention into the nav library input interpretation contract.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-057",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-018",
+      "title": "EKF Filter Algorithm",
+      "description": "The nav library shall use an Extended Kalman Filter to estimate the navigation state vector.",
+      "rationale": "PM-pinned filter choice (2026-05-03); EKF balances FT1 nonlinear dynamics with kmat-implementable Jacobians and bounded WCET on Pico2.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-019",
+      "title": "Configurable Noise Covariance Loading",
+      "description": "The nav library shall accept caller-supplied noise covariance values via NAV_INIT_T at initialization.",
+      "rationale": "PM directive 2026-05-03: all noise/covariance values must be load-time configurable to enable per-build tuning without recompilation; the design provides reference values as installation guidance only.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-NAV-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-NAV-020",
+      "title": "Configurable Initial State Covariance Loading",
+      "description": "The nav library shall accept caller-supplied initial state covariance values via NAV_INIT_T at initialization.",
+      "rationale": "Closes implementation-readiness gap G2 from 2026-05-03 SSE-R re-review: P_0 (initial state covariance) governs how quickly the filter trusts measurements relative to the seed; same load-time-configurable philosophy as SW-REQ-NAV-019 (noise covariance) per PM directive 2026-05-03. Without this, two implementers could choose P_0=0 (locks state at seed) or P_0=large (accepts all measurements) producing radically different startup behavior.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-NAV-019",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

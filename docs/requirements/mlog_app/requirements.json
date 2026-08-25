@@ -1,0 +1,137 @@
+{
+  "module": "MLOG-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-MLOG-APP-001",
+      "title": "Subscribe to Data-of-Interest Bus Messages",
+      "description": "The mlog app shall subscribe to all data-of-interest software bus messages required for SD card logging.",
+      "rationale": "Module purpose: route all data-of-interest SB messages to mlog_lib for SD card persistence per SW-REQ-SYS-022 and SW-REQ-SYS-024.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-002",
+      "title": "Forward Records at Full Sample Rate",
+      "description": "The mlog app shall forward each subscribed message to the mlog library without downsampling.",
+      "rationale": "Module purpose: persist each sensor sample at its full rate to satisfy raw fidelity logging.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-003",
+      "title": "Initiate New Log Run on Startup",
+      "description": "The mlog app shall initiate a new log run via the mlog library at startup.",
+      "rationale": "Module purpose: each power-on starts a fresh log run distinct from prior runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-025",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-004",
+      "title": "Preserve Prior Log Runs on Startup",
+      "description": "The mlog app shall not delete or overwrite prior log runs when initiating a new run.",
+      "rationale": "Module purpose: protect prior flight data against accidental overwrite between runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-055",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-005",
+      "title": "Stamp Forwarded Records With Monotonic Microseconds",
+      "description": "The mlog app shall stamp each forwarded record with monotonic microseconds since startup.",
+      "rationale": "Module purpose: every record uses one canonical time source for cross-record alignment.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-006",
+      "title": "Per-Sample Timestamping",
+      "description": "The mlog app shall include a timestamp on every individual sensor sample record forwarded to the library.",
+      "rationale": "Module purpose: per-sample timestamps required for accurate post-flight nav reconstruction.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-027",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-007",
+      "title": "Forward Verbatim NMEA Sentences",
+      "description": "The mlog app shall forward GPS NMEA sentences to the mlog library without modification.",
+      "rationale": "Module purpose: preserve unmodified GPS source data for post-flight reconstruction.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-024",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-008",
+      "title": "Forward GPS UTC Records",
+      "description": "The mlog app shall forward each received GPS UTC message to the mlog library.",
+      "rationale": "Module purpose: enables post-flight alignment of monotonic time to absolute UTC.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-028",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-009",
+      "title": "Continue After SD Write Failure",
+      "description": "The mlog app shall continue forwarding subsequent records after the mlog library reports a write failure.",
+      "rationale": "Module purpose: SD failures must not halt mission; retry writes on subsequent records.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-035",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-010",
+      "title": "Expose SD Card Health to System Aggregator",
+      "description": "The mlog app shall expose SD card write health to sys_app via the sd_lib health query interface.",
+      "rationale": "PM Decision 3 (sprint 2026-05-02): SD health observability is delegated to sys_app's IsHealthy() poll model rather than a dedicated bus message; bitmap aggregation lives in sys_app per architecture.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-060",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-011",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The mlog app POSIX build shall be functionally equivalent to the Pico2 flight build.",
+      "rationale": "Module purpose: Trick simulation must exercise the same logging paths as flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-MLOG-APP-012",
+      "title": "Deterministic Forwarding",
+      "description": "The mlog app shall produce deterministic forwarding outputs given identical bus message inputs.",
+      "rationale": "Module purpose: determinism required for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

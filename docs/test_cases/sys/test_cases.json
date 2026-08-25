@@ -1,0 +1,1315 @@
+{
+  "module": "SYS",
+  "test_cases": [
+    {
+      "id": "SW-TC-SYS-001",
+      "title": "Raw Sensor Logging to SD Card",
+      "requirement_ids": ["SW-REQ-SYS-001"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock IMU, baro, and GPS sensors injected; mock SD card backend.",
+      "procedure": [
+        "Start FSW with mock sensors producing deterministic samples for 5 simulated seconds.",
+        "Stop the run and read the resulting SD log file.",
+        "Parse log records and confirm IMU, baro, and GPS raw sample records are all present.",
+        "Cross-check sample counts in the log against the number of samples produced by each mock."
+      ],
+      "acceptance_criteria": "Log contains every raw IMU, baro, and GPS sample produced by the mocks with no missing records.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_logging_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-002",
+      "title": "Live Navigation Algorithm Demonstration",
+      "requirement_ids": ["SW-REQ-SYS-002"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 vehicle powered on the pad with all sensors connected; ground station receiving telemetry.",
+      "procedure": [
+        "Power on the FSW and confirm telemetry stream starts.",
+        "Capture 60 seconds of pre-flight telemetry showing nav state updates.",
+        "Execute FT1 launch and capture telemetry through landing.",
+        "Recover SD log and verify nav state records were produced live in flight."
+      ],
+      "acceptance_criteria": "Telemetry transcript and SD log show nav state being produced and propagated continuously during flight, not generated post hoc.",
+      "expected_artifacts": [
+        {
+          "name": "ft1_telemetry_transcript.csv",
+          "description": "Ground station capture of nav state telemetry during flight",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "ft1_sd_log.bin",
+          "description": "Recovered SD card log containing in-flight nav state records",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-003",
+      "title": "Live Telemetry Downlink Over LoRa",
+      "requirement_ids": ["SW-REQ-SYS-003"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 vehicle on pad with LoRa radio attached; ground station LoRa receiver running and logging.",
+      "procedure": [
+        "Power on the FSW and start ground station capture.",
+        "Confirm telemetry packets appear in ground station within 5 seconds of power-on.",
+        "Hold capture through flight and post-landing.",
+        "Save ground station capture log."
+      ],
+      "acceptance_criteria": "Ground station capture shows continuous LoRa telemetry packets from power-on through post-landing.",
+      "expected_artifacts": [
+        {
+          "name": "ground_station_lora_capture.log",
+          "description": "Ground station LoRa receiver log showing live telemetry stream",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-004",
+      "title": "No Actuator Commands in FSW Source",
+      "requirement_ids": ["SW-REQ-SYS-004"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Code review checklist; static analysis search across apps/ and libs/.",
+      "procedure": [
+        "Run a grep across apps/ and libs/ for any actuator/servo/pyro/igniter/relay control symbols.",
+        "Inspect any matches and confirm they are absent or test-only stubs.",
+        "Have the Software Lead sign the inspection record confirming no actuation paths exist."
+      ],
+      "acceptance_criteria": "Inspection record signed by Software Lead confirming no actuator-driving code paths in FSW for FT1.",
+      "expected_artifacts": [
+        {
+          "name": "ft1_no_actuation_inspection.md",
+          "description": "Signed inspection record showing actuator-symbol grep results and reviewer sign-off",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-005",
+      "title": "IMU Sample Rate at 200 Hz",
+      "requirement_ids": ["SW-REQ-SYS-005"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock IMU and synchronized clock; SD log backend enabled.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds.",
+        "Parse SD log and count IMU sample records.",
+        "Compute the average sample rate (count / 10 s).",
+        "Verify the rate is 200 Hz within plus or minus 1 percent."
+      ],
+      "acceptance_criteria": "Measured IMU sample rate is 200 Hz +/- 1% over a 10-second run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_rate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-006",
+      "title": "IMU Accelerometer Range Configured to +/-16 G",
+      "requirement_ids": ["SW-REQ-SYS-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build with mock IMU device exposing register-write capture.",
+      "procedure": [
+        "Initialize the IMU library through normal startup path.",
+        "Capture register writes issued during init.",
+        "Decode the accelerometer range register write."
+      ],
+      "acceptance_criteria": "Captured register write configures accelerometer full-scale range to +/-16 G.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_config_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-007",
+      "title": "IMU Gyroscope Range Configured to +/-2000 dps",
+      "requirement_ids": ["SW-REQ-SYS-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build with mock IMU device exposing register-write capture.",
+      "procedure": [
+        "Initialize the IMU library through normal startup path.",
+        "Capture register writes issued during init.",
+        "Decode the gyroscope range register write."
+      ],
+      "acceptance_criteria": "Captured register write configures gyroscope full-scale range to +/-2000 dps.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_config_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-008",
+      "title": "Altimeter Sample Rate at 20 Hz",
+      "requirement_ids": ["SW-REQ-SYS-008"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock barometric altimeter and synchronized clock; SD log backend enabled.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds.",
+        "Parse SD log and count baro sample records.",
+        "Compute the average sample rate (count / 10 s).",
+        "Verify the rate is 20 Hz within plus or minus 5 percent."
+      ],
+      "acceptance_criteria": "Measured baro sample rate is 20 Hz +/- 5% over a 10-second run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_rate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-009",
+      "title": "GPS Sample Rate at 5 Hz",
+      "requirement_ids": ["SW-REQ-SYS-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock GPS receiver feeding NMEA at 5 Hz; SD log backend enabled.",
+      "procedure": [
+        "Run the FSW for 20 simulated seconds.",
+        "Parse SD log and count GPS sample records.",
+        "Compute the average sample rate (count / 20 s).",
+        "Verify the rate is 5 Hz within plus or minus 5 percent."
+      ],
+      "acceptance_criteria": "Measured GPS sample rate is 5 Hz +/- 5% over a 20-second run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_rate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-010",
+      "title": "Static Compile-Time TDM Schedule",
+      "requirement_ids": ["SW-REQ-SYS-010"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; reviewer with C++ knowledge.",
+      "procedure": [
+        "Locate the TDM schedule definition in the FSW source.",
+        "Confirm the schedule is constructed entirely from constexpr or compile-time literals.",
+        "Grep for any APIs that mutate the schedule at runtime.",
+        "Have the Software Lead sign off on the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms schedule is fixed at compile time with no runtime mutation paths.",
+      "expected_artifacts": [
+        {
+          "name": "static_schedule_inspection.md",
+          "description": "Inspection record showing constexpr schedule construction and absence of runtime mutators",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-011",
+      "title": "No Sensor Downsampling for Logging",
+      "requirement_ids": ["SW-REQ-SYS-011"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock IMU at 200 Hz, baro at 20 Hz, GPS at 5 Hz; SD log enabled.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds.",
+        "Parse SD log and count records of each sensor type.",
+        "Verify IMU log count equals 200*10 +/- 1%, baro count equals 20*10 +/- 5%, GPS count equals 5*10 +/- 5%."
+      ],
+      "acceptance_criteria": "Logged sample counts match each sensor's full sample rate with no downsampling.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_logging_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-012",
+      "title": "Navigation State Output Rate at 100 Hz",
+      "requirement_ids": ["SW-REQ-SYS-012"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock sensors and nav app subscribed to bus; SD log backend enabled.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds.",
+        "Count nav state records published to the bus during the run.",
+        "Compute the average rate (count / 10 s)."
+      ],
+      "acceptance_criteria": "Measured nav state publication rate is 100 Hz +/- 1% over a 10-second run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_rate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-013",
+      "title": "Navigation State Composition Inspection",
+      "requirement_ids": ["SW-REQ-SYS-013"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; nav state struct definition available.",
+      "procedure": [
+        "Locate the navigation state struct definition.",
+        "Confirm the struct contains 3 position, 3 velocity, 4 quaternion, 3 accel-bias, 3 gyro-bias fields.",
+        "Confirm field types and units are consistent with SI conventions.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms nav state struct contains all 16 expected fields with correct grouping.",
+      "expected_artifacts": [
+        {
+          "name": "nav_state_inspection.md",
+          "description": "Inspection record of navigation state struct fields",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-014",
+      "title": "Navigation Position Bound to GPS",
+      "requirement_ids": ["SW-REQ-SYS-014"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Trick simulation with GPS truth and synthetic sensor inputs; SD log captured.",
+      "procedure": [
+        "Run a 60-second nominal Trick scenario.",
+        "Extract nav position and GPS fix from the SD log.",
+        "Compute horizontal distance between nav and GPS at every nav update.",
+        "Plot horizontal distance versus time and confirm it remains within the design-configured threshold."
+      ],
+      "acceptance_criteria": "Horizontal nav-vs-GPS distance stays below configured bound for the entire run; plot archived.",
+      "expected_artifacts": [
+        {
+          "name": "nav_gps_bound.png",
+          "description": "Plot of nav-vs-GPS horizontal distance over time with threshold line",
+          "artifact_type": "plot"
+        },
+        {
+          "name": "nav_gps_bound.csv",
+          "description": "CSV of timestamp, nav lat/lon, GPS lat/lon, horizontal distance",
+          "artifact_type": "csv"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-015",
+      "title": "Navigation Validity Flag Published",
+      "requirement_ids": ["SW-REQ-SYS-015"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with nav app and bus subscriber capturing nav state messages.",
+      "procedure": [
+        "Initialize the FSW and let nav app run.",
+        "Capture published nav state messages.",
+        "Confirm each message contains a boolean validity flag field."
+      ],
+      "acceptance_criteria": "Every captured nav state message contains a validity flag field with a defined boolean value.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_validity_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-016",
+      "title": "Automatic Flight Phase Detection in Sim",
+      "requirement_ids": ["SW-REQ-SYS-016"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Trick simulation reproducing FT1 ascent, apogee, descent, and landing profile.",
+      "procedure": [
+        "Run the simulated FT1 trajectory through the FSW.",
+        "Capture published flight phase records throughout the run.",
+        "Confirm boost, apogee, descent, and landing phases each occur at least once in the captured stream."
+      ],
+      "acceptance_criteria": "Captured phase stream contains all four phases (boost, apogee, descent, landing) in correct order.",
+      "expected_artifacts": [
+        {
+          "name": "afm_phase_stream.csv",
+          "description": "Time-stamped flight phase transitions captured during sim run",
+          "artifact_type": "csv"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-017",
+      "title": "Flight Phase Published on Software Bus",
+      "requirement_ids": ["SW-REQ-SYS-017"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with bus subscriber capturing all messages.",
+      "procedure": [
+        "Initialize FSW and inject inputs causing a phase transition.",
+        "Capture bus traffic.",
+        "Confirm the flight phase message is observed on the bus."
+      ],
+      "acceptance_criteria": "Subscriber receives a flight phase message on the bus after the injected transition.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/afm_app/tests/afm_app_bus_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-018",
+      "title": "AFM Transition Timestamp Within +/-1 s of Ground Truth",
+      "requirement_ids": ["SW-REQ-SYS-018"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 SD log post-flight; ground-truth phase transitions derived from log analysis.",
+      "procedure": [
+        "Extract phase transition timestamps from the SD log AFM stream.",
+        "Compute ground-truth phase transitions from raw IMU and baro data via the analysis script.",
+        "Compute the absolute time delta for each transition.",
+        "Confirm every delta is within +/-1.0 second."
+      ],
+      "acceptance_criteria": "Every AFM transition timestamp is within +/-1.0 s of the corresponding ground-truth transition.",
+      "expected_artifacts": [
+        {
+          "name": "afm_timestamp_accuracy.csv",
+          "description": "Per-transition delta between FSW AFM timestamp and analyzed ground truth",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "afm_timestamp_accuracy.png",
+          "description": "Plot of transition timing residuals against +/-1 s tolerance lines",
+          "artifact_type": "plot"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-019",
+      "title": "Telemetry Downlink Rate at 2 Hz",
+      "requirement_ids": ["SW-REQ-SYS-019"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock LoRa radio capturing every transmitted packet.",
+      "procedure": [
+        "Run the FSW for 60 simulated seconds.",
+        "Count telemetry packets transmitted by the mock radio.",
+        "Compute the average rate (count / 60 s)."
+      ],
+      "acceptance_criteria": "Measured telemetry transmission rate is 2 Hz +/- 5% over the run.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/tlm_app/tests/tlm_app_rate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-020",
+      "title": "Telemetry Packet Content Inspection",
+      "requirement_ids": ["SW-REQ-SYS-020"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to telemetry packet definition and serializer.",
+      "procedure": [
+        "Locate the telemetry packet struct definition.",
+        "Confirm fields exist for timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health.",
+        "Inspect the serializer and confirm all fields are populated.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms telemetry packet contains all eight required fields.",
+      "expected_artifacts": [
+        {
+          "name": "telemetry_packet_inspection.md",
+          "description": "Inspection record of telemetry packet content fields",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-021",
+      "title": "Continuous Telemetry From Power-On to Power-Off",
+      "requirement_ids": ["SW-REQ-SYS-021"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 hardware on bench with LoRa ground station capturing.",
+      "procedure": [
+        "Apply power and start ground-station capture.",
+        "Confirm first telemetry packet within 5 s.",
+        "Run for 10 minutes; confirm no gap longer than 2 s in the captured stream.",
+        "Remove power; capture stops."
+      ],
+      "acceptance_criteria": "Captured stream is continuous (no gap > 2 s) from power-on until power removal.",
+      "expected_artifacts": [
+        {
+          "name": "continuous_tlm_capture.log",
+          "description": "Ground-station LoRa capture covering the full power-on-to-power-off interval",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-022",
+      "title": "SD Log Content Inspection",
+      "requirement_ids": ["SW-REQ-SYS-022"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to SD logger and an example SD log file from a sim run.",
+      "procedure": [
+        "Inspect the logger source for record types it can write.",
+        "Confirm record types cover raw IMU, baro, GPS, nav state, and flight phase events.",
+        "Open an example SD log and confirm records of each type are present.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms log contains raw sensor, nav state, and phase event record types.",
+      "expected_artifacts": [
+        {
+          "name": "sd_log_content_inspection.md",
+          "description": "Inspection record listing record types present in the SD log",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-023",
+      "title": "Machine-Parseable Log Format",
+      "requirement_ids": ["SW-REQ-SYS-023"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build; SD log written by mocked logger; log parser tool available.",
+      "procedure": [
+        "Generate an SD log via a deterministic mock run.",
+        "Invoke the log parser tool against the produced file.",
+        "Confirm the parser exits with success and emits structured records."
+      ],
+      "acceptance_criteria": "Parser successfully decodes every record without error and outputs structured rows.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "tools/log_parser/tests/log_parser_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-024",
+      "title": "Verbatim Raw NMEA Logging",
+      "requirement_ids": ["SW-REQ-SYS-024"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock GPS feeding a fixed NMEA sentence sequence.",
+      "procedure": [
+        "Feed a known set of NMEA sentences to the GPS mock.",
+        "Run the FSW until all sentences are processed.",
+        "Extract NMEA records from the SD log.",
+        "Compare each logged sentence byte-for-byte against the input."
+      ],
+      "acceptance_criteria": "Every input NMEA sentence appears in the SD log byte-identical to the input.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_nmea_log_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-025",
+      "title": "New Log Run Per Power-On",
+      "requirement_ids": ["SW-REQ-SYS-025"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with simulated power-cycle and persistent SD backend.",
+      "procedure": [
+        "Boot the FSW, run for 1 simulated second, and shut down.",
+        "Boot the FSW again and run for 1 simulated second.",
+        "Inspect the SD backend for two distinct log run identifiers."
+      ],
+      "acceptance_criteria": "Two distinct log run records exist on the SD card after two successive power-ons.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_run_id_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-026",
+      "title": "Monotonic Microsecond Time Base Inspection",
+      "requirement_ids": ["SW-REQ-SYS-026"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; record schema definitions available.",
+      "procedure": [
+        "Inspect every record schema and confirm it carries a monotonic-microsecond timestamp field.",
+        "Inspect the timestamp source and confirm a single monotonic-microsecond clock backs every record.",
+        "Confirm there is no second time base (e.g., wall clock) used for record stamping.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms one monotonic-microsecond time base used by every log record.",
+      "expected_artifacts": [
+        {
+          "name": "time_base_inspection.md",
+          "description": "Inspection of timestamp field types and clock source",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-027",
+      "title": "Per-Sample Timestamping Inspection",
+      "requirement_ids": ["SW-REQ-SYS-027"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to sensor sample record schemas.",
+      "procedure": [
+        "Inspect the IMU, baro, and GPS sample record schemas.",
+        "Confirm each individual sample record carries its own timestamp field, not only batch headers.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms every sample-level record has its own timestamp field.",
+      "expected_artifacts": [
+        {
+          "name": "per_sample_timestamp_inspection.md",
+          "description": "Inspection record showing sample record schemas with per-sample timestamps",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-028",
+      "title": "GPS UTC Time Logging",
+      "requirement_ids": ["SW-REQ-SYS-028"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock GPS providing valid UTC time in NMEA stream.",
+      "procedure": [
+        "Feed NMEA sentences containing UTC time fields.",
+        "Run the FSW until UTC fields are received.",
+        "Inspect the SD log for GPS UTC time records."
+      ],
+      "acceptance_criteria": "SD log contains a GPS UTC time record for each NMEA sentence carrying valid UTC.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_utc_log_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-029",
+      "title": "Power-On Self-Test Execution",
+      "requirement_ids": ["SW-REQ-SYS-029"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock IMU, baro, and GPS each instrumented to count probe calls.",
+      "procedure": [
+        "Boot the FSW from cold start.",
+        "Inspect each mock to confirm exactly one POST probe call per sensor occurred.",
+        "Confirm POST runs only at startup, not periodically."
+      ],
+      "acceptance_criteria": "Each sensor mock records exactly one POST probe call at startup; no further probes occur.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_post_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-030",
+      "title": "POST Result Logged to SD",
+      "requirement_ids": ["SW-REQ-SYS-030"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock sensors with one configured to fail POST.",
+      "procedure": [
+        "Boot the FSW with one sensor mocked to fail POST.",
+        "Inspect the SD log for the POST result record.",
+        "Confirm the record contains a per-sensor pass/fail field for every sensor."
+      ],
+      "acceptance_criteria": "SD log contains exactly one POST result record listing per-sensor pass/fail status with the failing sensor marked failed.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_post_log_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-031",
+      "title": "Continuous Sensor Health Bitmap Published",
+      "requirement_ids": ["SW-REQ-SYS-031"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with bus subscriber capturing health messages and telemetry packets.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds.",
+        "Capture health bitmap publications and telemetry packets.",
+        "Confirm the bitmap is published continuously and is included in every telemetry packet."
+      ],
+      "acceptance_criteria": "Health bitmap is published continuously throughout the run and is present in every telemetry packet.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_health_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-032",
+      "title": "Operator Health LED Demonstration",
+      "requirement_ids": ["SW-REQ-SYS-032"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 hardware on bench with operator LED visible on camera.",
+      "procedure": [
+        "Power on with all sensors connected; record video of the LED.",
+        "Disconnect one sensor and observe the LED state change.",
+        "Reconnect the sensor and observe the LED return to healthy state.",
+        "Save the video."
+      ],
+      "acceptance_criteria": "Video shows LED indicating all-healthy when sensors are connected and error state when a sensor is disconnected.",
+      "expected_artifacts": [
+        {
+          "name": "operator_led_video.mp4",
+          "description": "Video of operator LED transitioning between healthy and error states",
+          "artifact_type": "video"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-033",
+      "title": "Sensor Read Failure Continuation",
+      "requirement_ids": ["SW-REQ-SYS-033"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock IMU configured to fail every Nth read.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds with the failing-IMU mock.",
+        "Confirm no crash or halt occurred.",
+        "Confirm other applications continued logging and publishing during the run."
+      ],
+      "acceptance_criteria": "FSW does not crash or halt; other apps continue to log and publish despite IMU read failures.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_sensor_fail_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-034",
+      "title": "Navigation Continues With Reduced Inputs",
+      "requirement_ids": ["SW-REQ-SYS-034"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; nav app running; configurable sensor mocks.",
+      "procedure": [
+        "Run the FSW with all sensors healthy for 5 seconds.",
+        "Disable GPS sensor input mid-run for 5 seconds.",
+        "Disable baro input for an additional 5 seconds.",
+        "Confirm nav app continues to publish state at 100 Hz throughout."
+      ],
+      "acceptance_criteria": "Nav app publishes state at 100 Hz throughout, including periods with reduced sensor inputs.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_degraded_input_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-035",
+      "title": "SD Write Failure Continuation",
+      "requirement_ids": ["SW-REQ-SYS-035"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock SD backend that fails the next N writes then recovers.",
+      "procedure": [
+        "Run the FSW; trigger SD write failures starting at t=2 s for 1 s.",
+        "After failure window, allow SD writes to succeed again.",
+        "Confirm logger keeps issuing writes during failure and resumes successful logging afterward."
+      ],
+      "acceptance_criteria": "Logger continues attempting writes during failure window and resumes logging once SD recovers.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_sd_fail_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-036",
+      "title": "Radio Failure Does Not Impair Other Operations",
+      "requirement_ids": ["SW-REQ-SYS-036"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock LoRa radio that fails transmission during a window.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds with radio mock failing transmissions for 3 s.",
+        "Confirm logger continued during the failure window.",
+        "Confirm nav app continued at 100 Hz during the failure window."
+      ],
+      "acceptance_criteria": "Logging and nav publication continue uninterrupted during the radio failure window.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_radio_fail_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-037",
+      "title": "No Auto-Reboot During Mission Inspection",
+      "requirement_ids": ["SW-REQ-SYS-037"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; reviewer checklist.",
+      "procedure": [
+        "Grep all FSW code for reboot, reset, watchdog-trigger, system-reset, or NVIC reset symbols.",
+        "Confirm no application or library deliberately invokes a reboot or reset during mission.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms no autonomous reboot or reset paths exist in mission-mode FSW.",
+      "expected_artifacts": [
+        {
+          "name": "no_reboot_inspection.md",
+          "description": "Inspection record showing absence of auto-reboot/reset paths",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-038",
+      "title": "Geodetic Position Frame Inspection",
+      "requirement_ids": ["SW-REQ-SYS-038"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to position struct definitions and serializers.",
+      "procedure": [
+        "Inspect the position struct used in nav state, telemetry, and log records.",
+        "Confirm latitude and longitude are in degrees and altitude is in meters.",
+        "Confirm comments or design docs identify the frame as WGS-84 geodetic.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms position is WGS-84 geodetic with degrees-degrees-meters units.",
+      "expected_artifacts": [
+        {
+          "name": "geodetic_frame_inspection.md",
+          "description": "Inspection record of position struct units and frame",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-039",
+      "title": "HAE Altitude Reference Inspection",
+      "requirement_ids": ["SW-REQ-SYS-039"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to altitude-producing code paths and design docs.",
+      "procedure": [
+        "Inspect altitude fields in nav state, telemetry, and log records.",
+        "Confirm documentation states all altitudes are referenced to the WGS-84 ellipsoid (HAE).",
+        "Confirm GPS altitude pass-through preserves HAE.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms all reported altitudes are HAE.",
+      "expected_artifacts": [
+        {
+          "name": "hae_inspection.md",
+          "description": "Inspection record of altitude reference convention",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-040",
+      "title": "NED Velocity Frame Inspection",
+      "requirement_ids": ["SW-REQ-SYS-040"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to velocity struct and design docs.",
+      "procedure": [
+        "Inspect the velocity struct used in nav state, telemetry, and log records.",
+        "Confirm components are labeled North, East, Down.",
+        "Confirm units are meters per second.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms velocity is expressed in NED frame in m/s.",
+      "expected_artifacts": [
+        {
+          "name": "ned_inspection.md",
+          "description": "Inspection record of velocity frame and units",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-041",
+      "title": "Body-to-NED Quaternion Inspection",
+      "requirement_ids": ["SW-REQ-SYS-041"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to attitude struct and design docs.",
+      "procedure": [
+        "Inspect the attitude struct used in nav state and telemetry records.",
+        "Confirm fields are w, x, y, z and represent a unit quaternion.",
+        "Confirm documentation states the quaternion rotates body-frame vectors to the NED frame.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms attitude is a unit quaternion (w,x,y,z) rotating body to NED.",
+      "expected_artifacts": [
+        {
+          "name": "quaternion_inspection.md",
+          "description": "Inspection record of attitude representation",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-042",
+      "title": "SI Units Throughout Inspection",
+      "requirement_ids": ["SW-REQ-SYS-042"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to all log and telemetry record schemas.",
+      "procedure": [
+        "Inspect every physical-quantity field in log and telemetry record schemas.",
+        "Confirm each field uses an SI unit (meters, seconds, m/s, m/s^2, rad/s, etc.).",
+        "Flag any non-SI fields for correction.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms every logged or downlinked physical quantity uses an SI unit.",
+      "expected_artifacts": [
+        {
+          "name": "si_units_inspection.md",
+          "description": "Inspection record listing all physical-quantity fields and their units",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-043",
+      "title": "POSIX vs Pico2 Functional Equivalence",
+      "requirement_ids": ["SW-REQ-SYS-043"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Identical deterministic input vector replayed against POSIX build and Pico2 hardware build under HIL.",
+      "procedure": [
+        "Replay deterministic sensor input vector through the POSIX build; capture nav state output stream.",
+        "Replay the same input vector through the Pico2 build via HIL; capture nav state output stream.",
+        "Compare the two output streams record-for-record."
+      ],
+      "acceptance_criteria": "POSIX and Pico2 nav output streams agree within numerical tolerances defined in the test fixture.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_equivalence_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-044",
+      "title": "Deterministic Execution",
+      "requirement_ids": ["SW-REQ-SYS-044"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; identical deterministic input vector and seed.",
+      "procedure": [
+        "Run the FSW with deterministic input vector V; capture full output trace.",
+        "Re-run with the same vector V and seed; capture output trace again.",
+        "Compute hash of each output trace.",
+        "Compare hashes."
+      ],
+      "acceptance_criteria": "Hashes of both output traces are byte-identical.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_determinism_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-045",
+      "title": "Trick Simulation Integration",
+      "requirement_ids": ["SW-REQ-SYS-045"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "NASA Trick environment with FSW POSIX build linked; simulated IMU, baro, and GPS models wired in.",
+      "procedure": [
+        "Launch a Trick scenario that drives simulated IMU, baro, and GPS into the FSW.",
+        "Run for 60 simulated seconds.",
+        "Confirm Trick scenario completes without error.",
+        "Confirm FSW produced nav state, telemetry, and log records consuming the simulated inputs."
+      ],
+      "acceptance_criteria": "Trick scenario runs to completion with FSW consuming simulated inputs and producing expected outputs.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "sims/trick/tests/trick_integration_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-046",
+      "title": "Operational on Power-On Without Arming",
+      "requirement_ids": ["SW-REQ-SYS-046"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 hardware on bench with no arming switch wired; ground station capturing LoRa.",
+      "procedure": [
+        "Apply power. Do not provide any external arm input.",
+        "Capture LoRa stream and SD log session.",
+        "Confirm telemetry begins, sensors are sampled, and logs are written within 5 s of power-on."
+      ],
+      "acceptance_criteria": "Captured artifacts show full operation (telemetry, logging, nav) without any external arm signal.",
+      "expected_artifacts": [
+        {
+          "name": "no_arming_demo.log",
+          "description": "Ground station capture and SD log proving operation without arming",
+          "artifact_type": "log"
+        },
+        {
+          "name": "no_arming_demo_video.mp4",
+          "description": "Video showing power-on with no arming action and operation start",
+          "artifact_type": "video"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-047",
+      "title": "Run Until External Power Removed",
+      "requirement_ids": ["SW-REQ-SYS-047"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 hardware on bench; ground station capturing LoRa for an extended interval.",
+      "procedure": [
+        "Apply power and start capture.",
+        "Hold power for at least 30 minutes.",
+        "Confirm FSW remains active throughout (telemetry continuous, logger appending) and never self-terminates.",
+        "Remove power; confirm operation ceases only when power is removed."
+      ],
+      "acceptance_criteria": "Capture shows FSW operating continuously for the full power-on interval and stopping only when power is removed.",
+      "expected_artifacts": [
+        {
+          "name": "long_run_capture.log",
+          "description": "Ground-station capture covering >=30 min interval with no self-shutdown",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-048",
+      "title": "Post-Landing Recovery Beacon",
+      "requirement_ids": ["SW-REQ-SYS-048"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 vehicle in landed state (post-flight or simulated landed condition); ground station capturing.",
+      "procedure": [
+        "After landing detection (or with vehicle staged in landed state), capture LoRa stream for at least 30 minutes.",
+        "Verify telemetry packets continue at 2 Hz throughout the post-landing interval.",
+        "Confirm capture terminates only when power is removed."
+      ],
+      "acceptance_criteria": "Telemetry continues at 2 Hz for the full post-landing capture interval until power removal.",
+      "expected_artifacts": [
+        {
+          "name": "recovery_beacon_capture.log",
+          "description": "Ground station capture showing >=30 min of post-landing 2 Hz telemetry",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-049",
+      "title": "FT1 Flight Verification Artifacts",
+      "requirement_ids": ["SW-REQ-SYS-049"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 launch executed; recovery completed; ground station capture saved; operator video saved.",
+      "procedure": [
+        "Recover SD card from the rocket and copy the SD log file.",
+        "Save ground station LoRa telemetry transcript.",
+        "Save operator video covering setup through landing.",
+        "Complete and sign the FT1 operator checklist.",
+        "Photograph or store the recovered hardware as evidence."
+      ],
+      "acceptance_criteria": "All five artifacts (SD log, telemetry transcript, operator video, signed checklist, recovered hardware evidence) are archived together.",
+      "expected_artifacts": [
+        {
+          "name": "ft1_sd_log.bin",
+          "description": "Recovered SD card log from FT1 flight",
+          "artifact_type": "log"
+        },
+        {
+          "name": "ft1_telemetry_transcript.csv",
+          "description": "Ground-station LoRa telemetry transcript covering FT1 flight",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "ft1_operator_video.mp4",
+          "description": "Operator video covering setup, launch, flight, and recovery",
+          "artifact_type": "video"
+        },
+        {
+          "name": "ft1_signed_checklist.pdf",
+          "description": "FT1 operator checklist signed at launch",
+          "artifact_type": "other"
+        },
+        {
+          "name": "ft1_recovered_hardware.jpg",
+          "description": "Photograph of recovered FT1 hardware",
+          "artifact_type": "photo"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-050",
+      "title": "No Dynamic Allocation After Boot",
+      "requirement_ids": ["SW-REQ-SYS-050"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "POSIX build with malloc/free interposer counting calls; reviewer checklist.",
+      "procedure": [
+        "Build the FSW with the heap interposer linked.",
+        "Boot the FSW and let init complete; record allocation count C_init.",
+        "Run for 60 simulated seconds; record allocation count C_run.",
+        "Confirm C_run equals C_init (no allocations after boot).",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Allocation count after boot remains equal to the post-init baseline for the entire run.",
+      "expected_artifacts": [
+        {
+          "name": "no_heap_post_boot.log",
+          "description": "Heap interposer log showing zero allocations after boot",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-051",
+      "title": "No Runtime Polymorphism After Init",
+      "requirement_ids": ["SW-REQ-SYS-051"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; static analysis tool configured to detect virtual dispatch sites.",
+      "procedure": [
+        "Run the static analyzer to enumerate all virtual call sites.",
+        "Confirm each site is reachable only from initialization code paths.",
+        "Confirm steady-state mission code contains no virtual dispatch.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms virtual dispatch occurs only during initialization, not during steady-state mission.",
+      "expected_artifacts": [
+        {
+          "name": "no_runtime_poly_inspection.md",
+          "description": "Inspection record listing virtual call sites and confirming init-only reachability",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-052",
+      "title": "Build Without RTTI",
+      "requirement_ids": ["SW-REQ-SYS-052"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; CMake build configuration available.",
+      "procedure": [
+        "Inspect CMake compile options for the FSW targets.",
+        "Confirm `-fno-rtti` is present in the compile flag set for all FSW targets.",
+        "Run a clean build and capture compile commands; grep for `-fno-rtti`.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms `-fno-rtti` is applied to every FSW target.",
+      "expected_artifacts": [
+        {
+          "name": "no_rtti_inspection.md",
+          "description": "Inspection record showing -fno-rtti in compile commands",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-053",
+      "title": "Build Without Exceptions",
+      "requirement_ids": ["SW-REQ-SYS-053"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access; CMake build configuration available.",
+      "procedure": [
+        "Inspect CMake compile options for FSW targets.",
+        "Confirm `-fno-exceptions` is present in the compile flag set for every FSW target.",
+        "Run a clean build and capture compile commands; grep for `-fno-exceptions`.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms `-fno-exceptions` is applied to every FSW target.",
+      "expected_artifacts": [
+        {
+          "name": "no_exceptions_inspection.md",
+          "description": "Inspection record showing -fno-exceptions in compile commands",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-054",
+      "title": "100 Percent Unit Test Line Coverage",
+      "requirement_ids": ["SW-REQ-SYS-054"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build with gcov/lcov instrumentation enabled; full unit test suite available.",
+      "procedure": [
+        "Build the FSW unit-test suite with coverage instrumentation.",
+        "Execute the full unit test suite.",
+        "Run lcov/gcovr to compute line coverage across FSW source.",
+        "Verify the resulting line coverage is 100 percent."
+      ],
+      "acceptance_criteria": "Coverage report shows 100% line coverage across all FSW source under test.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "tools/coverage/tests/coverage_gate_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-055",
+      "title": "Prior Log Run Preservation",
+      "requirement_ids": ["SW-REQ-SYS-055"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with persistent SD backend pre-populated with one prior log run.",
+      "procedure": [
+        "Verify the SD backend lists the pre-populated prior run.",
+        "Boot the FSW and run for 1 simulated second to create a new run.",
+        "Inspect the SD backend after the new run completes.",
+        "Confirm the prior run is still present and untouched."
+      ],
+      "acceptance_criteria": "Prior log run records remain present and bytewise unchanged after a new run completes.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_log_preservation_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-056",
+      "title": "POST Result Downlink",
+      "requirement_ids": ["SW-REQ-SYS-056"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with mock LoRa radio capturing transmissions; one sensor mock fails POST.",
+      "procedure": [
+        "Boot the FSW.",
+        "Capture LoRa transmissions for 30 simulated seconds.",
+        "Inspect transmissions for a POST result packet.",
+        "Confirm the POST result packet contains a per-sensor pass/fail field with the failing sensor marked failed."
+      ],
+      "acceptance_criteria": "Exactly one POST result packet is transmitted at startup with correct per-sensor pass/fail status.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_post_downlink_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-057",
+      "title": "Body Axes Convention Inspection",
+      "requirement_ids": ["SW-REQ-SYS-057"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Source tree access to body-axis definitions and design docs.",
+      "procedure": [
+        "Inspect design docs and code comments for the body axis convention.",
+        "Confirm X is forward, Y is right, Z is down.",
+        "Confirm code consuming body-axis quantities is consistent with this convention.",
+        "Sign and archive the inspection record."
+      ],
+      "acceptance_criteria": "Inspection record confirms body axes are X-forward, Y-right, Z-down across the FSW.",
+      "expected_artifacts": [
+        {
+          "name": "body_axes_inspection.md",
+          "description": "Inspection record of body axis convention",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-058",
+      "title": "Mark Sensor Unhealthy on Read Failure",
+      "requirement_ids": ["SW-REQ-SYS-058"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock IMU configured to return read errors after t=1 s.",
+      "procedure": [
+        "Run the FSW with healthy IMU for 1 s; capture health bitmap.",
+        "Trigger IMU read failures starting at t=1 s.",
+        "Capture health bitmap publications after the failure.",
+        "Confirm IMU bit transitions to unhealthy after the failure."
+      ],
+      "acceptance_criteria": "Health bitmap shows IMU bit healthy before t=1 s and unhealthy after the read failure occurs.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_health_imu_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-059",
+      "title": "Navigation Validity False on Missing Inputs",
+      "requirement_ids": ["SW-REQ-SYS-059"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build with nav app and configurable sensor mocks.",
+      "procedure": [
+        "Run the FSW with all required nav inputs healthy; capture nav state.",
+        "Confirm validity flag is true.",
+        "Disable a required nav input (e.g., IMU) and continue running.",
+        "Confirm validity flag transitions to false in subsequent nav state messages."
+      ],
+      "acceptance_criteria": "Nav validity flag is true with all inputs healthy and false after a required input is disabled.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/nav_app/tests/nav_app_validity_inputs_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-060",
+      "title": "Flag SD Card Unhealthy on Write Failure",
+      "requirement_ids": ["SW-REQ-SYS-060"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock SD backend that fails writes during a configurable window.",
+      "procedure": [
+        "Run the FSW with healthy SD for 1 s; capture health bitmap.",
+        "Inject SD write failures starting at t=1 s.",
+        "Capture health bitmap publications after the failure.",
+        "Confirm SD bit transitions to unhealthy."
+      ],
+      "acceptance_criteria": "Health bitmap shows SD bit healthy before t=1 s and unhealthy after the SD write failure.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_health_sd_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-061",
+      "title": "Flag Radio Unhealthy on Transmission Failure",
+      "requirement_ids": ["SW-REQ-SYS-061"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; mock LoRa radio that fails transmissions during a configurable window.",
+      "procedure": [
+        "Run the FSW with healthy radio for 1 s; capture health bitmap.",
+        "Inject radio transmission failures starting at t=1 s.",
+        "Capture health bitmap publications after the failure.",
+        "Confirm radio bit transitions to unhealthy."
+      ],
+      "acceptance_criteria": "Health bitmap shows radio bit healthy before t=1 s and unhealthy after the transmission failure.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_health_radio_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-062",
+      "title": "AFM-Loss Tolerance",
+      "requirement_ids": ["SW-REQ-SYS-062"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "POSIX build; AFM app forced into unavailable state; other apps running.",
+      "procedure": [
+        "Run the FSW for 10 simulated seconds with AFM disabled or stalled.",
+        "Capture nav state, telemetry, and SD log records.",
+        "Confirm nav state is published at 100 Hz throughout.",
+        "Confirm telemetry transmits at 2 Hz throughout.",
+        "Confirm logger continues writing IMU/baro/GPS records at their static rates."
+      ],
+      "acceptance_criteria": "Nav, telemetry, and logging continue at their static rates while AFM is unavailable.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "apps/sys_app/tests/sys_app_afm_loss_test.cpp"
+    }
+  ]
+}

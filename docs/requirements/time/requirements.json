@@ -1,0 +1,82 @@
+{
+  "module": "TIME",
+  "requirements": [
+    {
+      "id": "SW-REQ-TIME-001",
+      "title": "Monotonic Microsecond Time Source",
+      "description": "The time library shall provide a monotonic time value expressed in microseconds since FSW startup.",
+      "rationale": "Decomposes SW-REQ-SYS-026; a monotonic microsecond counter is the canonical FSW time base for all records.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-002",
+      "title": "Non-Decreasing Time Values",
+      "description": "The time library shall return time values that never decrease between successive queries.",
+      "rationale": "Decomposes SW-REQ-SYS-026 and SW-REQ-SYS-044; monotonicity is the deterministic property the system depends on.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-003",
+      "title": "Sixty-Four-Bit Counter Width",
+      "description": "The time library shall represent the monotonic time value using a 64-bit unsigned integer.",
+      "rationale": "Decomposes SW-REQ-SYS-026; 64-bit width prevents wrap during the FT1 mission and any plausible future mission.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-004",
+      "title": "Per-Call Time Query Interface",
+      "description": "The time library shall provide an interface returning the current monotonic time value on each call.",
+      "rationale": "Decomposes SW-REQ-SYS-027; per-record timestamping requires callers to query time at each sample event.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-027",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-005",
+      "title": "Bounded Query Latency",
+      "description": "The time library shall return from a time query without blocking on I/O or scheduling.",
+      "rationale": "Decomposes SW-REQ-SYS-044; cheap and deterministic time queries keep the TDM scheduler loop predictable.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-006",
+      "title": "POSIX Implementation Functional Equivalence",
+      "description": "The time library shall provide a POSIX implementation functionally equivalent to the Pico2 implementation.",
+      "rationale": "Decomposes SW-REQ-SYS-043; Trick simulation requires POSIX builds that exercise the same time API as flight.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TIME-007",
+      "title": "Pico2 Implementation for Flight Hardware",
+      "description": "The time library shall provide a Pico2 implementation returning monotonic microseconds from the on-board hardware time base.",
+      "rationale": "Decomposes SW-REQ-SYS-043; flight hardware build requires a Pico2 implementation paired with the POSIX implementation.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

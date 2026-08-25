@@ -1,0 +1,170 @@
+{
+  "module": "KMAT",
+  "requirements": [
+    {
+      "id": "SW-REQ-KMAT-001",
+      "title": "Fixed-Size Compile-Time Matrix Container",
+      "description": "The kmat library shall provide a matrix container with compile-time-fixed dimensions.",
+      "rationale": "Decomposes SW-REQ-SYS-013 and SW-REQ-SYS-050; nav uses a 16-state estimator and heap allocation is forbidden.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-050",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-002",
+      "title": "Matrix Multiplication",
+      "description": "The kmat library shall compute the product of two compatibly-dimensioned matrices.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator math requires matrix multiplication primitives.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-003",
+      "title": "Matrix Transpose",
+      "description": "The kmat library shall compute the transpose of a matrix.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator math requires matrix transpose primitives.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-004",
+      "title": "Matrix Addition",
+      "description": "The kmat library shall compute element-wise addition of two equally-dimensioned matrices.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator math requires matrix addition primitives.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-005",
+      "title": "Scalar Multiplication",
+      "description": "The kmat library shall compute the product of a matrix and a scalar value.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator math requires scalar multiplication primitives.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-006",
+      "title": "Matrix Inversion",
+      "description": "The kmat library shall compute the inverse of a square matrix.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator gain computation requires matrix inversion.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-007",
+      "title": "Status Code on Non-Invertible Input",
+      "description": "The kmat library shall return a failure status when inverting a non-invertible matrix.",
+      "rationale": "Decomposes SW-REQ-SYS-044; explicit status reporting on numerical failure preserves deterministic, well-defined behavior.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-008",
+      "title": "No Dynamic Memory Allocation",
+      "description": "The kmat library shall perform no dynamic memory allocation in any operation.",
+      "rationale": "Decomposes SW-REQ-SYS-050; matrix operands and results are caller-owned stack or static storage.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-050",
+      "child_ids": [],
+      "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-KMAT-009",
+      "title": "Deterministic Numeric Results",
+      "description": "The kmat library shall produce identical numeric results for identical input values on a given build.",
+      "rationale": "Decomposes SW-REQ-SYS-044; deterministic FSW outputs require deterministic underlying matrix math.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-010",
+      "title": "POSIX and Pico2 Numeric Equivalence",
+      "description": "The kmat library shall produce numerically equivalent results on POSIX and Pico2 builds within IEEE-754 rounding limits.",
+      "rationale": "Decomposes SW-REQ-SYS-043; Trick simulation must exercise the same math paths as the flight build.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-011",
+      "title": "No Runtime Polymorphism",
+      "description": "The kmat library shall not employ runtime polymorphism in any matrix operation.",
+      "rationale": "Decomposes SW-REQ-SYS-051; math primitives are statically dispatched after initialization.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-051",
+      "child_ids": [],
+      "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-KMAT-012",
+      "title": "Unit Test Line Coverage",
+      "description": "The kmat library unit tests shall achieve 100 percent line coverage of library source files.",
+      "rationale": "Decomposes SW-REQ-SYS-054; the FSW-wide 100% line coverage mandate applies to kmat.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-054",
+      "child_ids": [],
+      "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-KMAT-013",
+      "title": "Matrix Subtraction",
+      "description": "The kmat library shall compute element-wise subtraction of two equally-dimensioned matrices.",
+      "rationale": "Decomposes SW-REQ-SYS-013; nav 16-state estimator math requires matrix subtraction primitives.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-013",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-KMAT-014",
+      "title": "No Runtime Type Information",
+      "description": "The kmat library shall not use runtime type information.",
+      "rationale": "Decomposes SW-REQ-SYS-052; RTTI is prohibited FSW-wide and enforced via -fno-rtti.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-052",
+      "child_ids": [],
+      "tags": ["FT1", "FT2"]
+    },
+    {
+      "id": "SW-REQ-KMAT-015",
+      "title": "No Thrown Exceptions",
+      "description": "The kmat library shall not throw C++ exceptions.",
+      "rationale": "Decomposes SW-REQ-SYS-053; exceptions are prohibited FSW-wide and enforced via -fno-exceptions.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-053",
+      "child_ids": [],
+      "tags": ["FT1", "FT2"]
+    }
+  ]
+}

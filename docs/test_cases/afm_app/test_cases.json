@@ -1,0 +1,266 @@
+{
+  "module": "AFM-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-AFM-APP-001",
+      "title": "AFM App Static Schedule Period Inspection",
+      "requirement_ids": ["SW-REQ-AFM-APP-001"],
+      "verification_method": "Inspection",
+      "type": "Integration",
+      "setup": "AFM app source registered in the TDM scheduler configuration; build artifacts available.",
+      "procedure": [
+        "Inspect the TDM scheduler registration site for the AFM app.",
+        "Confirm the registered period is a compile-time constant (constexpr or macro).",
+        "Confirm no runtime API exists that mutates the AFM app period after initialization.",
+        "Run the integration test that records AFM Execute() invocation timestamps for at least 100 cycles.",
+        "Compute the period between consecutive invocations and compare against the registered compile-time period."
+      ],
+      "acceptance_criteria": "Registered period is a compile-time constant and measured Execute() period matches the registered period within scheduler jitter tolerance for all 100 cycles.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-002",
+      "title": "AFM App Subscribes To IMU Barometer And GPS Messages",
+      "requirement_ids": ["SW-REQ-AFM-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock software bus that records subscription calls. Initialize the app.",
+      "procedure": [
+        "Call the AFM app initialization entry point with the mock bus injected.",
+        "Query the mock bus for the list of message IDs that received Subscribe() calls.",
+        "Verify the list contains the IMU sensor message ID.",
+        "Verify the list contains the barometer sensor message ID.",
+        "Verify the list contains the GPS sensor message ID."
+      ],
+      "acceptance_criteria": "Mock bus records Subscribe() calls for IMU, barometer, and GPS message IDs after AFM app initialization.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-003",
+      "title": "AFM App Subscribes To Navigation State Message",
+      "requirement_ids": ["SW-REQ-AFM-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock software bus that records subscription calls. Initialize the app.",
+      "procedure": [
+        "Call the AFM app initialization entry point with the mock bus injected.",
+        "Query the mock bus for the list of message IDs that received Subscribe() calls.",
+        "Verify the list contains the navigation state message ID."
+      ],
+      "acceptance_criteria": "Mock bus records a Subscribe() call for the navigation state message ID after AFM app initialization.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-004",
+      "title": "AFM App Updates Phase Detection State Each Cycle",
+      "requirement_ids": ["SW-REQ-AFM-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock bus. Pre-load the bus with one IMU, one barometer, one GPS, and one nav-state message per cycle.",
+      "procedure": [
+        "Invoke AFM app Execute() for cycle N.",
+        "Capture the internal phase detection state snapshot or its observable proxy after Execute() returns.",
+        "Update the queued sensor and nav-state messages with new values for cycle N+1.",
+        "Invoke AFM app Execute() for cycle N+1.",
+        "Capture the phase detection state snapshot after the second Execute() returns.",
+        "Compare the two snapshots."
+      ],
+      "acceptance_criteria": "Phase detection state snapshot after cycle N+1 reflects the cycle N+1 input messages and differs from the snapshot after cycle N when inputs change.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-005",
+      "title": "AFM App Publishes Current Flight Phase Each Cycle",
+      "requirement_ids": ["SW-REQ-AFM-APP-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock bus that records all Publish() calls with their message IDs and payloads.",
+      "procedure": [
+        "Invoke AFM app Execute() for 10 consecutive cycles, providing valid sensor and nav-state inputs each cycle.",
+        "Query the mock bus for all publications of the flight phase message ID.",
+        "Count the number of flight phase publications.",
+        "Inspect each publication payload and confirm it contains a phase value."
+      ],
+      "acceptance_criteria": "Mock bus records exactly 10 publications of the flight phase message ID, one per Execute() cycle, each containing a phase value.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-006",
+      "title": "AFM App Publishes Timestamp On Phase Transition",
+      "requirement_ids": ["SW-REQ-AFM-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock bus and a controllable monotonic clock. Drive the app with a scripted input sequence that forces one phase transition at a known cycle K.",
+      "procedure": [
+        "Run the AFM app for cycles 1 through K-1 with inputs that hold the phase constant.",
+        "Record the clock value just before invoking Execute() at cycle K.",
+        "Provide the input that triggers the phase transition and invoke Execute() at cycle K.",
+        "Query the mock bus for any phase-transition timestamp publication produced during cycle K.",
+        "Compare the published timestamp value to the recorded clock value."
+      ],
+      "acceptance_criteria": "Exactly one phase-transition timestamp message is published during cycle K with a timestamp value within one scheduler period of the recorded pre-Execute clock value.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-007",
+      "title": "AFM App Reports Only Defined Flight Phase Values",
+      "requirement_ids": ["SW-REQ-AFM-APP-007"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "AFM app phase enum header available; mock bus instrumented to record all phase publications.",
+      "procedure": [
+        "Inspect the AFM app phase enum definition and list its members.",
+        "Confirm the enum members are exactly pre-launch, boost, apogee, descent, and landing.",
+        "Run a parameterized unit test that drives the AFM app through a scripted full-mission input sequence covering all phases.",
+        "Collect every published flight phase value from the mock bus.",
+        "Verify each collected value is a member of the enum set listed above."
+      ],
+      "acceptance_criteria": "Phase enum contains exactly the five defined members and every published phase value during the scripted run is one of those five members.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-008",
+      "title": "AFM App Failure Does Not Block Other Apps",
+      "requirement_ids": ["SW-REQ-AFM-APP-008"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build the integration harness with the TDM scheduler and at least one peer app instrumented to count its Execute() invocations. Configure the AFM app Execute() to return an error status on every invocation.",
+      "procedure": [
+        "Start the scheduler and run for 50 scheduler cycles.",
+        "Record the AFM app return statuses captured by the scheduler instrumentation.",
+        "Record the peer app Execute() invocation count.",
+        "Stop the scheduler."
+      ],
+      "acceptance_criteria": "Peer app Execute() invocation count equals the expected count for 50 cycles even though every AFM app Execute() returned an error status.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-009",
+      "title": "AFM App POSIX And Flight Build Output Equivalence",
+      "requirement_ids": ["SW-REQ-AFM-APP-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Recorded canonical input message sequence covering pre-launch through landing. POSIX build executable and flight build executable both linked against the AFM app and capable of replaying the recorded sequence and logging published phase outputs.",
+      "procedure": [
+        "Replay the canonical input sequence through the POSIX build and capture the published phase output log.",
+        "Replay the same canonical input sequence through the flight build (on hardware or hardware-equivalent simulator) and capture the published phase output log.",
+        "Align the two logs by cycle index.",
+        "Compare the published phase value at each cycle index between the two logs."
+      ],
+      "acceptance_criteria": "Published phase value at every cycle index is identical between the POSIX log and the flight build log for the entire canonical sequence.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-010",
+      "title": "AFM App Deterministic Phase Output Across Repeated Runs",
+      "requirement_ids": ["SW-REQ-AFM-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock bus and a recorded input message sequence of at least 1000 cycles covering all flight phases.",
+      "procedure": [
+        "Run the input sequence through a freshly constructed AFM app instance and record all published phase values into log A.",
+        "Tear down the AFM app and reconstruct a fresh instance.",
+        "Run the same input sequence through the new instance and record all published phase values into log B.",
+        "Compare log A and log B cycle by cycle."
+      ],
+      "acceptance_criteria": "Log A and log B contain identical published phase values at every cycle index for the full 1000-cycle sequence.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-011",
+      "title": "AFM App Handles Stale Sensor Messages Without Crash",
+      "requirement_ids": ["SW-REQ-AFM-APP-004", "SW-REQ-AFM-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a mock bus that returns no new sensor messages for several consecutive cycles after an initial fresh message set.",
+      "procedure": [
+        "Provide one fresh set of IMU, barometer, GPS, and nav-state messages and invoke Execute() for cycle 1.",
+        "Withhold new messages and invoke Execute() for cycles 2 through 10.",
+        "Capture all return statuses and any phase publications.",
+        "Verify no exception, abort, or watchdog reset occurred."
+      ],
+      "acceptance_criteria": "All 10 Execute() invocations return without crash; AFM app continues to publish a flight phase message each cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-012",
+      "title": "AFM App Phase Sequence Monotonicity Through Scripted Mission",
+      "requirement_ids": ["SW-REQ-AFM-APP-004", "SW-REQ-AFM-APP-005", "SW-REQ-AFM-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate AFM app with a scripted input sequence representing a nominal flight that progresses through pre-launch, boost, apogee, descent, and landing in order.",
+      "procedure": [
+        "Run the scripted input sequence through the AFM app and capture the published phase value for every cycle.",
+        "Reduce the captured sequence to the ordered list of distinct phase values (collapsing consecutive duplicates).",
+        "Compare the reduced list to the expected ordered list: pre-launch, boost, apogee, descent, landing."
+      ],
+      "acceptance_criteria": "Reduced ordered list of distinct published phases equals exactly [pre-launch, boost, apogee, descent, landing] with no out-of-order or skipped phases.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/afm_app/tests/afm_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-AFM-APP-013",
+      "title": "FT1 Phase Detection Accuracy Within One Second",
+      "requirement_ids": ["SW-REQ-AFM-APP-006", "SW-REQ-AFM-APP-005", "SW-REQ-AFM-APP-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 flight has been completed. Onboard SD card log containing AFM published phase messages and phase-transition timestamps is recovered. Independent ground-truth source for each phase transition is available (onboard video, range observer log, or Trick post-flight reconstruction) with a known time alignment to the FSW clock.",
+      "procedure": [
+        "Mount the recovered SD card and copy the AFM phase output log and phase-transition timestamp log to the analysis workstation.",
+        "Load the independent ground-truth phase transition times for boost-start, apogee, descent-start, and landing.",
+        "Align the FSW clock and ground-truth clock using the documented FT1 time-alignment procedure.",
+        "For each of the four mission transitions, compute (FSW transition timestamp) minus (ground-truth transition timestamp).",
+        "Record the absolute error for each transition in a CSV.",
+        "Generate a plot of FSW phase versus time with ground-truth transition markers overlaid."
+      ],
+      "acceptance_criteria": "Absolute error between every FSW-published phase transition timestamp and the corresponding ground-truth transition timestamp is at most 1.0 second for all four transitions, satisfying SYS-018.",
+      "expected_artifacts": [
+        {
+          "name": "afm_phase_log.csv",
+          "description": "Recovered AFM published flight phase values per cycle from the FT1 SD card.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "afm_transition_timestamps.csv",
+          "description": "Recovered AFM phase-transition timestamps from the FT1 SD card.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "phase_accuracy_report.csv",
+          "description": "Per-transition delta between FSW timestamp and ground-truth timestamp with absolute error column.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "phase_vs_time_plot.png",
+          "description": "Plot of FSW-published phase versus time with ground-truth transition markers overlaid.",
+          "artifact_type": "plot"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

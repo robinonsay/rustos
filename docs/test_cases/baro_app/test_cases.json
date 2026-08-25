@@ -1,0 +1,268 @@
+{
+  "module": "BARO-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-BARO-APP-001",
+      "title": "Baro App Executes at 20 Hz Cadence",
+      "requirement_ids": ["SW-REQ-BARO-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with mock baro library and software bus. Configure a fake monotonic time source advancing at 1 microsecond resolution.",
+      "procedure": [
+        "Drive the TDM scheduler tick for a simulated duration of 1.000 seconds.",
+        "Capture the timestamp of every baro app Execute() invocation.",
+        "Compute the inter-execution period from consecutive timestamps.",
+        "Compute the total number of executions during the 1 second window."
+      ],
+      "acceptance_criteria": "Baro app Execute() is invoked exactly 20 times in 1 simulated second with inter-execution period of 50 ms +/- 1 ms.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-002",
+      "title": "One Baro Sample Acquired Per Cycle",
+      "requirement_ids": ["SW-REQ-BARO-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with a stubbed baro_lib returning programmed pressure/temperature/altitude values and counting sample-acquisition calls, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Reset the mock baro library acquisition counter to zero.",
+        "Invoke baro app Execute() exactly N=10 times.",
+        "Read the mock baro library acquisition counter."
+      ],
+      "acceptance_criteria": "Mock baro library reports exactly 10 sample-acquisition calls after 10 Execute() invocations (one sample per cycle, no missed or duplicated reads).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-003",
+      "title": "Baro Message Published Each Cycle",
+      "requirement_ids": ["SW-REQ-BARO-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with a stubbed baro_lib returning programmed pressure/temperature/altitude values, and a recording bus broker that captures all publish() calls and their topic identifiers.",
+      "procedure": [
+        "Subscribe a test observer to the baro message topic on the mock bus.",
+        "Invoke baro app Execute() exactly N=5 times.",
+        "Inspect the observer's received message queue."
+      ],
+      "acceptance_criteria": "Test observer receives exactly 5 baro messages on the baro topic, one per Execute() invocation.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-004",
+      "title": "Pass-Through Pressure Without Filtering",
+      "requirement_ids": ["SW-REQ-BARO-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with a stubbed baro_lib configured to return a scripted sequence of distinct pressure/temperature/altitude values, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Configure mock baro library to return pressure values [101325.0, 101300.0, 101275.0, 101250.0, 101225.0] Pa over 5 cycles.",
+        "Invoke baro app Execute() 5 times.",
+        "Capture the pressure field from each published baro message in order.",
+        "Compare each published pressure value to the corresponding mock input value bit-for-bit."
+      ],
+      "acceptance_criteria": "Each published baro message pressure field equals the corresponding mock library input exactly (bitwise identical, no filtering or smoothing applied).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-005",
+      "title": "Pass-Through Altitude Without Filtering",
+      "requirement_ids": ["SW-REQ-BARO-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with a stubbed baro_lib configured to return a scripted sequence of distinct pressure/temperature/altitude values, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Configure mock baro library to return altitude values [100.0, 110.0, 120.0, 130.0, 140.0] m over 5 cycles.",
+        "Invoke baro app Execute() 5 times.",
+        "Capture the altitude field from each published baro message.",
+        "Compare each published altitude value to the corresponding mock input value bit-for-bit."
+      ],
+      "acceptance_criteria": "Each published baro message altitude field equals the corresponding mock library input exactly (no filtering or modification).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-006",
+      "title": "Monotonic Microsecond Timestamp Present",
+      "requirement_ids": ["SW-REQ-BARO-APP-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with a fake monotonic time source advancing in microsecond resolution, a stubbed baro_lib returning programmed pressure/temperature/altitude values, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Invoke baro app Execute() 10 times with simulated 50 ms gaps between calls.",
+        "Capture the timestamp field from each published baro message.",
+        "Verify each timestamp is strictly greater than the previous timestamp.",
+        "Verify timestamp units are microseconds by comparing the delta between consecutive timestamps to the simulated 50 ms interval."
+      ],
+      "acceptance_criteria": "All 10 published baro message timestamps are strictly monotonically increasing, and consecutive deltas equal 50000 microseconds +/- 1000.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-007",
+      "title": "Baro Health Published Each Cycle",
+      "requirement_ids": ["SW-REQ-BARO-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with mock baro library reporting a configurable health status, and a mock software bus that records publish() calls per topic.",
+      "procedure": [
+        "Subscribe a test observer to the baro health topic on the mock bus.",
+        "Configure mock baro library to alternate health between NOMINAL and DEGRADED across cycles.",
+        "Invoke baro app Execute() exactly N=6 times.",
+        "Inspect the observer's received baro health message queue."
+      ],
+      "acceptance_criteria": "Test observer receives exactly 6 baro health messages whose status field matches the mock library health value for each corresponding cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-008",
+      "title": "Baro Message Schema References WGS-84 HAE",
+      "requirement_ids": ["SW-REQ-BARO-APP-007"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Open the baro message header (struct or schema definition) used by baro_app and any associated documentation comments.",
+      "procedure": [
+        "Locate the altitude field declaration in the baro message struct.",
+        "Inspect the field comment, units annotation, and reference frame documentation.",
+        "Verify the comment states 'WGS-84 ellipsoid' or 'HAE' (height above ellipsoid).",
+        "Verify there is no conflicting reference (e.g., MSL, AGL) in the same field's documentation."
+      ],
+      "acceptance_criteria": "Baro message altitude field is documented as WGS-84 ellipsoid (HAE) with no conflicting reference frame, confirmed by reviewer inspection.",
+      "expected_artifacts": [
+        {
+          "name": "baro_app_hae_inspection.md",
+          "description": "Signed inspection record verifying HAE altitude reference convention",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-BARO-APP-009",
+      "title": "Baro Message Units Are Pascals and Meters",
+      "requirement_ids": ["SW-REQ-BARO-APP-008"],
+      "verification_method": "Inspection",
+      "type": "Demonstration",
+      "setup": "Open the baro message struct/schema definition and any unit-related documentation.",
+      "procedure": [
+        "Locate the pressure field declaration in the baro message struct.",
+        "Verify pressure field is documented in pascals (Pa).",
+        "Locate the altitude field declaration in the baro message struct.",
+        "Verify altitude field is documented in meters (m).",
+        "Verify no scaling factor or alternate unit is applied in baro_app source between baro lib output and bus publish."
+      ],
+      "acceptance_criteria": "Baro message pressure field is documented in pascals and altitude field in meters, with no scaling applied in baro_app prior to publication.",
+      "expected_artifacts": [
+        {
+          "name": "baro_app_si_units_inspection.md",
+          "description": "Signed inspection record verifying SI units (Pa, m) in baro message",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-BARO-APP-010",
+      "title": "POSIX vs Pico2 Build Functional Equivalence",
+      "requirement_ids": ["SW-REQ-BARO-APP-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build baro_app for POSIX target and use the recorded Pico2 reference output. Prepare a fixed deterministic input sample stream, with a stubbed baro_lib returning programmed pressure/temperature/altitude values, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Feed the identical fixed input sample stream (N=200 samples) to the POSIX baro_app build via mock baro library.",
+        "Capture all published baro messages from the POSIX run, excluding wall-clock-derived timestamp fields.",
+        "Compare each captured field (pressure, altitude, health, sample index) against the recorded Pico2 reference output for the same input stream.",
+        "Compute byte-for-byte equality on the message field set excluding timestamps."
+      ],
+      "acceptance_criteria": "All 200 POSIX-published baro messages match the Pico2 reference output exactly across pressure, altitude, and health fields.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-011",
+      "title": "Deterministic Output for Identical Inputs",
+      "requirement_ids": ["SW-REQ-BARO-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate two independent baro app instances with identical configuration, each with a stubbed baro_lib returning programmed pressure/temperature/altitude values from the same scripted sample sequence, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Feed the identical scripted sample sequence (N=100 samples) into both baro app instances.",
+        "Invoke Execute() 100 times on each instance under an identical fake clock schedule.",
+        "Capture all published baro messages from both instances.",
+        "Compare the two message streams byte-for-byte across all fields including timestamps."
+      ],
+      "acceptance_criteria": "Both instances produce 100 published baro messages that are byte-for-byte identical across every field.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-012",
+      "title": "Re-Run Determinism Across Repeated Executions",
+      "requirement_ids": ["SW-REQ-BARO-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate a baro app with a stubbed baro_lib returning programmed pressure/temperature/altitude values from a fixed scripted sample sequence, a fake monotonic clock, and a recording bus broker to capture published baro messages.",
+      "procedure": [
+        "Invoke Execute() 100 times and capture all published baro messages as run A.",
+        "Tear down and re-instantiate the baro app with identical configuration and identical scripted inputs.",
+        "Invoke Execute() 100 times and capture all published baro messages as run B.",
+        "Compare run A and run B byte-for-byte."
+      ],
+      "acceptance_criteria": "Run A and run B produce byte-for-byte identical sequences of 100 baro messages.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-013",
+      "title": "Sample-To-Publish Ordering Preserved Per Cycle",
+      "requirement_ids": ["SW-REQ-BARO-APP-002", "SW-REQ-BARO-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with mock baro library and mock software bus, both recording call order with timestamps.",
+      "procedure": [
+        "Invoke baro app Execute() once.",
+        "Inspect the recorded call sequence on the mock baro library and the mock bus.",
+        "Verify the baro library sample acquisition was called before the bus publish call within the same Execute() cycle.",
+        "Repeat the check for 5 cycles."
+      ],
+      "acceptance_criteria": "In every Execute() cycle the sample-acquire call precedes the publish call, and exactly one of each occurs per cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-BARO-APP-014",
+      "title": "Health Bitmap Reflects Library Fault Injection",
+      "requirement_ids": ["SW-REQ-BARO-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate baro app with mock baro library exposing an injectable fault bitmap and a mock software bus.",
+      "procedure": [
+        "Inject fault bitmap value 0x00 (no faults) into the mock baro library; invoke Execute() once; capture published health.",
+        "Inject fault bitmap value 0x01 (sensor fault) into the mock baro library; invoke Execute() once; capture published health.",
+        "Inject fault bitmap value 0xFF into the mock baro library; invoke Execute() once; capture published health.",
+        "Compare each published health bitmap to the injected value."
+      ],
+      "acceptance_criteria": "Each published baro health message bitmap field equals the corresponding injected fault bitmap exactly (0x00, 0x01, 0xFF).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/baro_app/tests/baro_app_test.cpp"
+    }
+  ]
+}

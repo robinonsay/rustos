@@ -1,0 +1,278 @@
+{
+  "module": "DEVICE",
+  "test_cases": [
+    {
+      "id": "SW-TC-DEVICE-001",
+      "title": "UART1 Configure Sets Caller-Specified Baud Rate",
+      "requirement_ids": ["SW-REQ-DEVICE-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Construct juno::device::DEVICE_LIB_IMPL_T<2048> via DEVICE_LIB_IMPL_T::New(...) with caller-owned storage in .bss.",
+        "Call tDevice.ptApi->Configure(tDevice, 9600u, DEVICE_STOP_BITS_T::DEVICE_STOP_BITS_ONE).",
+        "Read back the backend's recorded baud configuration (POSIX: tcgetattr cfgetispeed/cfgetospeed on the slave fd; Pico2-stub: the captured argument from the stubbed uart_init / uart_set_baudrate call).",
+        "Assert the recorded baud rate equals 9600 and stop-bit count equals one."
+      ],
+      "acceptance_criteria": "Configure returns JUNO_STATUS_SUCCESS and the backend records the requested 9600 baud / 8N1 framing exactly once with no other peripheral reconfiguration.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-002",
+      "title": "UART1 Configure Returns SUCCESS On Valid Argument",
+      "requirement_ids": ["SW-REQ-DEVICE-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Construct DEVICE_LIB_IMPL_T<2048> via New(...) with caller-owned storage.",
+        "Call tDevice.ptApi->Configure(tDevice, 9600u, DEVICE_STOP_BITS_T::DEVICE_STOP_BITS_ONE).",
+        "Capture the returned JUNO_STATUS_T value.",
+        "Assert the returned status equals JUNO_STATUS_SUCCESS."
+      ],
+      "acceptance_criteria": "Configure returns JUNO_STATUS_SUCCESS when invoked with a valid baud rate and stop-bit selection, demonstrating the success path of init status reporting.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-003",
+      "title": "UART1 Configure Reports Failure On Backend-Injected Error",
+      "requirement_ids": ["SW-REQ-DEVICE-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Construct DEVICE_LIB_IMPL_T<2048> via New(...).",
+        "Configure the backend stub to fail the underlying init (POSIX: pre-close the pty fd so tcsetattr fails with EBADF; Pico2-stub: program the uart_init stub to set an internal failure flag).",
+        "Call tDevice.ptApi->Configure(tDevice, 9600u, DEVICE_STOP_BITS_T::DEVICE_STOP_BITS_ONE).",
+        "Capture the returned JUNO_STATUS_T value.",
+        "Assert the returned status is non-success (e.g., JUNO_STATUS_NULLPTR_ERROR or a hardware-failure status surfaced by the backend)."
+      ],
+      "acceptance_criteria": "Configure returns a non-success JUNO_STATUS_T when the backend reports a peripheral init failure, demonstrating that init status is reported on both success and failure paths.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-004",
+      "title": "UART1 ReadBytes Returns SUCCESS Zero-Count On Empty FIFO And Ring",
+      "requirement_ids": ["SW-REQ-DEVICE-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Configure tDevice at 9600 baud, 8N1.",
+        "Do not inject any bytes into the backend RX source (no write to pty master; no push to the Pico2-stub RX FIFO).",
+        "Call tDevice.ptApi->ReadBytes(tDevice, pcuBuf, 64u) with a valid 64-byte caller buffer.",
+        "Capture the returned RESULT_T<size_t> value.",
+        "Assert tStatus equals JUNO_STATUS_SUCCESS and tOk equals 0 (zero bytes is not an error per the §4.2.3 contract)."
+      ],
+      "acceptance_criteria": "ReadBytes returns RESULT_T<size_t>{JUNO_STATUS_SUCCESS, 0} immediately when both the hardware FIFO and the RX ring are empty, demonstrating non-blocking semantics with zero-count not treated as an error.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-005",
+      "title": "UART1 ReadBytes Returns Currently Available Bytes",
+      "requirement_ids": ["SW-REQ-DEVICE-003", "SW-REQ-DEVICE-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Configure tDevice at 9600 baud, 8N1.",
+        "Inject an 8-byte known pattern (e.g., {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08}) into the backend RX source: POSIX writes the pattern to the pty master; Pico2-stub pushes the bytes into the stub RX FIFO.",
+        "Call tDevice.ptApi->ReadBytes(tDevice, pcuBuf, 64u) with a valid 64-byte caller buffer.",
+        "Capture the returned RESULT_T<size_t>.",
+        "Assert tStatus == JUNO_STATUS_SUCCESS, tOk == 8, and the first 8 bytes of pcuBuf byte-equal the injected pattern."
+      ],
+      "acceptance_criteria": "ReadBytes returns {SUCCESS, 8} and the caller buffer's first 8 bytes byte-equal the injected pattern.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-006",
+      "title": "UART1 ReadBytes Buffers Bytes Between Calls Without Loss",
+      "requirement_ids": ["SW-REQ-DEVICE-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Configure tDevice at 9600 baud, 8N1.",
+        "Inject chunk A = 4 known bytes into the backend RX source.",
+        "Call tDevice.ptApi->ReadBytes(tDevice, pcuBufA, 64u) and capture (tStatusA, tOkA).",
+        "Without re-Configuring, inject chunk B = 6 known bytes into the backend RX source.",
+        "Call tDevice.ptApi->ReadBytes(tDevice, pcuBufB, 64u) and capture (tStatusB, tOkB).",
+        "Assert tStatusA == SUCCESS, tOkA == 4, tStatusB == SUCCESS, tOkB == 6.",
+        "Assert pcuBufA[0..3] || pcuBufB[0..5] byte-equals (chunk A || chunk B) with no drops or reordering."
+      ],
+      "acceptance_criteria": "Concatenation of bytes returned across the two ReadBytes calls byte-equals chunk A followed by chunk B, demonstrating between-call ring buffering with no loss while ring capacity is not exceeded.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-007",
+      "title": "UART1 ReadBytes Rejects Null Buffer With NULLPTR_ERROR",
+      "requirement_ids": ["SW-REQ-DEVICE-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Configure tDevice at 9600 baud, 8N1.",
+        "Inject a 4-byte known pattern into the backend RX source so bytes are present in the ring.",
+        "Call tDevice.ptApi->ReadBytes(tDevice, nullptr, 64u).",
+        "Capture the returned RESULT_T<size_t>.",
+        "Assert tStatus == JUNO_STATUS_NULLPTR_ERROR and tOk == 0.",
+        "Confirm the ring still contains the previously injected bytes by issuing a follow-up ReadBytes with a valid buffer and asserting tOk == 4."
+      ],
+      "acceptance_criteria": "ReadBytes with nullptr destination returns {JUNO_STATUS_NULLPTR_ERROR, 0} without modifying caller memory or draining the RX ring; the previously buffered bytes remain available on the next valid call.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-008",
+      "title": "UART1 ReadBytes tOk Equals Bytes Copied; Past-Index Buffer Unmodified",
+      "requirement_ids": ["SW-REQ-DEVICE-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Host-side Google Test fixture wires the device_lib UART1 abstraction. The same test case is mirrored on two backends: the POSIX-pty backend exercises libs/device_lib/src/posix/device_posix.cpp against an openpty/posix_openpt pseudo-tty, and the Pico2-stub backend exercises libs/device_lib/src/pico2/device_pico2.cpp against host-side stubs of the pico-sdk hardware/uart.h surface (per methodology.md §5.1 Revision B). Caller-owned RX ring capacity N=2048 (juno::device::kDefaultRingCap).",
+      "procedure": [
+        "Configure tDevice at 9600 baud, 8N1.",
+        "Pre-fill a 32-byte caller buffer pcuBuf with sentinel byte 0xA5.",
+        "Inject exactly 5 known non-sentinel bytes ('H','E','L','L','O') into the backend RX source.",
+        "Call tDevice.ptApi->ReadBytes(tDevice, pcuBuf, 32u) and capture (tStatus, tOk).",
+        "Assert tStatus == JUNO_STATUS_SUCCESS and tOk == 5.",
+        "Assert pcuBuf[0..4] byte-equals {'H','E','L','L','O'}.",
+        "Assert pcuBuf[5..31] each still hold sentinel value 0xA5 (no over-write past tOk)."
+      ],
+      "acceptance_criteria": "tOk equals the number of bytes copied (5); bytes at indices [tOk, zCap) retain the pre-fill sentinel 0xA5, demonstrating exact byte-count reporting with no over-write.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/device_lib/tests/device_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-DEVICE-009",
+      "title": "HIL UART1 Loopback Baud-Rate Fidelity at 9600",
+      "requirement_ids": ["SW-REQ-DEVICE-001", "SW-REQ-DEVICE-002"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 HIL bring-up bench: Raspberry Pi Pico 2 board with UART1 TX (GP4) wired to UART1 RX (GP5) via a loopback jumper on the test fixture. USB-serial debug console at 115200 baud connected to host. Demo firmware flashed that calls device_lib Configure(9600, ONE), then loops issuing WriteBytes of a known 256-byte pattern followed by ReadBytes back through the loopback, printing pass/fail per iteration over the debug console.",
+      "procedure": [
+        "Connect the Pico2 board to the host via USB and the UART1 loopback jumper between GP4 and GP5.",
+        "Open the host serial terminal at 115200 baud and begin logging to hil_uart1_loopback_serial.log.",
+        "Flash the device-lib HIL loopback demo firmware onto the Pico2.",
+        "Reset the Pico2 and let the demo run for at least 100 iterations (~30 seconds).",
+        "Stop logging and inspect hil_uart1_loopback_serial.log for per-iteration PASS lines and any FAIL lines.",
+        "Photograph the bench fixture (board + jumper + USB cable) and save as hil_bench_photo.jpg."
+      ],
+      "acceptance_criteria": "Across 100 consecutive loopback iterations at 9600 baud, every byte sent via WriteBytes is read back exactly via ReadBytes with no bit errors and no FAIL lines in the log, confirming the host-side stub's uart_init baud passthrough is consistent with real RP2350 divisor behavior.",
+      "expected_artifacts": [
+        {
+          "name": "hil_uart1_loopback_serial.log",
+          "description": "USB-serial capture of the Pico2 loopback demo printing per-iteration PASS/FAIL across at least 100 iterations.",
+          "artifact_type": "log"
+        },
+        {
+          "name": "hil_bench_photo.jpg",
+          "description": "Photograph of the HIL bench showing the Pico2 board with the UART1 GP4-to-GP5 loopback jumper installed.",
+          "artifact_type": "photo"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-DEVICE-010",
+      "title": "HIL UART1 RX Between-Call Buffering Under Live GPS Source",
+      "requirement_ids": ["SW-REQ-DEVICE-003", "SW-REQ-DEVICE-004", "SW-REQ-DEVICE-006"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 HIL bring-up bench: Raspberry Pi Pico 2 board with UART1 RX (GP5) wired to the TX pin of a u-blox NEO-M9N GPS module (powered at 3.3 V, with antenna placed for sky view). USB-serial debug console at 115200 baud connected to host. Demo firmware flashed that calls device_lib Configure(9600, ONE) on a DEVICE_LIB_IMPL_T<2048> instance, then schedules ReadBytes on a 200 ms tick (mirroring gps_app cadence) and prints the per-tick (tStatus, tOk) pair plus the first 16 bytes copied.",
+      "procedure": [
+        "Wire the NEO-M9N TX to Pico2 GP5 and the GND/3.3V pins per the HIL bench schematic.",
+        "Place the GPS antenna with clear sky view; connect the Pico2 to the host via USB.",
+        "Open the host serial terminal at 115200 baud and begin logging to gps_nmea_capture.log.",
+        "Flash the device-lib RX-buffering HIL demo firmware onto the Pico2.",
+        "Reset the Pico2 and let the demo run for at least 60 seconds (~300 scheduler ticks at 5 Hz).",
+        "Stop logging and post-process gps_nmea_capture.log to count: (a) total bytes drained, (b) any tick where tStatus != SUCCESS, (c) any tick where tOk == 0 between active GPS bursts.",
+        "Confirm visually that streamed bytes form valid NMEA sentences ($GP* prefixes with terminators)."
+      ],
+      "acceptance_criteria": "Across 60 seconds of live NMEA traffic at 5 Hz, every 200 ms tick returns ReadBytes with tStatus == SUCCESS and the concatenation of drained bytes forms unbroken NMEA sentences with no JUNO_STATUS_TABLE_FULL_ERROR, confirming the kDefaultRingCap=2048 sizing is sufficient under real GPS bandwidth.",
+      "expected_artifacts": [
+        {
+          "name": "gps_nmea_capture.log",
+          "description": "USB-serial capture of the Pico2 HIL demo printing per-tick ReadBytes status, byte counts, and the leading bytes of each drain across at least 60 seconds of live u-blox NEO-M9N traffic.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-DEVICE-011",
+      "title": "HIL UART1 WriteBytes TX-FIFO Push for LoRa AT Command",
+      "requirement_ids": ["SW-REQ-DEVICE-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 HIL bring-up bench: Raspberry Pi Pico 2 board with UART1 TX (GP4) wired to a logic analyzer probe (8 channels, 1 MHz capture rate or higher) and optionally to UART1 RX (GP5) via a loopback jumper. USB-serial debug console at 115200 baud connected to host. Demo firmware flashed that calls device_lib Configure(9600, ONE), then on a 200 ms tick calls WriteBytes with the byte sequence 'AT\\r\\n' (4 bytes) and prints the returned JUNO_STATUS_T plus the wall-clock duration of the call.",
+      "procedure": [
+        "Wire the Pico2 UART1 TX pin (GP4) to the logic analyzer probe; clip ground.",
+        "Connect the Pico2 to the host via USB.",
+        "Start the logic analyzer capture configured for 9600-8N1 UART decode on the TX line.",
+        "Open the host serial terminal at 115200 baud and begin logging to lora_at_writebytes_serial.log.",
+        "Flash the device-lib WriteBytes HIL demo firmware onto the Pico2.",
+        "Reset the Pico2 and let the demo issue at least 20 'AT\\r\\n' sequences (~4 seconds at 200 ms tick).",
+        "Stop the logic analyzer capture and export it to logic_analyzer.csv.",
+        "Stop the serial log and inspect lora_at_writebytes_serial.log for the per-call JUNO_STATUS_T and duration values."
+      ],
+      "acceptance_criteria": "Logic-analyzer decode shows 'AT\\r\\n' on UART1 TX for every demo iteration, and every WriteBytes call returns JUNO_STATUS_SUCCESS with measured duration well under the 5 ms gps_app slot share of the 200 ms TDM tick budget, confirming WriteBytes pushes into the hardware TX FIFO non-blocking.",
+      "expected_artifacts": [
+        {
+          "name": "logic_analyzer.csv",
+          "description": "Logic-analyzer capture export of UART1 TX showing 'AT\\r\\n' byte sequences across at least 20 iterations with timing.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "lora_at_writebytes_serial.log",
+          "description": "USB-serial capture of the Pico2 HIL demo printing per-call WriteBytes JUNO_STATUS_T and wall-clock duration.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-DEVICE-012",
+      "title": "HIL UART1 Ring Overflow Reports TABLE_FULL_ERROR Under Sustained Burst",
+      "requirement_ids": ["SW-REQ-DEVICE-004"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "FT1 HIL bring-up bench: Raspberry Pi Pico 2 board with UART1 RX (GP5) wired to the TX line of a host PC USB-UART bridge (e.g., FTDI FT232) configured at 115200 baud. The host streams a controlled bursty pattern that produces > 2048 bytes between Pico2 read ticks. USB-serial debug console at 115200 baud connected to host. Demo firmware flashed that calls device_lib Configure(115200, ONE) on a DEVICE_LIB_IMPL_T<2048> instance, deliberately schedules ReadBytes only every 500 ms (longer than 2048 bytes / 115200 baud * 10 bits ~= 178 ms), and prints the per-tick (tStatus, tOk) pair.",
+      "procedure": [
+        "Wire the host USB-UART bridge TX line to Pico2 GP5; common-ground both devices.",
+        "On the host, run a script that writes a controlled known pattern (e.g., 4096 bytes of incrementing 0x00..0xFF then repeat) to the bridge at 115200 baud continuously.",
+        "Connect the Pico2 to the host via USB and open the debug serial terminal at 115200 baud; begin logging to ring_overflow_serial.log.",
+        "Flash the device-lib overflow HIL demo firmware onto the Pico2.",
+        "Reset the Pico2 and let the demo run for at least 30 seconds (60 read ticks at 500 ms cadence).",
+        "Stop logging and inspect ring_overflow_serial.log for at least one tick reporting tStatus == JUNO_STATUS_TABLE_FULL_ERROR.",
+        "Confirm a subsequent tick reports tStatus == JUNO_STATUS_SUCCESS again (sticky bit cleared after report)."
+      ],
+      "acceptance_criteria": "At least one ReadBytes tick after a sustained burst reports tStatus == JUNO_STATUS_TABLE_FULL_ERROR with a non-zero tOk reflecting recoverable bytes, and a subsequent tick reports tStatus == JUNO_STATUS_SUCCESS, confirming the overflow-since-last-read sticky-bit semantic is observable on real RP2350 hardware.",
+      "expected_artifacts": [
+        {
+          "name": "ring_overflow_serial.log",
+          "description": "USB-serial capture of the Pico2 HIL demo across at least 30 seconds showing per-tick ReadBytes status; expected to contain at least one TABLE_FULL_ERROR line followed by SUCCESS lines.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

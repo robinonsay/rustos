@@ -1,0 +1,93 @@
+{
+  "module": "LOG",
+  "requirements": [
+    {
+      "id": "SW-REQ-LOG-001",
+      "title": "Severity-Tagged Diagnostic Logging API",
+      "description": "The log library shall expose diagnostic logging functions for debug, info, warning, and error severities.",
+      "rationale": "Standalone diagnostic logging API; no L1 SYS parent. juno_log is a project-wide utility predating the SYS L1 set, providing a diagnostic event/error logging API distinct from the SD mission logger (mlog_lib).",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-002",
+      "title": "Severity Prefix in Output",
+      "description": "The log library shall prefix every emitted record with its severity label.",
+      "rationale": "Standalone diagnostic logging API; no L1 SYS parent. juno_log is a project-wide utility predating the SYS L1 set. Severity prefix yields machine-parseable diagnostic output structure.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-003",
+      "title": "Formatted Diagnostic Message Support",
+      "description": "The log library shall accept a printf-style format string with variadic arguments for each diagnostic record.",
+      "rationale": "Standalone diagnostic logging API; no L1 SYS parent. juno_log is a project-wide utility predating the SYS L1 set. Diagnostic records carry status/error context that callers compose at the log site.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-004",
+      "title": "Bounded Output Buffer",
+      "description": "The log library shall bound each formatted record to a fixed maximum length without heap allocation.",
+      "rationale": "PM brief and SYS NFR: bounded memory; no heap; truncate rather than allocate.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-050",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-005",
+      "title": "Status Return on Each Call",
+      "description": "The log library shall return a status code from every diagnostic logging call.",
+      "rationale": "Standalone diagnostic logging API; no L1 SYS parent. juno_log is a project-wide utility predating the SYS L1 set. Callers must observe whether a diagnostic emission succeeded or failed.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-006",
+      "title": "Identical API Across Platforms",
+      "description": "The log library shall present an identical public API on the POSIX and Pico2 builds.",
+      "rationale": "PM brief: POSIX vs Pico2 may differ in sink, but interface is identical for SITL equivalence.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-007",
+      "title": "Platform-Configurable Diagnostic Sink",
+      "description": "The log library shall direct diagnostic output to a platform-specific sink configured at build time.",
+      "rationale": "PM brief and L2 design FLAG-1 disposition (PM 2026-05-04): POSIX sink is stderr; Pico2 sink is UART (with optional RTT via LOG_LIB_PICO2_USE_RTT); sink choice is per-platform implementation.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-LOG-008",
+      "title": "Separation From Mission Logging",
+      "description": "The log library shall not write diagnostic records to the SD card mission log.",
+      "rationale": "Scope-separation declaration: keeps juno_log distinct from mlog_lib (cross-reference SW-REQ-SYS-022 which governs SD mission log content). juno_log is the diagnostic logger; mission logging is a separate concern owned by mlog_lib. No L1 SYS parent applies to this scope boundary.",
+      "verification_method": "Inspection",
+      "status": "Active",
+      "parent_id": null,
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

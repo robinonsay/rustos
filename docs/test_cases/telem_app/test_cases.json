@@ -1,0 +1,263 @@
+{
+  "module": "TELEM-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-TELEM-APP-001",
+      "title": "Telem App Scheduled at 2 Hz on TDM",
+      "requirement_ids": ["SW-REQ-TELEM-APP-001"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Build POSIX target with TDM scheduler configuration loaded for telem_app.",
+      "procedure": [
+        "Load the static TDM schedule table used to register telem_app.",
+        "Read the configured period for the telem_app slot.",
+        "Compute the resulting execution frequency from the period.",
+        "Compare the computed frequency to 2 Hz."
+      ],
+      "acceptance_criteria": "Static TDM schedule registers telem_app with a 500 ms period, yielding exactly 2 Hz execution frequency.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-002",
+      "title": "Subscribes to All Required Bus Sources",
+      "requirement_ids": ["SW-REQ-TELEM-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate telem_app with a mocked software bus that records subscription calls and stubbed telem_lib + stubbed lora_lib for full DI completeness.",
+      "procedure": [
+        "Initialize telem_app against the mock bus.",
+        "Capture the set of message IDs that telem_app subscribed to during init.",
+        "Compare captured subscriptions against the expected set: GPS, baro, navigation, flight phase, sensor health."
+      ],
+      "acceptance_criteria": "telem_app registers subscriptions for GPS, baro, navigation, flight phase, and sensor health messages; no required source is missing.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-003",
+      "title": "Delegates Packet Composition to telem_lib",
+      "requirement_ids": ["SW-REQ-TELEM-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock telem_lib that records compose calls and returns a stub packet, mocked software bus for sensor messages and stubbed lora_lib for the transmit boundary.",
+      "procedure": [
+        "Publish representative GPS, baro, nav, flight phase, and health messages onto the mock bus.",
+        "Trigger one telem_app execute cycle.",
+        "Assert the mock telem_lib compose API was invoked exactly once.",
+        "Assert the inputs passed to compose match the most recent values seen on the bus."
+      ],
+      "acceptance_criteria": "telem_lib compose API is invoked once per cycle with the latest subscribed bus values; telem_app contains no in-line packet assembly logic.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-004",
+      "title": "Latest Sensor Health Bitmap Embedded in Packet",
+      "requirement_ids": ["SW-REQ-TELEM-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock bus and a mock telem_lib that captures the composed packet bytes, and a stubbed lora_lib whose transmit calls are captured.",
+      "procedure": [
+        "Publish a sensor health bitmap with a known non-zero pattern on the bus.",
+        "Trigger one telem_app execute cycle and capture the packet handed to lora_lib.",
+        "Publish a different sensor health bitmap on the bus.",
+        "Trigger another execute cycle and capture the second packet.",
+        "Decode the health bitmap field of each packet and compare to the value published immediately before that cycle."
+      ],
+      "acceptance_criteria": "Each transmitted packet contains the most recently published sensor health bitmap exactly; no stale or default bitmap is emitted.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-005",
+      "title": "Composed Packet Handed to lora_lib",
+      "requirement_ids": ["SW-REQ-TELEM-APP-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock lora_lib that records every transmit invocation and its payload, mocked software bus seeded with the relevant input messages and stubbed telem_lib whose compose return values are scripted.",
+      "procedure": [
+        "Populate the bus with valid telemetry source messages.",
+        "Trigger one telem_app execute cycle.",
+        "Capture the buffer and length passed to the mock lora_lib transmit API.",
+        "Compare the buffer to the packet returned by the telem_lib compose mock."
+      ],
+      "acceptance_criteria": "On each cycle the lora_lib transmit API is invoked exactly once with the packet bytes produced by telem_lib compose.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-006",
+      "title": "Continuous Coverage From Power-On",
+      "requirement_ids": ["SW-REQ-TELEM-APP-006"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 flashed with FT1 image; LoRa ground station configured to log received frames with timestamps; bench power supply for the rocket avionics.",
+      "procedure": [
+        "Start the ground station receiver and begin logging received frames with arrival timestamps.",
+        "Apply external power to the avionics and start a stopwatch at the moment power is applied.",
+        "Allow the system to run on the bench for at least 10 minutes without intervention.",
+        "Remove external power and stop the ground station log.",
+        "From the ground station log, compute inter-frame intervals and the offset of the first received frame from power-on."
+      ],
+      "acceptance_criteria": "Ground station log shows the first telemetry frame within 5 seconds of power-on and a continuous stream until power removal with no gap exceeding 2 seconds.",
+      "expected_artifacts": [
+        {
+          "name": "ground_station_rx_log.csv",
+          "description": "CSV of received telemetry frames with arrival timestamps for the full power-on window.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "bench_run_video.mp4",
+          "description": "Video of the bench run showing power application and the running ground station receiver.",
+          "artifact_type": "video"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-TELEM-APP-007",
+      "title": "Continues Cycling After Transmit Failure",
+      "requirement_ids": ["SW-REQ-TELEM-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock lora_lib whose transmit API can be programmed to return failure on selected cycles, mocked software bus and stubbed telem_lib (the cycle path traverses both).",
+      "procedure": [
+        "Configure the mock lora_lib to return a failure status on the next transmit call.",
+        "Trigger one telem_app execute cycle and observe the failure being returned.",
+        "Trigger five additional execute cycles back-to-back at the scheduled cadence.",
+        "Record the lora_lib transmit invocation count and the cycle index of each invocation."
+      ],
+      "acceptance_criteria": "telem_app invokes lora_lib transmit on every subsequent cycle after a failure with no skipped cycles, no backoff delay, and no halt of execution.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-008",
+      "title": "Publishes Radio Health Reflecting Last Transmit",
+      "requirement_ids": ["SW-REQ-TELEM-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock bus that captures published messages and a controllable mock lora_lib, and stubbed telem_lib (compose is invoked en route to lora_lib transmit).",
+      "procedure": [
+        "Configure mock lora_lib transmit to return success and trigger one execute cycle.",
+        "Capture the radio health message published by telem_app and verify it indicates success.",
+        "Configure mock lora_lib transmit to return failure and trigger another execute cycle.",
+        "Capture the new radio health message and verify it indicates failure.",
+        "Configure mock lora_lib transmit to return success again, run one more cycle, and verify the published health flips back to success."
+      ],
+      "acceptance_criteria": "The radio health status published each cycle matches the success or failure outcome of that cycle's transmit call across at least one success-failure-success transition.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-009",
+      "title": "POSIX and Pico2 Builds Produce Identical Telemetry",
+      "requirement_ids": ["SW-REQ-TELEM-APP-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build telem_app for POSIX and Pico2 targets from the same commit. Capture a reference recording of bus messages spanning a representative flight profile.",
+      "procedure": [
+        "Replay the captured bus message recording into the POSIX telem_app build and capture every published telemetry packet to a file.",
+        "Replay the same recording into the Pico2 telem_app build (or its host-instrumented harness) and capture every published telemetry packet to a file.",
+        "Byte-compare the two output files cycle-by-cycle.",
+        "Report any differing cycles and their byte offsets."
+      ],
+      "acceptance_criteria": "POSIX and Pico2 telemetry outputs are byte-identical across all replayed cycles for the same input recording.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-010",
+      "title": "Post-Landing Recovery Beacon Continues Indefinitely",
+      "requirement_ids": ["SW-REQ-TELEM-APP-010"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 avionics on the bench with LoRa antenna and external power; ground station configured for FT1 frame logging; bus inputs configured (or stubbed) so the flight phase reports LANDED.",
+      "procedure": [
+        "Apply external power and start the ground station log.",
+        "Drive the flight phase input through ASCENT, DESCENT, and into LANDED, and confirm the LANDED phase is reported on the bus.",
+        "Continue running on bench power for at least 30 minutes after the LANDED transition.",
+        "Stop the ground station log and remove external power.",
+        "Compute the inter-frame interval distribution from the LANDED transition until power removal."
+      ],
+      "acceptance_criteria": "Ground station log shows continuous telemetry frames for at least 30 minutes after LANDED with no gap greater than 2 seconds, and transmission ceases only when external power is removed.",
+      "expected_artifacts": [
+        {
+          "name": "post_landing_rx_log.csv",
+          "description": "CSV of received frames with timestamps spanning the LANDED phase to power removal.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "post_landing_run_photo.jpg",
+          "description": "Photo of the bench setup at the end of the post-landing run prior to power removal.",
+          "artifact_type": "photo"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-TELEM-APP-011",
+      "title": "Deterministic Telemetry for Identical Inputs",
+      "requirement_ids": ["SW-REQ-TELEM-APP-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "POSIX build of telem_app driven by a deterministic mock bus that replays a fixed sequence of inputs.",
+      "procedure": [
+        "Run telem_app for N cycles using a fixed input sequence and capture every published telemetry packet to file A.",
+        "Reset the process, replay the identical input sequence for the same N cycles, and capture published packets to file B.",
+        "Byte-compare files A and B cycle-by-cycle.",
+        "Repeat the run a third time and compare against file A to rule out two-sample coincidence."
+      ],
+      "acceptance_criteria": "All three runs produce byte-identical published telemetry files for identical input sequences with no diff at any cycle.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-012",
+      "title": "Compose Uses Latest Value Per Source",
+      "requirement_ids": ["SW-REQ-TELEM-APP-002", "SW-REQ-TELEM-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock bus that allows multiple updates per source between cycles and a mock telem_lib capturing inputs, and a stubbed lora_lib for the transmit boundary.",
+      "procedure": [
+        "Publish two successive GPS messages on the bus before any execute cycle.",
+        "Publish two successive baro messages similarly.",
+        "Trigger one telem_app execute cycle.",
+        "Inspect the inputs the mock telem_lib received and compare each field to the second (latest) published value for that source."
+      ],
+      "acceptance_criteria": "telem_lib compose receives the most recent value for each subscribed source; no earlier message is forwarded when a newer one is available.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-TELEM-APP-013",
+      "title": "Radio Health Published Every Cycle",
+      "requirement_ids": ["SW-REQ-TELEM-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire telem_app to a mock bus that counts radio health publications per cycle and a mock lora_lib returning a steady-state status, and a stubbed telem_lib (radio health publish path follows compose-then-transmit).",
+      "procedure": [
+        "Run telem_app for 10 consecutive execute cycles with mock lora_lib returning success.",
+        "Count the number of radio health messages published by telem_app over the run.",
+        "Repeat with mock lora_lib returning failure for all 10 cycles and count again."
+      ],
+      "acceptance_criteria": "Exactly one radio health status is published per execute cycle in both scenarios, totaling 10 publications per 10 cycles, with status matching the configured outcome.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/telem_app/tests/telem_app_test.cpp"
+    }
+  ]
+}

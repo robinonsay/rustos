@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Juno FSW Requirements",
+  "description": "Requirements JSON schema for Juno FSW. IDs use SW-REQ-MODULE-NNN format.",
+  "type": "object",
+  "required": ["module", "requirements"],
+  "properties": {
+    "module": {
+      "type": "string",
+      "description": "Module identifier (uppercase, e.g. GPS, NAV, SYS, IMU)"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "rationale",
+          "verification_method",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SW-REQ-[A-Z][A-Z0-9]*(-[A-Z][A-Z0-9]*)*-[0-9]{3}$",
+            "description": "Unique requirement ID: SW-REQ-MODULE-NNN"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Short title (no 'shall' language)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Shall statement <=20 words, black-box observable behavior only"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this requirement exists (from PM, not fabricated)"
+          },
+          "verification_method": {
+            "type": "string",
+            "enum": ["Test", "Inspection", "Demonstration", "Analysis"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Draft", "Active", "Verified", "Closed"]
+          },
+          "parent_id": {
+            "type": ["string", "null"],
+            "description": "Parent requirement ID (null for top-level)"
+          },
+          "child_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Child requirement IDs derived from this one"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Labels: FT1, FT2, safety, etc."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

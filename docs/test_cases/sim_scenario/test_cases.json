@@ -1,0 +1,251 @@
+{
+  "module": "SIM-SCEN",
+  "test_cases": [
+    {
+      "id": "SW-TC-SIM-SCEN-001",
+      "title": "Scenario File Format - Human Editable Inspection",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-001"],
+      "verification_method": "Inspection",
+      "type": "Integration",
+      "setup": "Checkout repository at the FT1 baseline tag. Open the scenario file directory under sim/sim_scenario/scenarios/ in a text editor.",
+      "procedure": [
+        "Open the FT1 baseline scenario file in a plain text editor.",
+        "Inspect the file for human-readable structured text (e.g., YAML/JSON/Trick input syntax) without binary content.",
+        "Modify a scalar parameter (e.g., launch elevation), save, and re-run the loader to confirm the change is consumed.",
+        "Verify the file is tracked in git and produces a readable diff when modified."
+      ],
+      "acceptance_criteria": "Scenario file is plain text, hand-editable, produces a readable diff under git, and edits are picked up by the loader without recompilation.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-002",
+      "title": "Launch Site Latitude/Longitude/Elevation Loading",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Construct a SimScenario instance pointing at a fixture scenario file with known launch site values (lat=34.0522, lon=-118.2437, elev=89.0 m).",
+      "procedure": [
+        "Call SimScenario_Load() on the fixture scenario file.",
+        "Read back launch site latitude, longitude, and elevation via the scenario API.",
+        "Compare each retrieved value against the fixture's known value within 1e-6 deg / 1e-3 m tolerance."
+      ],
+      "acceptance_criteria": "Loaded launch site latitude, longitude, and elevation match the fixture file within tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-003",
+      "title": "Motor Thrust Curve Time-Indexed Loading",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Fixture scenario file references a known motor thrust curve (e.g., G-class with at least 5 sample points spanning 0 s to burnout).",
+      "procedure": [
+        "Call SimScenario_Load() on the fixture file.",
+        "Retrieve the motor thrust curve sample array via the scenario API.",
+        "Verify each (time, thrust) sample matches the fixture data point-for-point.",
+        "Verify the curve sample count and total burn duration match expected values."
+      ],
+      "acceptance_criteria": "Loaded thrust curve samples and burn duration match the fixture's time-indexed motor data exactly.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-004",
+      "title": "Vehicle Mass and Drag Parameter Loading",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Fixture scenario file specifies known dry mass, propellant mass, reference area, and Cd values.",
+      "procedure": [
+        "Call SimScenario_Load() on the fixture file.",
+        "Retrieve dry mass, propellant mass, reference area, and drag coefficient via the scenario API.",
+        "Compare each value to the fixture-known value within 1e-6 relative tolerance."
+      ],
+      "acceptance_criteria": "Loaded mass and drag parameters match the fixture-specified values within tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-005",
+      "title": "Atmosphere Pressure/Temperature/Wind Loading",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Fixture scenario file specifies sea-level pressure (e.g., 101325 Pa), surface temperature (e.g., 288.15 K), and a wind vector (e.g., 5 m/s, bearing 270 deg).",
+      "procedure": [
+        "Call SimScenario_Load() on the fixture file.",
+        "Retrieve pressure, temperature, and wind vector via the scenario API.",
+        "Compare each value to the fixture-known value within 1e-3 absolute tolerance."
+      ],
+      "acceptance_criteria": "Loaded atmospheric pressure, temperature, and wind components match the fixture file within tolerance.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-006",
+      "title": "Per-Sensor Noise and Bias Parameter Loading",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Fixture scenario file specifies distinct noise sigma and bias values for IMU accel, IMU gyro, baro pressure, and GPS position.",
+      "procedure": [
+        "Call SimScenario_Load() on the fixture file.",
+        "Retrieve IMU accel, IMU gyro, baro, and GPS noise and bias parameters via the scenario API.",
+        "Verify each retrieved sigma and bias matches the fixture-specified value exactly."
+      ],
+      "acceptance_criteria": "Loaded per-sensor noise sigma and bias values match the fixture-specified values for IMU, baro, and GPS.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-007",
+      "title": "Truth State Sidecar File Created During Run",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-007"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure SimScenario to run a short (1 s) integration with truth-output enabled at a temporary directory.",
+      "procedure": [
+        "Run the simulation for a fixed wall duration with the truth-output path set.",
+        "After the run, check the temporary directory for the truth state sidecar file.",
+        "Open the sidecar file and verify it is non-empty and contains state columns (position, velocity, attitude)."
+      ],
+      "acceptance_criteria": "Truth state sidecar file exists, is non-empty, and contains the expected state columns after the simulation run.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-008",
+      "title": "Truth Recording at Integration Rate",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-008"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Configure scenario with a known integration step (e.g., dt=1 ms) and run for exactly 1.000 s of sim time.",
+      "procedure": [
+        "Run the simulation for 1.000 s sim time with truth output enabled.",
+        "Count the number of truth state records in the sidecar file.",
+        "Compute deltas between consecutive timestamps and check the median delta against the integration step.",
+        "Verify the record count equals integration steps within +/- 1."
+      ],
+      "acceptance_criteria": "Median timestamp delta across all truth-state records equals the configured integration dt within an absolute tolerance of 1e-9 s; record count matches the expected (run_duration_s / dt) value within +/-1 record.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-009",
+      "title": "Monotonic Simulation Time Stamps in Truth Records",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Run the FT1 baseline scenario for at least 2 s of sim time with truth output enabled.",
+      "procedure": [
+        "Open the truth state sidecar file produced by the run.",
+        "Iterate through all records and compare each timestamp to the previous timestamp.",
+        "Verify every timestamp is strictly greater than its predecessor.",
+        "Verify the first timestamp equals 0 (or a configured t0) within 1e-9 s."
+      ],
+      "acceptance_criteria": "All truth state timestamps are strictly monotonically increasing across the entire run.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-010",
+      "title": "True Phase Transition Timestamps Recorded",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-010"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Run the FT1 baseline scenario through a complete flight (boost, coast, apogee, descent) with truth output enabled.",
+      "procedure": [
+        "Run the full FT1 baseline scenario to landing.",
+        "Open the truth phase-transition record (or sidecar phase log).",
+        "Verify entries exist for boost-to-coast, coast-to-apogee, and apogee-to-descent transitions.",
+        "Verify each recorded transition time is non-decreasing and lies within the simulation time range."
+      ],
+      "acceptance_criteria": "Truth phase transition log contains a timestamp for every flight phase transition produced during the run, in non-decreasing order.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-011",
+      "title": "FT1 Baseline Scenario Default Inspection",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-011"],
+      "verification_method": "Inspection",
+      "type": "Integration",
+      "setup": "Locate the FT1 baseline scenario file under sim/sim_scenario/scenarios/.",
+      "procedure": [
+        "Open the FT1 baseline scenario file.",
+        "Inspect the motor reference and confirm it is a G-class motor.",
+        "Inspect the noise parameter block and confirm sigmas are at the documented nominal values.",
+        "Run the baseline scenario and verify simulated apogee falls within 600 m +/- 50 m using the truth state file."
+      ],
+      "acceptance_criteria": "Baseline scenario specifies a G-class motor with nominal noise parameters and produces an apogee within 600 m +/- 50 m.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-012",
+      "title": "Trick CLI Scenario Selection",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-012"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Two scenario files exist: ft1_baseline (G-motor, nominal noise) and a variant (different motor or wind). Trick S_main launcher is built.",
+      "procedure": [
+        "Launch the simulator with --scenario=ft1_baseline and capture the loaded-scenario log line.",
+        "Launch the simulator with --scenario=<variant> and capture the loaded-scenario log line.",
+        "Compare loaded scenario name and selected motor/wind identifiers between the two runs.",
+        "Verify each run loaded the scenario indicated on the command line without rebuilding."
+      ],
+      "acceptance_criteria": "Each Trick invocation loads the scenario named on the CLI argument, with identifying parameters matching the chosen file.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-013",
+      "title": "Human-Editable Round-Trip Preservation",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Copy the FT1 baseline scenario file to a temporary working directory. Construct a SimScenario instance pointing at the copied file.",
+      "procedure": [
+        "Call SimScenario_Load() on the unmodified copied baseline scenario file and capture all parsed parameter values into a reference struct.",
+        "Open the copied scenario file in a text editor and modify only a comment line (or insert a new comment line) such that no semantic content changes.",
+        "Save the edited scenario file and call SimScenario_Load() again on the same path, capturing the parsed parameter values into a second struct.",
+        "Compare every field of the second parsed struct to the reference struct using bitwise equality."
+      ],
+      "acceptance_criteria": "All loaded parameter values are bitwise identical before and after a comment-only edit, confirming the format is human-editable without affecting semantics.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    },
+    {
+      "id": "SW-TC-SIM-SCEN-014",
+      "title": "Truth State Columns Schema Verification",
+      "requirement_ids": ["SW-REQ-SIM-SCEN-007", "SW-REQ-SIM-SCEN-009"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Run the FT1 baseline for at least 100 ms of sim time with truth output enabled.",
+      "procedure": [
+        "Open the produced truth sidecar file.",
+        "Inspect the header row and confirm columns include sim_time, position (x,y,z), velocity (x,y,z), and attitude (quaternion).",
+        "Parse one record and verify all numeric columns are finite (no NaN/Inf)."
+      ],
+      "acceptance_criteria": "Truth sidecar contains the documented schema (sim_time, position, velocity, attitude) and all numeric values are finite.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "sim/sim_scenario/tests/sim_scenario_test.cpp"
+    }
+  ]
+}

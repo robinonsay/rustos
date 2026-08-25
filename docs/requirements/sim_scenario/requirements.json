@@ -1,0 +1,137 @@
+{
+  "module": "SIM-SCEN",
+  "requirements": [
+    {
+      "id": "SW-REQ-SIM-SCEN-001",
+      "title": "Human-Editable Scenario File Format",
+      "description": "The sim scenario shall be defined in a human-editable text file format.",
+      "rationale": "PM-required scenario authoring without recompilation; supports reviewable, diffable scenario configuration.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-002",
+      "title": "Launch Site Configuration",
+      "description": "The sim scenario shall specify launch site geodetic latitude, longitude, and elevation.",
+      "rationale": "PM-required launch site parameterization so simulated GPS and nav anchor to a configurable location.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-003",
+      "title": "Motor Thrust Curve Configuration",
+      "description": "The sim scenario shall specify a time-indexed motor thrust curve for the simulated vehicle.",
+      "rationale": "PM-required motor parameterization so different motors can be simulated for FT1 baseline and variants.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-004",
+      "title": "Vehicle Mass and Drag Configuration",
+      "description": "The sim scenario shall specify simulated vehicle mass and aerodynamic drag parameters.",
+      "rationale": "PM-required vehicle dynamics parameterization to match FT1 airframe properties for realistic trajectories.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-005",
+      "title": "Atmospheric Conditions Configuration",
+      "description": "The sim scenario shall specify atmospheric pressure, temperature, and wind parameters.",
+      "rationale": "PM-required atmospheric parameterization so baro and aero models reflect day-of-flight conditions.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-006",
+      "title": "Sensor Noise Parameter Configuration",
+      "description": "The sim scenario shall specify per-sensor noise and bias parameters for IMU, baro, and GPS.",
+      "rationale": "PM-required sensor noise parameterization so simulated sensor outputs match realistic FT1 hardware behavior.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-007",
+      "title": "Truth State Output File",
+      "description": "The sim scenario shall write truth vehicle state to a sidecar output file during each simulation run.",
+      "rationale": "PM-required truth-state recording enables post-run comparison of FSW nav output to ground truth.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-008",
+      "title": "Truth State Recording Rate",
+      "description": "The sim scenario shall record truth state at the simulation integration rate.",
+      "rationale": "PM-required full-rate truth recording so post-run analysis is not aliased by truth subsampling.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-009",
+      "title": "Monotonic Simulation Time Stamping",
+      "description": "The sim scenario shall stamp every truth state record with monotonic simulation time.",
+      "rationale": "PM-required monotonic sim time stamping enables alignment of truth records with FSW log records.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-010",
+      "title": "True Phase Transition Timestamps",
+      "description": "The sim scenario shall record the true simulation time of each flight phase transition.",
+      "rationale": "PM-required true phase transition record supports SW-REQ-SYS-018 AFM ±1 s tolerance comparison.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-018",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-011",
+      "title": "FT1 Default Baseline Scenario",
+      "description": "The sim scenario set shall include a default FT1 baseline scenario with G-class motor and nominal noise.",
+      "rationale": "PM-required canonical FT1 scenario (~600 m apogee, nominal noise) for repeatable regression simulation runs.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    },
+    {
+      "id": "SW-REQ-SIM-SCEN-012",
+      "title": "Scenario Selection via Command Line",
+      "description": "The sim scenario loader shall select among multiple scenarios via Trick command line argument.",
+      "rationale": "PM-required ability to switch scenarios without rebuilding supports nominal and off-nominal regression runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-045",
+      "child_ids": [],
+      "tags": ["FT1", "sim"]
+    }
+  ]
+}

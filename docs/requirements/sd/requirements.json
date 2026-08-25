@@ -1,0 +1,137 @@
+{
+  "module": "SD",
+  "requirements": [
+    {
+      "id": "SW-REQ-SD-001",
+      "title": "SD Card Initialization at Startup",
+      "description": "The SD library shall initialize the SD card during power-on self-test.",
+      "rationale": "FT1 POST must probe the SD card so the operator knows pre-flight whether logging storage is available.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-002",
+      "title": "SD Card Capacity Reporting",
+      "description": "The SD library shall report the SD card capacity after successful initialization.",
+      "rationale": "PM decision: capacity is observable at POST so the operator can confirm sufficient storage exists pre-flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-003",
+      "title": "Run Directory Creation Per Power-On",
+      "description": "The SD library shall create a new run directory on each power-on.",
+      "rationale": "FT1 requires each power-on to start a fresh log run distinct from prior runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-025",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-004",
+      "title": "Prior Run Preservation",
+      "description": "The SD library shall preserve prior run directories without modification or deletion.",
+      "rationale": "PM decision: prior flight data is protected against accidental overwrite between runs.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-055",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-005",
+      "title": "Sequential Byte Write Surface",
+      "description": "The SD library shall accept sequential byte writes into a file within the current run directory.",
+      "rationale": "FT1 mission log writes raw, nav, and event bytes; the SD library provides the write surface.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-022",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-006",
+      "title": "Format-Agnostic Byte-Through Writes",
+      "description": "The SD library shall write caller-supplied bytes verbatim without modification.",
+      "rationale": "PM decision: SD library does not define log format; mlog_lib supplies machine-parseable bytes.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-023",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-007",
+      "title": "Sustain Full-Rate Logging Throughput",
+      "description": "The SD library shall sustain write throughput sufficient for full-rate FSW sensor and nav logging.",
+      "rationale": "FT1 logs sensors at full sample rate plus nav and events; the SD library must keep up without backpressure.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-008",
+      "title": "Continue Writes After Transient Failure",
+      "description": "The SD library shall continue attempting writes after a write failure.",
+      "rationale": "PM decision: SD failures must not halt mission; the library retries writes on transient errors.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-035",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-009",
+      "title": "Write Failure Status Reporting",
+      "description": "The SD library shall return a failure status on each write that does not complete successfully.",
+      "rationale": "PM decision: SD write failures must be observable so the health state can flag the SD card unhealthy.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-060",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-010",
+      "title": "Continuous Health Status",
+      "description": "The SD library shall publish a health status reflecting recent write success.",
+      "rationale": "PM-required ongoing health observability so the SD bit of the sensor health bitmap stays current.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-011",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The SD library POSIX build shall expose the same write and run-directory behavior as the Pico2 build.",
+      "rationale": "PM-required so Trick simulation exercises the same logging paths as flight hardware.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SD-012",
+      "title": "Deterministic Write Behavior",
+      "description": "The SD library shall produce identical on-disk bytes given identical inputs.",
+      "rationale": "PM-required determinism so Trick sim runs and regression analysis are repeatable.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

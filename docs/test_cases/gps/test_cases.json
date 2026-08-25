@@ -1,0 +1,272 @@
+{
+  "module": "GPS",
+  "test_cases": [
+    {
+      "id": "SW-TC-GPS-001",
+      "title": "Receive Raw NMEA Bytes from Hardware Interface",
+      "requirement_ids": ["SW-REQ-GPS-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART hardware interface preloaded with a known NMEA byte stream.",
+      "procedure": [
+        "Preload mock UART RX buffer with a fixed NMEA byte sequence ending in CRLF.",
+        "Initialize the GPS library against the mock hardware interface.",
+        "Invoke the GPS library read API to retrieve available bytes.",
+        "Compare the bytes returned by the library against the preloaded byte sequence."
+      ],
+      "acceptance_criteria": "The library returns the exact byte sequence that was preloaded into the mock UART, byte-for-byte and in order.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-002",
+      "title": "Verbatim Pass-Through of NMEA Sentence Bytes",
+      "requirement_ids": ["SW-REQ-GPS-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART preloaded with a complete GPGGA sentence including the asterisk, checksum, and CRLF.",
+      "procedure": [
+        "Preload mock UART with the GPGGA sentence: '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\\r\\n'.",
+        "Initialize the GPS library against the mock hardware interface.",
+        "Invoke the GPS library read API to obtain the buffered sentence.",
+        "Perform a byte-by-byte comparison between the input sentence and the bytes returned by the library."
+      ],
+      "acceptance_criteria": "Every byte returned by the library matches the corresponding byte of the preloaded sentence; no characters added, removed, or modified.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-003",
+      "title": "Sustain 5 Hz Sentence Delivery Rate",
+      "requirement_ids": ["SW-REQ-GPS-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART that delivers a fresh NMEA sentence every 200 ms of simulated time.",
+      "procedure": [
+        "Configure the mock UART to emit one full NMEA sentence per simulated 200 ms interval.",
+        "Advance simulated time by 1 second (5 sentence intervals).",
+        "Repeatedly invoke the GPS library read API, accumulating completed sentences.",
+        "Count the number of distinct sentences successfully returned within the 1 second window."
+      ],
+      "acceptance_criteria": "The library returns at least 5 complete NMEA sentences within the 1-second simulated interval without dropping any.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-004",
+      "title": "Non-Blocking Read Returns Within Timeout (No Data)",
+      "requirement_ids": ["SW-REQ-GPS-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART that has no bytes available in the RX buffer.",
+      "procedure": [
+        "Ensure mock UART RX buffer is empty.",
+        "Record the current monotonic timestamp T0.",
+        "Invoke the GPS library read API with a timeout of 10 milliseconds.",
+        "Record the timestamp T1 immediately upon return.",
+        "Verify the elapsed time (T1 - T0) and inspect the returned status code."
+      ],
+      "acceptance_criteria": "The read call returns within 10 ms +/- scheduler tolerance with a non-success status indicating no data, and never blocks indefinitely.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-005",
+      "title": "Non-Blocking Read Returns Promptly With Data",
+      "requirement_ids": ["SW-REQ-GPS-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART preloaded with a complete NMEA sentence available immediately.",
+      "procedure": [
+        "Preload mock UART with one complete NMEA sentence.",
+        "Record the current monotonic timestamp T0.",
+        "Invoke the GPS library read API with a timeout of 10 milliseconds.",
+        "Record the timestamp T1 immediately upon return.",
+        "Inspect the returned status code and the elapsed time (T1 - T0)."
+      ],
+      "acceptance_criteria": "The read call returns success with the available bytes and elapsed time is strictly less than the 10 ms timeout.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-006",
+      "title": "Health Indicator Reports Healthy When Data Flowing",
+      "requirement_ids": ["SW-REQ-GPS-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART that continuously emits valid NMEA sentences at 1 Hz.",
+      "procedure": [
+        "Configure the mock UART to deliver a fresh NMEA sentence every 1 second.",
+        "Advance simulated time by 3 seconds while invoking the read API each interval.",
+        "Query the GPS library health indicator API.",
+        "Inspect the returned health value."
+      ],
+      "acceptance_criteria": "The health indicator reports the healthy / data-flowing state after multiple successful reads.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-007",
+      "title": "Health Indicator Reports Unhealthy When Data Stops",
+      "requirement_ids": ["SW-REQ-GPS-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART that emits one NMEA sentence then goes silent.",
+      "procedure": [
+        "Preload mock UART with one NMEA sentence and stop further emission.",
+        "Invoke the GPS library read API once to consume the available sentence.",
+        "Advance simulated time beyond the configured no-data threshold.",
+        "Query the GPS library health indicator API.",
+        "Inspect the returned health value."
+      ],
+      "acceptance_criteria": "After the no-data threshold elapses, the health indicator transitions to the unhealthy / no-data state.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-008",
+      "title": "Failure Status Returned on Hardware Read Error",
+      "requirement_ids": ["SW-REQ-GPS-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART that returns a hardware error code on the next read.",
+      "procedure": [
+        "Configure the mock UART to fail the next read with a simulated hardware error.",
+        "Invoke the GPS library read API.",
+        "Capture the returned JUNO_STATUS_T value.",
+        "Compare the captured status against expected failure status codes."
+      ],
+      "acceptance_criteria": "The read API returns a non-success JUNO_STATUS_T value distinct from the no-data status when the underlying hardware reports an error.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-009",
+      "title": "POSIX Implementation Functionally Equivalent to Pico2 API",
+      "requirement_ids": ["SW-REQ-GPS-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Build the gps_lib unit tests in the POSIX configuration linking against the POSIX implementation.",
+      "procedure": [
+        "Compile the gps_lib unit test binary against the POSIX implementation.",
+        "Run the full gps_lib test suite covering init, read, health, and timeout APIs.",
+        "Inspect the test runner output for pass/fail per test.",
+        "Verify the public API symbols and signatures used by tests match those documented for the Pico2 build."
+      ],
+      "acceptance_criteria": "All gps_lib unit tests pass against the POSIX implementation using the identical public API as the Pico2 build.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-010",
+      "title": "WGS-84 Geodetic and HAE Fields Preserved Verbatim",
+      "requirement_ids": ["SW-REQ-GPS-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize GPS library with a mock UART preloaded with a GPGGA sentence containing known latitude, longitude, and HAE altitude fields.",
+      "procedure": [
+        "Preload mock UART with: '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\\r\\n'.",
+        "Invoke the GPS library read API to obtain the delivered sentence.",
+        "Extract the latitude, N/S, longitude, E/W, altitude, and altitude unit substrings from the delivered bytes.",
+        "Compare each extracted substring to the original input character-for-character."
+      ],
+      "acceptance_criteria": "Latitude '4807.038', N indicator, longitude '01131.000', E indicator, altitude '545.4', and unit 'M' fields in the delivered sentence exactly match the input.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/gps_lib/tests/gps_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-GPS-011",
+      "title": "Power-On Self-Test Detects Present GPS Receiver",
+      "requirement_ids": ["SW-REQ-GPS-005"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 board with FGPMMOPA6H GPS module wired to flight UART. Serial console attached at the configured FSW baud rate. Antenna connected; clear sky not required for probe.",
+      "procedure": [
+        "Connect the Pico 2 USB to host and open the serial console at the configured baud rate.",
+        "Power the board with the GPS module connected and powered.",
+        "Reset the Pico 2 to trigger the FSW boot sequence.",
+        "Observe the serial console output during the POST phase.",
+        "Locate the GPS POST log line indicating presence/responsiveness of the GPS receiver.",
+        "Save the captured serial console output to 'gps_post_present.log'."
+      ],
+      "acceptance_criteria": "The POST log line for the GPS reports the receiver as present and responsive within the POST window after reset.",
+      "expected_artifacts": [
+        {
+          "name": "gps_post_present.log",
+          "description": "Serial console capture from Pico 2 boot showing GPS POST result with GPS module connected.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-GPS-012",
+      "title": "Power-On Self-Test Detects Missing GPS Receiver",
+      "requirement_ids": ["SW-REQ-GPS-005"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 board with the GPS module physically disconnected from the flight UART. Serial console attached at the configured FSW baud rate.",
+      "procedure": [
+        "Disconnect the GPS module from the flight UART (leave power off to the GPS).",
+        "Connect the Pico 2 USB to host and open the serial console.",
+        "Reset the Pico 2 to trigger the FSW boot sequence.",
+        "Observe the serial console output during the POST phase.",
+        "Locate the GPS POST log line.",
+        "Save the captured serial console output to 'gps_post_absent.log'."
+      ],
+      "acceptance_criteria": "The POST log line for the GPS reports the receiver as absent or non-responsive within the POST window after reset.",
+      "expected_artifacts": [
+        {
+          "name": "gps_post_absent.log",
+          "description": "Serial console capture from Pico 2 boot showing GPS POST failure with GPS module disconnected.",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-GPS-013",
+      "title": "Pico2 Implementation Reads NMEA from Flight UART",
+      "requirement_ids": ["SW-REQ-GPS-009"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico 2 board with FGPMMOPA6H GPS module wired to the flight UART, antenna connected with clear sky view. Serial console attached. FSW image built with the Pico2 gps_lib implementation.",
+      "procedure": [
+        "Place the rocket avionics outdoors with clear sky view of the antenna.",
+        "Connect serial console to Pico 2 USB at the configured baud rate.",
+        "Power the board and allow FSW to start.",
+        "Stream FSW telemetry/log output to the host for at least 60 seconds.",
+        "Confirm log entries containing raw NMEA sentences (e.g. lines beginning with '$GP' or '$GN').",
+        "Save the captured serial console output to 'gps_pico2_uart.log'.",
+        "Take a photo of the test setup showing the avionics, antenna, and GPS module."
+      ],
+      "acceptance_criteria": "Raw NMEA sentences sourced from the flight UART appear in the captured log within 60 seconds of FSW start.",
+      "expected_artifacts": [
+        {
+          "name": "gps_pico2_uart.log",
+          "description": "Serial console capture showing raw NMEA sentences read by the Pico2 gps_lib implementation from the flight UART.",
+          "artifact_type": "log"
+        },
+        {
+          "name": "gps_pico2_setup.jpg",
+          "description": "Photo of the Pico 2 + GPS module hardware setup used for the demonstration.",
+          "artifact_type": "photo"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "module": "SYS-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-SYS-APP-001",
+      "title": "POST Sequence Probes Each Sensor Once at Startup",
+      "requirement_ids": ["SW-REQ-SYS-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sys_app with mock sensor probe callbacks for each registered sensor (GPS, IMU, etc.). Counters track invocation counts.",
+      "procedure": [
+        "Construct sys_app and invoke its startup entry point.",
+        "Allow the startup phase to complete.",
+        "Inspect the per-sensor probe invocation counters.",
+        "Drive a second scheduler tick after startup completes.",
+        "Re-inspect probe invocation counters."
+      ],
+      "acceptance_criteria": "Each registered sensor probe is invoked exactly once during startup and is not invoked again on subsequent scheduler ticks.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-002",
+      "title": "POST Records Pass Result for Healthy Sensor",
+      "requirement_ids": ["SW-REQ-SYS-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure sys_app with mock sensor probes that all return JUNO_STATUS_SUCCESS.",
+      "procedure": [
+        "Run sys_app startup which executes POST.",
+        "Read the per-sensor POST result structure exposed by sys_app.",
+        "Inspect the pass/fail field for each sensor entry."
+      ],
+      "acceptance_criteria": "Every sensor entry in the POST result records a Pass status when its probe succeeded.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-003",
+      "title": "POST Records Fail Result for Unhealthy Sensor",
+      "requirement_ids": ["SW-REQ-SYS-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure sys_app where one mock sensor probe returns a failure status and the rest return success.",
+      "procedure": [
+        "Run sys_app startup which executes POST.",
+        "Read the per-sensor POST result structure.",
+        "Inspect the pass/fail field for the failing sensor and the others."
+      ],
+      "acceptance_criteria": "The failing sensor entry records Fail; all other sensor entries record Pass.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-004",
+      "title": "POST Result Submitted to SD Logger Once at Startup",
+      "requirement_ids": ["SW-REQ-SYS-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Wire sys_app to a mock SD logging sink that records each submitted POST log record.",
+      "procedure": [
+        "Run sys_app startup with a mix of pass and fail mock sensor results.",
+        "Verify the mock SD sink received exactly one POST record.",
+        "Inspect the recorded payload's per-sensor fields against the configured mock outcomes.",
+        "Drive several additional scheduler ticks.",
+        "Verify the SD sink received no further POST records."
+      ],
+      "acceptance_criteria": "Exactly one POST record is submitted to the SD logger at startup, its per-sensor fields match the mock outcomes, and no further POST records are submitted on later ticks.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-005",
+      "title": "POST Result Published for Telemetry Downlink at Startup",
+      "requirement_ids": ["SW-REQ-SYS-APP-004"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize sys_app and a mock software bus subscriber subscribed to the POST result topic.",
+      "procedure": [
+        "Run sys_app startup with mock sensor probe outcomes.",
+        "Capture all messages received by the POST topic subscriber during startup.",
+        "Inspect the captured POST message's per-sensor fields.",
+        "Drive several additional scheduler ticks.",
+        "Verify no further POST messages were published."
+      ],
+      "acceptance_criteria": "Exactly one POST result message is published on the telemetry downlink topic at startup with per-sensor fields matching the mock outcomes.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-006",
+      "title": "Health Bitmap Aggregates Per-Sensor Reports",
+      "requirement_ids": ["SW-REQ-SYS-APP-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize sys_app with N mock sensor health report sources, each addressable to a distinct bit position.",
+      "procedure": [
+        "Inject a healthy report from sensor 0 and unhealthy reports from the rest.",
+        "Tick sys_app to consume the reports and update the bitmap.",
+        "Read the aggregated bitmap.",
+        "Repeat with a different combination of healthy/unhealthy sensors.",
+        "Tick and re-read the bitmap."
+      ],
+      "acceptance_criteria": "The aggregated bitmap matches the expected bit pattern for each injected combination of per-sensor health reports.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-007",
+      "title": "Health Bitmap Published Continuously on Software Bus",
+      "requirement_ids": ["SW-REQ-SYS-APP-006"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Initialize sys_app and a mock software bus subscriber on the health bitmap topic.",
+      "procedure": [
+        "Run sys_app startup.",
+        "Drive at least 100 scheduler ticks past startup with stable mock sensor health.",
+        "Count the number of health bitmap messages received by the subscriber.",
+        "Change the per-sensor mock health reports and drive 100 more ticks.",
+        "Verify the latest published bitmap matches the new aggregate."
+      ],
+      "acceptance_criteria": "Health bitmap messages are published on every scheduled cycle past startup, and the latest published value reflects the current aggregate.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-008",
+      "title": "Operator LED Solid Green When All Sensors Healthy",
+      "requirement_ids": ["SW-REQ-SYS-APP-007"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Assemble flight avionics with the operator LED installed. Connect all sensors with valid hardware and antennas/test stimulus so that each sensor reports healthy. Open serial terminal at 115200 baud. Camera ready.",
+      "procedure": [
+        "Power on the avionics with all sensors connected and functional.",
+        "Wait for sys_app POST to complete and the steady-state cadence to begin.",
+        "Observe the operator LED for at least 30 seconds.",
+        "Photograph the LED in its steady state.",
+        "Capture the serial terminal log showing the published health bitmap with all bits asserted healthy."
+      ],
+      "acceptance_criteria": "The operator LED is solid (non-blinking) green for the entire 30-second observation window while the published health bitmap reports all sensors healthy.",
+      "expected_artifacts": [
+        {
+          "name": "led_green_photo.jpg",
+          "description": "Photograph of operator LED illuminated solid green during the all-healthy state",
+          "artifact_type": "photo"
+        },
+        {
+          "name": "led_green_video.mp4",
+          "description": "Video of LED steady (non-blinking) for at least 30 seconds",
+          "artifact_type": "video"
+        },
+        {
+          "name": "health_bitmap_log.txt",
+          "description": "Serial log capturing health bitmap messages with all sensors healthy",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-APP-009",
+      "title": "Operator LED Error Pattern When Any Sensor Unhealthy",
+      "requirement_ids": ["SW-REQ-SYS-APP-008"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Assemble flight avionics with the operator LED installed. Connect all sensors except one (e.g., disconnect the GPS module) so that at least one sensor reports unhealthy. Open serial terminal at 115200 baud. Camera ready.",
+      "procedure": [
+        "Power on the avionics with one sensor intentionally disconnected.",
+        "Wait for sys_app POST to complete and the steady-state cadence to begin.",
+        "Observe the operator LED for at least 30 seconds.",
+        "Photograph and video the LED.",
+        "Capture the serial terminal log showing the published health bitmap with the disconnected sensor's bit unhealthy.",
+        "Reconnect the sensor and observe that the LED transitions to solid green within 10 seconds."
+      ],
+      "acceptance_criteria": "While the sensor is disconnected the LED shows a clearly distinguishable error pattern (not solid green) and the health bitmap reports the affected sensor unhealthy; reconnecting restores solid green within 10 seconds.",
+      "expected_artifacts": [
+        {
+          "name": "led_error_video.mp4",
+          "description": "Video of operator LED in error pattern while sensor unhealthy and recovery to green",
+          "artifact_type": "video"
+        },
+        {
+          "name": "health_bitmap_unhealthy_log.txt",
+          "description": "Serial log capturing health bitmap messages with affected sensor's bit unhealthy",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-APP-010",
+      "title": "No Reboot or Reset Calls in sys_app Source",
+      "requirement_ids": ["SW-REQ-SYS-APP-009"],
+      "verification_method": "Inspection",
+      "type": "Integration",
+      "setup": "Static inspection of the sys_app source tree under apps/sys_app/.",
+      "procedure": [
+        "Search apps/sys_app/ for invocations of reboot, watchdog reset, system reset, or equivalent SDK reset entry points.",
+        "Search for calls to abort(), exit(), or any function that terminates the program.",
+        "Search for writes to RP2350 reset/watchdog registers or LibJuno reset APIs.",
+        "Record findings in the inspection log."
+      ],
+      "acceptance_criteria": "The inspection finds no call sites in sys_app that would autonomously reboot, reset, or terminate the flight software during the mission.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-011",
+      "title": "Startup Completes Without External Arm Signal",
+      "requirement_ids": ["SW-REQ-SYS-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Instantiate sys_app with mock sensors and a flag indicating whether any external arm input was queried during startup.",
+      "procedure": [
+        "Invoke sys_app's startup entry point with no arm signal asserted on any input.",
+        "Verify startup returns success and that the scheduler has been handed off to.",
+        "Inspect the arm-input query flag.",
+        "Drive several scheduled ticks and verify they execute normally."
+      ],
+      "acceptance_criteria": "Startup completes successfully and scheduled execution begins without any external arm signal being queried or asserted.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-SYS-APP-012",
+      "title": "Power-On to Operational Demonstration",
+      "requirement_ids": ["SW-REQ-SYS-APP-010"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Assemble flight avionics on bench with no external arm jumper, switch, or signal connected. Serial terminal open at 115200 baud and logging to file. Stopwatch ready.",
+      "procedure": [
+        "Start the stopwatch and apply external power to the avionics.",
+        "Observe the serial terminal for the sys_app startup banner and POST completion message.",
+        "Observe subsequent published telemetry on the serial terminal indicating scheduled execution.",
+        "Stop the stopwatch when periodic telemetry is observed.",
+        "Save the serial log."
+      ],
+      "acceptance_criteria": "Periodic telemetry messages appear on the serial terminal within a deterministic startup window with no operator action other than applying power.",
+      "expected_artifacts": [
+        {
+          "name": "power_on_serial_log.txt",
+          "description": "Serial log from power-on through startup banner, POST, and steady-state telemetry",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-APP-013",
+      "title": "Run Until External Power Removed",
+      "requirement_ids": ["SW-REQ-SYS-APP-011"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Assemble flight avionics on bench. Serial terminal open at 115200 baud and logging continuously to file. Wall clock or timestamped log available.",
+      "procedure": [
+        "Apply external power and wait for steady-state telemetry on the serial terminal.",
+        "Leave the avionics powered and undisturbed for at least 30 minutes while logging serial output.",
+        "Periodically confirm that telemetry continues to be emitted with monotonically increasing timestamps.",
+        "Remove external power.",
+        "Confirm telemetry stops immediately on power removal.",
+        "Save the timestamped serial log."
+      ],
+      "acceptance_criteria": "Telemetry is emitted continuously for the entire 30-minute window with no gaps and no shutdown banner, and ceases only when external power is removed.",
+      "expected_artifacts": [
+        {
+          "name": "endurance_serial_log.txt",
+          "description": "Timestamped serial log covering 30+ minutes of continuous operation through power removal",
+          "artifact_type": "log"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-SYS-APP-014",
+      "title": "POSIX Build Reproduces Flight POST and Lifecycle Behavior",
+      "requirement_ids": ["SW-REQ-SYS-APP-012"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build sys_app for the POSIX target. Run under the POSIX test harness with mock sensor probes whose pass/fail outcomes match a prerecorded flight-build scenario.",
+      "procedure": [
+        "Run the POSIX sys_app harness with the recorded mock scenario.",
+        "Capture the published POST result message and SD log record.",
+        "Capture a window of published health bitmap messages.",
+        "Compare each captured artifact field-by-field to the corresponding artifact captured from the Pico2 flight build run with equivalent injected outcomes."
+      ],
+      "acceptance_criteria": "POSIX build POST result, SD log record, and health bitmap publications match the Pico2 flight build's outputs field-for-field for the same scenario.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/sys_app/tests/sys_app_test.cpp"
+    }
+  ]
+}

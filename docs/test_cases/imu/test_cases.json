@@ -1,0 +1,349 @@
+{
+  "module": "IMU",
+  "test_cases": [
+    {
+      "id": "SW-TC-IMU-001",
+      "title": "IMU Sample Rate at 200 Hz",
+      "requirement_ids": ["SW-REQ-IMU-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock MPU-6050 with deterministic register fixtures. Drive the library through a synthetic 1-second tick schedule.",
+      "procedure": [
+        "Initialize the IMU library and complete startup probe.",
+        "Drive the library tick loop for exactly 1.0 simulated second.",
+        "Count the number of IMU sample structures published by the library.",
+        "Compute the average inter-sample period from sample timestamps."
+      ],
+      "acceptance_criteria": "Exactly 200 samples are produced in 1.0 simulated second and the average inter-sample period equals 5.0 ms within +/- 1 percent.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-002",
+      "title": "Accelerometer Range Configured to plus or minus 16 G",
+      "requirement_ids": ["SW-REQ-IMU-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock MPU-6050 that records all register writes to ACCEL_CONFIG (0x1C).",
+      "procedure": [
+        "Initialize the IMU library.",
+        "Read the recorded value written to the ACCEL_CONFIG register from the mock.",
+        "Decode the AFS_SEL field (bits 4:3) of the recorded byte."
+      ],
+      "acceptance_criteria": "ACCEL_CONFIG AFS_SEL field equals 0b11 (selecting plus or minus 16 G full scale) per MPU-6050 datasheet.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-003",
+      "title": "Gyroscope Range Configured to plus or minus 2000 dps",
+      "requirement_ids": ["SW-REQ-IMU-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock MPU-6050 that records all register writes to GYRO_CONFIG (0x1B).",
+      "procedure": [
+        "Initialize the IMU library.",
+        "Read the recorded value written to the GYRO_CONFIG register from the mock.",
+        "Decode the FS_SEL field (bits 4:3) of the recorded byte."
+      ],
+      "acceptance_criteria": "GYRO_CONFIG FS_SEL field equals 0b11 (selecting plus or minus 2000 dps full scale) per MPU-6050 datasheet.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-004",
+      "title": "Accelerometer Output in Meters per Second Squared",
+      "requirement_ids": ["SW-REQ-IMU-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library with mock returning a known raw accelerometer reading equivalent to 1.0 G on the Z axis at +/- 16 G full scale (raw = 2048 LSB).",
+      "procedure": [
+        "Inject the fixed raw accelerometer reading into the mock register file.",
+        "Trigger one IMU sample read.",
+        "Read the published accelerometer Z value from the IMU sample structure."
+      ],
+      "acceptance_criteria": "Published accelerometer Z equals 9.80665 m/s^2 within +/- 0.05 m/s^2; X and Y axes equal 0.0 m/s^2 within +/- 0.05 m/s^2.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-005",
+      "title": "Gyroscope Output in Radians per Second",
+      "requirement_ids": ["SW-REQ-IMU-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library with mock returning a known raw gyroscope reading equivalent to 1000 dps on the X axis at +/- 2000 dps full scale (raw = 16384 LSB).",
+      "procedure": [
+        "Inject the fixed raw gyroscope reading into the mock register file.",
+        "Trigger one IMU sample read.",
+        "Read the published gyroscope X value from the IMU sample structure."
+      ],
+      "acceptance_criteria": "Published gyroscope X equals 17.4533 rad/s (1000 dps) within +/- 0.01 rad/s; Y and Z axes equal 0.0 rad/s within +/- 0.01 rad/s.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-006",
+      "title": "Per-Sample Timestamp Present and Monotonic",
+      "requirement_ids": ["SW-REQ-IMU-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock with simulated monotonic clock advancing at 5 ms per tick.",
+      "procedure": [
+        "Drive the IMU library tick loop for 100 consecutive samples.",
+        "Collect each published IMU sample and record its timestamp field.",
+        "Verify every sample contains a non-zero timestamp.",
+        "Verify timestamps are strictly monotonically increasing."
+      ],
+      "acceptance_criteria": "All 100 samples contain a populated timestamp field, timestamps are strictly monotonically increasing, and consecutive deltas equal 5 ms within +/- 1 percent.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-007",
+      "title": "Body-Frame Axis Convention Inspection",
+      "requirement_ids": ["SW-REQ-IMU-007"],
+      "verification_method": "Inspection",
+      "type": "Unit",
+      "setup": "Initialize IMU library with a sequence of mock readings representing accelerometer responses to known orientations relative to the documented X-forward, Y-right, Z-down body frame.",
+      "procedure": [
+        "Inject a mock raw reading representing 1 G applied along body +X (nose up under gravity).",
+        "Read the published sample and record accelerometer X, Y, Z.",
+        "Inject a mock raw reading representing 1 G applied along body +Y (right-wing down under gravity).",
+        "Read the published sample and record accelerometer X, Y, Z.",
+        "Inject a mock raw reading representing 1 G applied along body +Z (upright on pad under gravity).",
+        "Read the published sample and record accelerometer X, Y, Z."
+      ],
+      "acceptance_criteria": "Published accelerometer values match the X-forward, Y-right, Z-down body-frame convention for each injection: +X axis returns +9.80665 on X only, +Y axis returns +9.80665 on Y only, +Z axis returns +9.80665 on Z only, all within +/- 0.05 m/s^2.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-008",
+      "title": "Power-On Self-Test Pass on Healthy Device",
+      "requirement_ids": ["SW-REQ-IMU-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock MPU-6050 returning the expected WHO_AM_I value (0x68) on register 0x75.",
+      "procedure": [
+        "Invoke the IMU library startup sequence.",
+        "Capture the POST result reported by the library.",
+        "Capture how many times the WHO_AM_I register was read."
+      ],
+      "acceptance_criteria": "POST reports pass, the WHO_AM_I register is read exactly once during startup, and the library transitions to the operational state.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-009",
+      "title": "Power-On Self-Test Fail on Wrong Device",
+      "requirement_ids": ["SW-REQ-IMU-008", "SW-REQ-IMU-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock MPU-6050 returning an incorrect WHO_AM_I value (0x00) on register 0x75.",
+      "procedure": [
+        "Invoke the IMU library startup sequence.",
+        "Capture the POST result reported by the library.",
+        "Read the IMU health field after startup completes."
+      ],
+      "acceptance_criteria": "POST reports fail and the published IMU health state is unhealthy.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-010",
+      "title": "Continuous Health Reporting Across Mission Tick Loop",
+      "requirement_ids": ["SW-REQ-IMU-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock returning healthy responses, with health-reporting hook subscribed.",
+      "procedure": [
+        "Drive the IMU library tick loop for 1000 consecutive samples.",
+        "On every tick, read the IMU health field reported by the library.",
+        "Count the number of ticks for which a health value was reported."
+      ],
+      "acceptance_criteria": "A health value is reported on every one of the 1000 ticks (no gaps), and all values are healthy.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-011",
+      "title": "Unhealthy Marking on Sample Read Failure",
+      "requirement_ids": ["SW-REQ-IMU-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock that succeeds at startup but fails subsequent register-burst reads with an I2C/SPI error.",
+      "procedure": [
+        "Complete startup and verify health is initially healthy.",
+        "Configure the mock to fail the next register-burst read.",
+        "Drive one IMU library tick.",
+        "Read the IMU health field reported by the library."
+      ],
+      "acceptance_criteria": "After the failed read, the published IMU health state transitions to unhealthy.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-012",
+      "title": "Continuation After Sample Read Failure",
+      "requirement_ids": ["SW-REQ-IMU-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock that succeeds at startup, fails one read, then resumes returning valid samples.",
+      "procedure": [
+        "Complete startup successfully.",
+        "Drive 10 ticks with mock returning valid samples.",
+        "Configure the mock to fail the next read once.",
+        "Drive one tick (which fails).",
+        "Configure the mock to resume returning valid samples.",
+        "Drive 10 additional ticks."
+      ],
+      "acceptance_criteria": "The library does not abort, exit, or assert; 20 valid samples are produced across the pre-failure and post-failure intervals; tick cadence is preserved.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-013",
+      "title": "Unhealthy Recovery Latching Behavior on Persistent Failures",
+      "requirement_ids": ["SW-REQ-IMU-010", "SW-REQ-IMU-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock; configure mock to fail reads continuously for 50 consecutive ticks.",
+      "procedure": [
+        "Complete startup successfully.",
+        "Configure the mock to fail every subsequent read.",
+        "Drive 50 IMU library ticks.",
+        "Record the published health value on each tick.",
+        "Confirm the library remains running (no crash or exit) at the end."
+      ],
+      "acceptance_criteria": "Health is reported as unhealthy on every tick where reads fail, and the library continues to execute through all 50 ticks without aborting.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-014",
+      "title": "POSIX and Pico2 Functional Equivalence (Shared Logic Layer)",
+      "requirement_ids": ["SW-REQ-IMU-013"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Compile the IMU library shared logic layer twice: once against the POSIX HAL adapter and once against the Pico2 HAL adapter (both running on host via host-build of Pico2 sources). Drive both with an identical scripted mock register-response sequence.",
+      "procedure": [
+        "Initialize both POSIX-built and Pico2-built libraries with identical configuration.",
+        "Feed both libraries the same scripted sequence of 1000 raw register responses.",
+        "Collect the published IMU sample stream from each build.",
+        "Compare the two sample streams field-by-field (timestamp, accel XYZ, gyro XYZ, health)."
+      ],
+      "acceptance_criteria": "The two streams are bit-identical for accel/gyro values and health flags, and timestamps differ only by the deterministic clock-source offset documented in the design.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-015",
+      "title": "Deterministic Output Across Repeated Runs",
+      "requirement_ids": ["SW-REQ-IMU-014"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize IMU library against POSIX mock with a fixed scripted register-response sequence and a fixed simulated clock.",
+      "procedure": [
+        "Run the IMU library against the scripted sequence; record all 1000 published IMU samples to buffer A.",
+        "Reset the library, mock, and simulated clock to identical initial state.",
+        "Run the IMU library against the same scripted sequence; record all 1000 published IMU samples to buffer B.",
+        "Compare buffers A and B byte-for-byte."
+      ],
+      "acceptance_criteria": "Buffer A equals buffer B byte-for-byte across all 1000 samples (timestamps, accel, gyro, health all identical).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "libs/imu_lib/tests/imu_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-IMU-016",
+      "title": "POST Hardware Demonstration on Pico2 Target",
+      "requirement_ids": ["SW-REQ-IMU-008", "SW-REQ-IMU-011"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Flash the FT1 firmware build to a Pico 2 board with an MPU-6050 IMU connected per the FT1 wiring diagram. Open a serial terminal at 115200 baud.",
+      "procedure": [
+        "Power on the Pico 2 board with the IMU connected and verify the boot banner appears on the serial terminal.",
+        "Observe the IMU POST log line printed during startup.",
+        "Record the serial terminal output to a log file.",
+        "Power off the board, disconnect the IMU SDA line, and power the board back on.",
+        "Observe the IMU POST log line during this second boot.",
+        "Record the second serial terminal output to a log file."
+      ],
+      "acceptance_criteria": "First boot logs IMU POST PASS with subsequent healthy state; second boot (IMU disconnected) logs IMU POST FAIL with the published health state reporting unhealthy.",
+      "expected_artifacts": [
+        {
+          "name": "imu_post_pass_serial.log",
+          "description": "Serial terminal output showing IMU POST PASS at boot with IMU connected.",
+          "artifact_type": "log"
+        },
+        {
+          "name": "imu_post_fail_serial.log",
+          "description": "Serial terminal output showing IMU POST FAIL at boot with IMU SDA disconnected.",
+          "artifact_type": "log"
+        },
+        {
+          "name": "imu_post_setup.jpg",
+          "description": "Photograph of the Pico 2 board and MPU-6050 wiring used during the demonstration.",
+          "artifact_type": "photo"
+        },
+        {
+          "name": "demo_imu_post.md",
+          "description": "Operator-facing demonstration procedure document with wiring diagrams, pass/fail criteria, troubleshooting, and sign-off block. Authored in SPRINT-IMPL-07-retro 2026-05-06.",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-IMU-017",
+      "title": "Pico2 Build IMU Stream Demonstration",
+      "requirement_ids": ["SW-REQ-IMU-013", "SW-REQ-IMU-001", "SW-REQ-IMU-006"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Flash the FT1 firmware build (Pico2 target) to a Pico 2 with MPU-6050 attached. Open a serial terminal at 115200 baud and enable IMU sample logging.",
+      "procedure": [
+        "Power on the Pico 2 board.",
+        "Wait for IMU POST PASS log line.",
+        "Capture serial output for 10 seconds while the board sits stationary on a level surface.",
+        "Save the captured serial stream as a CSV of (timestamp, ax, ay, az, gx, gy, gz, health).",
+        "Plot timestamp deltas across all captured samples."
+      ],
+      "acceptance_criteria": "CSV contains approximately 2000 samples (200 Hz x 10 s) within +/- 1 percent, every row carries a populated monotonic timestamp, accelerometer Z reads +9.80665 m/s^2 within +/- 0.5 m/s^2, gyro magnitudes are below 0.1 rad/s, and health is healthy on every row.",
+      "expected_artifacts": [
+        {
+          "name": "imu_stream.csv",
+          "description": "10-second IMU sample capture from Pico 2 build with timestamp, accel, gyro, and health columns.",
+          "artifact_type": "csv"
+        },
+        {
+          "name": "imu_dt_plot.png",
+          "description": "Plot of timestamp deltas across captured samples showing 5 ms cadence.",
+          "artifact_type": "plot"
+        },
+        {
+          "name": "demo_imu_stream.md",
+          "description": "Operator-facing demonstration procedure document with cadence-analysis script, pass/fail criteria, expected sample-rate plot. Authored in SPRINT-IMPL-07-retro 2026-05-06.",
+          "artifact_type": "other"
+        }
+      ],
+      "status": "Active",
+      "google_test_ref": null
+    }
+  ]
+}

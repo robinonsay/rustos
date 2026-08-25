@@ -1,0 +1,137 @@
+{
+  "module": "SYS-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-SYS-APP-001",
+      "title": "Execute Power-On Self-Test at Startup",
+      "description": "The system app shall execute a power-on self-test probing each sensor device once during startup.",
+      "rationale": "Decomposes SYS-029: SYS-APP is the composition-root owner that orchestrates the one-shot POST sequence at boot.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-002",
+      "title": "Record Per-Sensor POST Pass-Or-Fail Result",
+      "description": "The system app shall record a per-sensor pass-or-fail result from the power-on self-test.",
+      "rationale": "Decomposes SYS-029: per-sensor POST outcomes are produced by SYS-APP for downstream logging and downlink consumers.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-003",
+      "title": "Log POST Result to SD Card",
+      "description": "The system app shall log the per-sensor POST result to the SD card once at startup.",
+      "rationale": "Decomposes SYS-030: SYS-APP is the producer that submits the one-shot POST record to the SD logging path.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-030",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-004",
+      "title": "Downlink POST Result Over Radio",
+      "description": "The system app shall publish the per-sensor POST result for telemetry downlink once at startup.",
+      "rationale": "Decomposes SYS-056: SYS-APP produces the POST result that the telemetry app downlinks at startup.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-056",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-005",
+      "title": "Aggregate Sensor Health Into Bitmap",
+      "description": "The system app shall aggregate per-sensor health reports from sensor apps into a single health bitmap.",
+      "rationale": "Decomposes SYS-031: SYS-APP is the central aggregator that combines per-sensor health states for system-wide observability.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-006",
+      "title": "Publish Health Bitmap on Software Bus",
+      "description": "The system app shall publish the aggregated health bitmap on the software bus continuously throughout the mission.",
+      "rationale": "Decomposes SYS-031: the bitmap must be available on the bus so telem_app can embed it in every packet.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-007",
+      "title": "Drive Operator LED Solid Green When All Healthy",
+      "description": "The system app shall drive the operator LED solid green when all sensors report healthy.",
+      "rationale": "Decomposes SYS-032: SYS-APP owns the LED output and uses the all-healthy aggregate to drive the go indication.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-032",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-008",
+      "title": "Drive Operator LED Error Pattern on Unhealthy",
+      "description": "The system app shall drive the operator LED with an error pattern when any sensor reports unhealthy.",
+      "rationale": "Decomposes SYS-032: SYS-APP signals no-go to the operator on the pad whenever the aggregate health is degraded.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-032",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-009",
+      "title": "No Autonomous Reboot During Mission",
+      "description": "The system app shall not autonomously reboot or reset the flight software during the mission.",
+      "rationale": "Decomposes SYS-037: as the lifecycle owner SYS-APP is the only component that could trigger a reboot and must not.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-037",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-010",
+      "title": "Operational Immediately at Power-On",
+      "description": "The system app shall complete startup and begin scheduled execution without waiting for any external arm signal.",
+      "rationale": "Decomposes SYS-046: SYS-APP as composition root must finish wiring and hand off to the scheduler with no arming gate.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-046",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-011",
+      "title": "Run Until External Power Removed",
+      "description": "The system app shall continue running and never initiate its own shutdown until external power is removed.",
+      "rationale": "Decomposes SYS-047: SYS-APP owns the lifecycle and must keep the FSW alive until the operator cuts power.",
+      "verification_method": "Demonstration",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-047",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-SYS-APP-012",
+      "title": "POSIX Build Functional Equivalence",
+      "description": "The system app POSIX build shall provide the same observable behavior as the Pico2 flight build.",
+      "rationale": "Decomposes SYS-043: SYS-APP must exercise identical lifecycle and POST flows under Trick simulation as on flight hardware.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

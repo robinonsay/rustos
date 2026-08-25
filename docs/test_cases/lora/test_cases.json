@@ -1,0 +1,301 @@
+{
+  "module": "LORA",
+  "test_cases": [
+    {
+      "id": "SW-TC-LORA-001",
+      "title": "Transmit Raw Byte Payload Over UART",
+      "requirement_ids": ["SW-REQ-LORA-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib with a POSIX mock UART. Module is configured and idle.",
+      "procedure": [
+        "Construct a caller-supplied byte buffer of known content and length (e.g., 16 bytes with mixed binary values).",
+        "Invoke the lora_lib transmit function with the buffer and length.",
+        "Capture the bytes written to the mock UART by the driver.",
+        "Inspect the written bytes for the AT+SEND command framing followed by the caller payload bytes."
+      ],
+      "acceptance_criteria": "The mock UART captures an AT+SEND transmission whose payload region matches the caller-supplied bytes byte-for-byte and length-for-length, and the transmit call returns JUNO_STATUS_SUCCESS.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-002",
+      "title": "Payload Bytes Passed Through Unmodified",
+      "requirement_ids": ["SW-REQ-LORA-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib with a POSIX mock UART. Prepare a payload containing all 256 distinct byte values (0x00 through 0xFF).",
+      "procedure": [
+        "Invoke the lora_lib transmit function with the 256-byte payload.",
+        "Extract the payload region from the bytes captured by the mock UART.",
+        "Compare the extracted payload bytes to the original input buffer byte-for-byte.",
+        "Repeat with a payload containing AT-command-like substrings (e.g., 'AT+SEND', '\\r\\n') embedded in the data.",
+        "Verify the extracted payload still matches the input bytes exactly."
+      ],
+      "acceptance_criteria": "Extracted payload bytes equal the input buffer for both the all-byte-values test and the embedded-AT-substring test, demonstrating no interpretation or modification of caller bytes.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-003",
+      "title": "Transmit Call Completes Within 2 Hz Budget",
+      "requirement_ids": ["SW-REQ-LORA-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib with a POSIX mock UART that simulates RYLR896 OK responses with realistic latency.",
+      "procedure": [
+        "Record a monotonic timestamp T0 immediately before invoking the lora_lib transmit function.",
+        "Invoke the transmit function with a representative telemetry-sized payload.",
+        "Record monotonic timestamp T1 immediately after the transmit function returns.",
+        "Compute elapsed = T1 - T0.",
+        "Repeat for at least 100 successive transmit calls and record the maximum elapsed value."
+      ],
+      "acceptance_criteria": "The maximum measured elapsed time across 100 transmit calls is strictly less than 500 ms (the 2 Hz period), and every call returns JUNO_STATUS_SUCCESS.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-004",
+      "title": "AT-Command Configuration at Initialization",
+      "requirement_ids": ["SW-REQ-LORA-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Prepare a POSIX mock UART that records every byte written to it. Provide a configuration struct specifying address, network ID, frequency, spreading factor, and bandwidth.",
+      "procedure": [
+        "Invoke the lora_lib initialization function with the configuration struct.",
+        "Capture all bytes written to the mock UART during initialization.",
+        "Parse the captured bytes into discrete AT command lines.",
+        "Verify presence of an AT+ADDRESS command containing the configured address value.",
+        "Verify presence of an AT+NETWORKID command containing the configured network ID.",
+        "Verify presence of an AT+BAND command containing the configured frequency.",
+        "Verify presence of an AT+PARAMETER command containing the configured spreading factor and bandwidth."
+      ],
+      "acceptance_criteria": "All four AT configuration commands are issued during initialization with the values supplied in the configuration struct, and the initialization call returns JUNO_STATUS_SUCCESS.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-005",
+      "title": "POST Probe Succeeds When Module Returns OK",
+      "requirement_ids": ["SW-REQ-LORA-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure the POSIX mock UART to respond to any AT probe with the bytes '+OK\\r\\n'.",
+      "procedure": [
+        "Invoke the lora_lib POST/initialization function.",
+        "Inspect the bytes written to the mock UART for an AT probe command (bare 'AT' or equivalent).",
+        "Inspect the POST return status."
+      ],
+      "acceptance_criteria": "An AT probe command is written to the UART before any other configuration, and the POST function returns JUNO_STATUS_SUCCESS when the module replies +OK.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-006",
+      "title": "POST Fails When Module Does Not Respond",
+      "requirement_ids": ["SW-REQ-LORA-005", "SW-REQ-LORA-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Configure the POSIX mock UART so reads return no data (timeout) for any AT command.",
+      "procedure": [
+        "Invoke the lora_lib POST/initialization function.",
+        "Capture the return status.",
+        "Query the lora_lib health status function."
+      ],
+      "acceptance_criteria": "The POST function returns a non-success JUNO_STATUS_T error, and the subsequent health query reports an unhealthy state.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-007",
+      "title": "Health Reflects Most Recent Transmit Outcome",
+      "requirement_ids": ["SW-REQ-LORA-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib with a programmable POSIX mock UART that can be switched between OK and timeout response modes.",
+      "procedure": [
+        "Set the mock UART to OK-response mode and call transmit; query health and record the value.",
+        "Set the mock UART to timeout mode and call transmit; query health and record the value.",
+        "Set the mock UART back to OK-response mode and call transmit; query health and record the value."
+      ],
+      "acceptance_criteria": "Health is healthy after the first call, transitions to unhealthy after the failing call, and transitions back to healthy after the recovery call, demonstrating health tracks the most recent outcome.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-008",
+      "title": "Unhealthy After Send Failure",
+      "requirement_ids": ["SW-REQ-LORA-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib successfully. Configure the POSIX mock UART to refuse the next transmit (simulate write error or +ERR response).",
+      "procedure": [
+        "Verify lora_lib reports healthy status before the failing call.",
+        "Invoke the lora_lib transmit function and observe the non-success return status.",
+        "Query the lora_lib health status function."
+      ],
+      "acceptance_criteria": "Health status is healthy before the failing transmit and is unhealthy immediately after the failing transmit returns.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-009",
+      "title": "Unhealthy When Module Fails to Respond to AT",
+      "requirement_ids": ["SW-REQ-LORA-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib successfully. Configure the POSIX mock UART so the next AT command read times out.",
+      "procedure": [
+        "Trigger an operation that issues an AT command (e.g., transmit or status query).",
+        "Observe the non-success return status caused by the missing module response.",
+        "Query the lora_lib health status function."
+      ],
+      "acceptance_criteria": "The lora_lib health query reports unhealthy after the AT command times out without a module response.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-010",
+      "title": "Transmit Returns Non-Success on Failure",
+      "requirement_ids": ["SW-REQ-LORA-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize lora_lib successfully. Configure the POSIX mock UART to inject a write failure on the next transmit.",
+      "procedure": [
+        "Invoke the lora_lib transmit function with a valid payload.",
+        "Capture the JUNO_STATUS_T return value.",
+        "Reset the mock UART to OK-response mode.",
+        "Invoke transmit again and capture the new return value."
+      ],
+      "acceptance_criteria": "The first call returns a non-JUNO_STATUS_SUCCESS error code, and the recovery call returns JUNO_STATUS_SUCCESS, demonstrating failure is observably reported via status.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-011",
+      "title": "Equivalent API Surface POSIX vs Pico2",
+      "requirement_ids": ["SW-REQ-LORA-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "CMake build configurations exist for both POSIX and Pico2 backends of lora_lib, sharing a common public header. A link harness object file references the full public lora_lib API.",
+      "procedure": [
+        "Build the link harness client object file once against the public lora_lib header.",
+        "Invoke the link harness to attempt linking the same client object file against the POSIX build of lora_lib and capture the linker exit status.",
+        "Invoke the link harness to attempt linking the same client object file against the Pico2 build of lora_lib and capture the linker exit status.",
+        "Compile a header-symbol-checker translation unit that uses static_assert and SFINAE detection idioms to verify each declared lora_lib public API function exists with an identical signature in both backend builds.",
+        "Run nm against the POSIX and Pico2 lora_lib library archives, filter to public lora_lib symbols, and diff the two filtered symbol lists.",
+        "Capture the static_assert/SFINAE compile result, the two link exit statuses, and the nm diff output as test assertions."
+      ],
+      "acceptance_criteria": "Both backend link attempts exit with status 0; the header-symbol-checker translation unit compiles without errors or static_assert failures; the nm diff of public lora_lib symbols between POSIX and Pico2 builds is empty, indicating identical exported function signatures.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-012",
+      "title": "Deterministic Output for Identical Inputs",
+      "requirement_ids": ["SW-REQ-LORA-011"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize two independent lora_lib instances with identical configuration and identical POSIX mock UART scripts.",
+      "procedure": [
+        "Drive both instances through the same ordered sequence of initialization, transmit, and health-query calls with identical input bytes.",
+        "Capture the bytes written by each instance to its mock UART.",
+        "Capture the return status of every call from each instance.",
+        "Compare the two captured byte streams and the two status sequences."
+      ],
+      "acceptance_criteria": "The two instances produce byte-for-byte identical UART output streams and identical status code sequences for the identical input sequence.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-013",
+      "title": "Configurable UART Baud Rate Honored",
+      "requirement_ids": ["SW-REQ-LORA-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Provide a POSIX mock UART that records the baud rate it was configured with.",
+      "procedure": [
+        "Invoke lora_lib initialization with a baud rate parameter of 9600.",
+        "Read back the mock UART's recorded baud rate.",
+        "Tear down and re-initialize lora_lib with a baud rate parameter of 115200.",
+        "Read back the mock UART's recorded baud rate again."
+      ],
+      "acceptance_criteria": "The mock UART's recorded baud rate matches the value supplied to lora_lib initialization in both 9600 and 115200 cases.",
+      "expected_artifacts": [],
+      "status": "Active",
+      "google_test_ref": "libs/lora_lib/tests/lora_lib_test.cpp"
+    },
+    {
+      "id": "SW-TC-LORA-014",
+      "title": "Pico2 Hardware POST Demonstration",
+      "requirement_ids": ["SW-REQ-LORA-005", "SW-REQ-LORA-010"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico2 board with RYLR896 LoRa module wired to the configured UART pins, powered from USB, with serial console attached at 115200 baud.",
+      "procedure": [
+        "Power on the Pico2 board with the RYLR896 module attached.",
+        "Open the serial console and capture the boot log to a file.",
+        "Observe the lora_lib POST log line indicating the AT probe was issued and an OK was received.",
+        "Photograph the wiring of the Pico2 to the RYLR896 module for the test record.",
+        "Save the captured serial console log."
+      ],
+      "acceptance_criteria": "The captured serial log shows a lora_lib POST success message within 5 seconds of boot, indicating the RYLR896 responded to the AT probe.",
+      "expected_artifacts": [
+        {
+          "name": "lora_post_serial.log",
+          "description": "Serial console capture from boot showing lora_lib POST probe and OK response",
+          "artifact_type": "log"
+        },
+        {
+          "name": "lora_wiring.jpg",
+          "description": "Photo of Pico2 to RYLR896 wiring used for the demonstration",
+          "artifact_type": "photo"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    },
+    {
+      "id": "SW-TC-LORA-015",
+      "title": "Pico2 Hardware 2 Hz Downlink Demonstration",
+      "requirement_ids": ["SW-REQ-LORA-001", "SW-REQ-LORA-003", "SW-REQ-LORA-006"],
+      "verification_method": "Demonstration",
+      "type": "Demonstration",
+      "setup": "Pico2 board with RYLR896 module configured and a second RYLR896 receiver attached to a logging host. Both modules pre-configured to matching address, network ID, frequency, spreading factor, and bandwidth.",
+      "procedure": [
+        "Power on the Pico2 transmitter and start the telemetry app that exercises lora_lib at 2 Hz.",
+        "Start logging on the receive host, recording timestamps of received +RCV lines for at least 60 seconds.",
+        "Stop logging and save the receiver log file.",
+        "Compute inter-arrival times between successive received frames.",
+        "Verify each received payload byte sequence matches the transmitter's expected sequence."
+      ],
+      "acceptance_criteria": "The receiver log shows at least 110 received frames over the 60 second window with mean inter-arrival time within 500 ms +/- 50 ms, and payload bytes match expected content.",
+      "expected_artifacts": [
+        {
+          "name": "lora_rx_2hz.log",
+          "description": "Receiver host log of timestamped +RCV lines from the RYLR896",
+          "artifact_type": "log"
+        },
+        {
+          "name": "lora_inter_arrival.csv",
+          "description": "CSV of frame index and inter-arrival time computed from rx log",
+          "artifact_type": "csv"
+        }
+      ],
+      "status": "Draft",
+      "google_test_ref": null
+    }
+  ]
+}

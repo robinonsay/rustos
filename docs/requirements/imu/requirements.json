@@ -1,0 +1,159 @@
+{
+  "module": "IMU",
+  "requirements": [
+    {
+      "id": "SW-REQ-IMU-001",
+      "title": "IMU Sample Rate",
+      "description": "The IMU library shall produce IMU samples at 200 Hz during the mission.",
+      "rationale": "Derived from SW-REQ-SYS-005: PM-fixed 200 Hz IMU rate to bound boost-phase motion and support nav at 100 Hz.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-005",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-002",
+      "title": "Accelerometer Range Configuration",
+      "description": "The IMU library shall configure the accelerometer range to plus or minus 16 G.",
+      "rationale": "Derived from SW-REQ-SYS-006: flight envelope reaches 13 G; 16 G range provides margin without saturation during boost.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-006",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-003",
+      "title": "Gyroscope Range Configuration",
+      "description": "The IMU library shall configure the gyroscope range to plus or minus 2000 degrees per second.",
+      "rationale": "Derived from SW-REQ-SYS-007: maximum rotation rate envelope for FT1; 2000 dps avoids saturation during boost and recovery.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-007",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-004",
+      "title": "Accelerometer Output Units",
+      "description": "The IMU library shall report accelerometer measurements in meters per second squared.",
+      "rationale": "Derived from SW-REQ-SYS-042: PM decision to use SI units globally to eliminate unit-conversion ambiguity.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-005",
+      "title": "Gyroscope Output Units",
+      "description": "The IMU library shall report gyroscope measurements in radians per second.",
+      "rationale": "Derived from SW-REQ-SYS-042: PM decision to use SI units globally to eliminate unit-conversion ambiguity.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-006",
+      "title": "Per-Sample Timestamp",
+      "description": "The IMU library shall include a timestamp on every IMU sample it produces.",
+      "rationale": "Derived from SW-REQ-SYS-027: PM decision that per-sample timestamps are required for accurate post-flight nav reconstruction.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-027",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-007",
+      "title": "Body-Frame Measurement Convention",
+      "description": "The IMU library shall report measurements in the body frame with X-forward, Y-right, Z-down axes.",
+      "rationale": "Derived from SW-REQ-SYS-057: PM-defined aerospace-standard body axis convention for FT1 nav and telemetry.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-057",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-008",
+      "title": "Power-On Self-Test Probe",
+      "description": "The IMU library shall probe the IMU device once at startup and report a pass-or-fail result.",
+      "rationale": "Derived from SW-REQ-SYS-029: PM-required POST so the operator knows pre-flight whether the IMU is responsive.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-009",
+      "title": "Continuous Health Reporting",
+      "description": "The IMU library shall report IMU device health continuously throughout the mission.",
+      "rationale": "Derived from SW-REQ-SYS-031: PM-required ongoing health observability for inclusion in telemetry and logging.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-010",
+      "title": "Unhealthy on Read Failure",
+      "description": "The IMU library shall report the IMU as unhealthy when a sample read fails.",
+      "rationale": "Derived from SW-REQ-SYS-058: PM decision that failed sensors are flagged unhealthy in the published health state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-058",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-011",
+      "title": "Unhealthy on POST Failure",
+      "description": "The IMU library shall report the IMU as unhealthy when the startup probe fails.",
+      "rationale": "Derived from SW-REQ-SYS-029 and SW-REQ-SYS-031: a failed POST must be reflected in continuous health reporting.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-012",
+      "title": "Continuation After Read Failure",
+      "description": "The IMU library shall continue operating after an IMU sample read fails.",
+      "rationale": "Derived from SW-REQ-SYS-033: PM decision to never halt mission on sensor failure; continue execution.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-033",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-013",
+      "title": "POSIX and Pico2 Equivalence",
+      "description": "The IMU library shall provide functionally equivalent POSIX and Pico2 implementations.",
+      "rationale": "Derived from SW-REQ-SYS-043: PM-required so Trick simulation exercises the same software paths as flight.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-014",
+      "title": "Deterministic Outputs",
+      "description": "The IMU library shall produce deterministic outputs given identical inputs.",
+      "rationale": "Derived from SW-REQ-SYS-044: PM-required determinism for repeatable Trick sim runs and regression analysis.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "module": "IMU-APP",
+  "requirements": [
+    {
+      "id": "SW-REQ-IMU-APP-001",
+      "title": "IMU App Execution Rate",
+      "description": "The IMU app shall execute at 200 Hz on the static schedule.",
+      "rationale": "Derived from SYS-005 200 Hz IMU sample rate; the app drives per-cycle library reads.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-005",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-002",
+      "title": "IMU Sample Read Per Cycle",
+      "description": "The IMU app shall read one IMU sample from the IMU library on each scheduled cycle.",
+      "rationale": "Derived from SYS-001 raw sensor logging path; one sample per 200 Hz tick supports full-rate logging.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-003",
+      "title": "IMU Message Publication",
+      "description": "The IMU app shall publish each IMU sample as a structured message on the software bus.",
+      "rationale": "Derived from SYS-001; downstream nav, logging, and telemetry apps consume IMU samples via the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-004",
+      "title": "Monotonic Timestamp on IMU Message",
+      "description": "The IMU app shall stamp each published IMU message with monotonic microseconds since startup.",
+      "rationale": "Derived from SYS-026 single monotonic time base and SYS-027 per-sample timestamping.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-005",
+      "title": "Pass-Through Sample Content",
+      "description": "The IMU app shall publish IMU samples without filtering, integration, or other transformation.",
+      "rationale": "PM-defined view-layer scope; the IMU app is pass-through with no business logic.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-001",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-006",
+      "title": "Body-Frame Axis Convention in Message",
+      "description": "The IMU app shall report accelerometer and gyroscope vectors in the X-forward, Y-right, Z-down frame.",
+      "rationale": "Derived from SYS-057 body axes convention so consumers receive samples in the documented frame.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-057",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-007",
+      "title": "IMU Health Publication",
+      "description": "The IMU app shall publish IMU health status on the software bus on each scheduled cycle.",
+      "rationale": "Derived from SYS-031 continuous sensor health bitmap; sys_app aggregates per-sensor health from the bus.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-008",
+      "title": "Deterministic IMU App Behavior",
+      "description": "The IMU app shall produce identical published messages given identical library sample inputs.",
+      "rationale": "Derived from SYS-044 determinism; supports repeatable Trick simulation.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-009",
+      "title": "Accelerometer Range Verification",
+      "description": "The IMU app shall verify the accelerometer range is configured to plus or minus 16 G.",
+      "rationale": "Derived from SYS-006; the app verifies the library configuration matches the FT1 flight envelope.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-006",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-IMU-APP-010",
+      "title": "Gyroscope Range Verification",
+      "description": "The IMU app shall verify the gyroscope range is configured to plus or minus 2000 dps.",
+      "rationale": "Derived from SYS-007; the app verifies the library configuration matches the FT1 rotation envelope.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-007",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

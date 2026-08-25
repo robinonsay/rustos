@@ -1,0 +1,115 @@
+{
+  "module": "BARO",
+  "requirements": [
+    {
+      "id": "SW-REQ-BARO-001",
+      "title": "Support 20 Hz Altimeter Sampling",
+      "description": "The barometric altimeter library shall deliver pressure samples at 20 Hz.",
+      "rationale": "Decomposes SW-REQ-SYS-008; library throughput must support the system-mandated 20 Hz altimeter sample rate.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-008",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-002",
+      "title": "Report Pressure in Pascals",
+      "description": "The barometric altimeter library shall report pressure measurements in pascals.",
+      "rationale": "Decomposes SW-REQ-SYS-042; SI units throughout requires pressure to be expressed in pascals.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-003",
+      "title": "Report Temperature in Degrees Celsius",
+      "description": "The barometric altimeter library shall report temperature measurements in degrees Celsius.",
+      "rationale": "Decomposes SW-REQ-SYS-042; SI units throughout requires temperature to be expressed in degrees Celsius.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-004",
+      "title": "Report Derived Altitude in Meters",
+      "description": "The barometric altimeter library shall report a derived altitude measurement in meters.",
+      "rationale": "Decomposes SW-REQ-SYS-042; SI units throughout requires altitude to be expressed in meters; reference frame defined in design.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-042",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-005",
+      "title": "Power-On Self-Test Device Probe",
+      "description": "The barometric altimeter library shall report at startup whether the altimeter device is present and responsive.",
+      "rationale": "Decomposes SW-REQ-SYS-029; POST requires probing each sensor device once at startup including the barometric altimeter.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-029",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-006",
+      "title": "Continuous Altimeter Health Reporting",
+      "description": "The barometric altimeter library shall publish a health indicator reflecting whether device samples are flowing.",
+      "rationale": "Decomposes SW-REQ-SYS-031; continuous per-sensor health bitmap requires the library to surface its data-flow state.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-007",
+      "title": "Read Failure Status Reporting",
+      "description": "The barometric altimeter library shall return a failure status code when a read from the altimeter fails.",
+      "rationale": "Decomposes SW-REQ-SYS-058; explicit failure status enables the caller to flag sensor unhealthy. Status return enables the caller to satisfy SYS-033 continuation.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-058",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-008",
+      "title": "Non-Blocking Read Interface",
+      "description": "The barometric altimeter library shall provide a non-blocking read interface that returns within a caller-supplied timeout.",
+      "rationale": "Decomposes SW-REQ-SYS-044; deterministic execution requires the library never to block the TDM scheduler indefinitely.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-009",
+      "title": "POSIX Implementation Functional Equivalence",
+      "description": "The barometric altimeter library shall provide a POSIX implementation functionally equivalent to the Pico2 implementation.",
+      "rationale": "Decomposes SW-REQ-SYS-043; Trick simulation requires POSIX builds that exercise the same library API as flight.",
+      "verification_method": "Test",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-BARO-010",
+      "title": "Pico2 Implementation for Flight Hardware",
+      "description": "The barometric altimeter library shall provide a Pico2 implementation that reads samples from the flight altimeter device.",
+      "rationale": "Decomposes SW-REQ-SYS-043; flight hardware build requires a Pico2 implementation paired with the POSIX implementation.",
+      "verification_method": "Demonstration",
+      "status": "Active",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}

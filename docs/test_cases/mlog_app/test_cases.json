@@ -1,0 +1,250 @@
+{
+  "module": "MLOG-APP",
+  "test_cases": [
+    {
+      "id": "SW-TC-MLOG-APP-001",
+      "title": "Subscribe to All Data-of-Interest Bus Messages",
+      "requirement_ids": ["SW-REQ-MLOG-APP-001"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app under POSIX with a mocked software bus that records every Subscribe() call by message ID.",
+      "procedure": [
+        "Invoke mlog_app initialization entry point.",
+        "Capture the set of message IDs subscribed via the mocked bus.",
+        "Compare the captured set against the configured data-of-interest manifest."
+      ],
+      "acceptance_criteria": "Captured subscription set equals the data-of-interest manifest; no required ID is missing and no extra IDs are present.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-002",
+      "title": "Forward Each Subscribed Message Without Downsampling",
+      "requirement_ids": ["SW-REQ-MLOG-APP-002"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that counts records by source ID. Inject 100 IMU and 50 baro messages on the mocked bus.",
+      "procedure": [
+        "Publish 100 distinct IMU messages onto the mocked bus.",
+        "Publish 50 distinct baro messages onto the mocked bus.",
+        "Drive mlog_app to process all queued messages.",
+        "Read the per-source forwarded record counts from the fake mlog_lib."
+      ],
+      "acceptance_criteria": "Fake mlog_lib reports exactly 100 forwarded IMU records and exactly 50 forwarded baro records, in the order produced.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-003",
+      "title": "Initiate New Log Run on Startup",
+      "requirement_ids": ["SW-REQ-MLOG-APP-003"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that records each NewRun() invocation with arguments and call ordering.",
+      "procedure": [
+        "Invoke mlog_app initialization entry point.",
+        "Inspect the fake mlog_lib invocation log.",
+        "Verify NewRun() was invoked before any record-forwarding call."
+      ],
+      "acceptance_criteria": "Fake mlog_lib records exactly one NewRun() call during init, occurring strictly before any forwarded record call.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-004",
+      "title": "Preserve Prior Log Runs Across Startups",
+      "requirement_ids": ["SW-REQ-MLOG-APP-004"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Stage a fake filesystem root containing two prior run directories (run_0001, run_0002) with sentinel files. Wire mlog_app to a real mlog_lib backed by the staged root.",
+      "procedure": [
+        "Snapshot the staged root contents (paths and sentinel hashes).",
+        "Initialize mlog_app, triggering a new run.",
+        "Re-snapshot the staged root contents.",
+        "Diff the prior run directory contents between the two snapshots."
+      ],
+      "acceptance_criteria": "All prior run directories and sentinel files exist with identical content after startup; no prior run is deleted, truncated, or overwritten.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-005",
+      "title": "Stamp Forwarded Records With Monotonic Microseconds",
+      "requirement_ids": ["SW-REQ-MLOG-APP-005"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake monotonic clock and a fake mlog_lib capturing record timestamps.",
+      "procedure": [
+        "Set the fake clock to t0 = 1000 us and publish a bus message; advance the fake clock to t1 = 2500 us and publish another.",
+        "Advance the clock to t2 = 9000 us and publish a third bus message.",
+        "Drive mlog_app to process the queued messages.",
+        "Read the captured timestamps from the fake mlog_lib."
+      ],
+      "acceptance_criteria": "Captured timestamps equal {1000, 2500, 9000} microseconds (monotonic, non-decreasing, in microsecond units).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-006",
+      "title": "Per-Sample Timestamp Present on Every Record",
+      "requirement_ids": ["SW-REQ-MLOG-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that captures every forwarded record header.",
+      "procedure": [
+        "Publish a mixed sequence of 200 sensor messages (IMU, baro, magnetometer) onto the mocked bus.",
+        "Drive mlog_app to process all messages.",
+        "Inspect each captured record header for the timestamp field."
+      ],
+      "acceptance_criteria": "Every one of the 200 forwarded records carries a populated timestamp field; no record has an absent or default-zero timestamp.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-007",
+      "title": "Forward NMEA Sentences Verbatim",
+      "requirement_ids": ["SW-REQ-MLOG-APP-007"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that captures the byte payload of each forwarded NMEA record.",
+      "procedure": [
+        "Publish a known NMEA GGA sentence (including leading $ and trailing CR/LF) onto the bus.",
+        "Publish a known NMEA RMC sentence with checksum onto the bus.",
+        "Drive mlog_app to process both messages.",
+        "Compare each captured payload to the input sentence byte-for-byte."
+      ],
+      "acceptance_criteria": "Each forwarded NMEA payload byte sequence is bit-identical to the input sentence (including framing and checksum bytes).",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-008",
+      "title": "Forward GPS UTC Records to Library",
+      "requirement_ids": ["SW-REQ-MLOG-APP-008"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that counts and captures forwarded GPS UTC records.",
+      "procedure": [
+        "Publish three distinct GPS UTC messages with different UTC values onto the bus.",
+        "Drive mlog_app to process all queued messages.",
+        "Read the captured GPS UTC records from the fake mlog_lib."
+      ],
+      "acceptance_criteria": "Fake mlog_lib captured exactly three GPS UTC records, in publish order, with UTC fields equal to the input values.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-009",
+      "title": "Continue Forwarding After SD Write Failure",
+      "requirement_ids": ["SW-REQ-MLOG-APP-009"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib whose write call returns a write-failure status on call N=5 and success otherwise.",
+      "procedure": [
+        "Publish 10 sequential bus messages onto the mocked bus.",
+        "Drive mlog_app to process all 10 messages.",
+        "Verify mlog_app did not abort or exit on the failure.",
+        "Count the number of forwarding attempts observed by the fake mlog_lib."
+      ],
+      "acceptance_criteria": "mlog_app attempts all 10 forwards (including calls 6 through 10 after the failure on call 5); mlog_app remains in the running state.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-010",
+      "title": "Publish SD Card Health Status Reflects Recent Outcomes",
+      "requirement_ids": ["SW-REQ-MLOG-APP-010"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib whose write outcomes are scriptable and a mocked bus that captures every published SD health message.",
+      "procedure": [
+        "Script the fake mlog_lib to return success for 5 writes; publish 5 bus messages and process them.",
+        "Capture the latest SD health message published by mlog_app.",
+        "Script the fake mlog_lib to return write failure for the next 3 writes; publish 3 bus messages and process them.",
+        "Capture the latest SD health message published by mlog_app."
+      ],
+      "acceptance_criteria": "After the success batch, the published SD health status indicates a healthy state; after the failure batch, the published SD health status indicates a degraded or failed state.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-011",
+      "title": "POSIX and Pico2 Builds Produce Equivalent Forwarding Behavior",
+      "requirement_ids": ["SW-REQ-MLOG-APP-011"],
+      "verification_method": "Test",
+      "type": "Integration",
+      "setup": "Build mlog_app for both POSIX and Pico2 targets. Provide an identical scripted bus message sequence and identical fake mlog_lib backend on both targets that captures forwarded records to a normalized text trace.",
+      "procedure": [
+        "Run the scripted message sequence against the POSIX build and capture the normalized trace.",
+        "Run the same scripted sequence against the Pico2 build (host-loop or HIL) and capture the normalized trace.",
+        "Diff the two normalized traces (record source, payload, sequence ordering)."
+      ],
+      "acceptance_criteria": "POSIX trace and Pico2 trace are byte-identical with respect to forwarded record source ID, payload bytes, and ordering.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-012",
+      "title": "Deterministic Forwarding for Identical Input Sequences",
+      "requirement_ids": ["SW-REQ-MLOG-APP-012"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib capturing forwarded records and a fake monotonic clock driven from a fixed script.",
+      "procedure": [
+        "Run a fixed scripted bus message sequence end-to-end and capture the trace of forwarded records (run A).",
+        "Reset mlog_app and the fakes to their initial state.",
+        "Run the identical scripted sequence end-to-end and capture the trace (run B).",
+        "Diff trace A against trace B."
+      ],
+      "acceptance_criteria": "Trace A and trace B are byte-identical: same record count, same source IDs, same payload bytes, same timestamps, same ordering.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-013",
+      "title": "No Forwarding Before NewRun Initialization",
+      "requirement_ids": ["SW-REQ-MLOG-APP-003", "SW-REQ-MLOG-APP-004"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake mlog_lib that timestamps each call and a mocked bus with a pre-loaded message published before init completes.",
+      "procedure": [
+        "Pre-publish one bus message onto the mocked bus prior to invoking mlog_app init.",
+        "Invoke mlog_app initialization, then drive one process tick.",
+        "Inspect the fake mlog_lib call log ordering."
+      ],
+      "acceptance_criteria": "The first recorded mlog_lib call is NewRun(); any forwarded record calls occur strictly after NewRun() in the call log.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    },
+    {
+      "id": "SW-TC-MLOG-APP-014",
+      "title": "Timestamp Monotonicity Across Mixed Sources",
+      "requirement_ids": ["SW-REQ-MLOG-APP-005", "SW-REQ-MLOG-APP-006"],
+      "verification_method": "Test",
+      "type": "Unit",
+      "setup": "Initialize mlog_app with a fake monotonic clock and a fake mlog_lib capturing per-record timestamps and source IDs.",
+      "procedure": [
+        "Interleave 50 IMU, 25 baro, and 25 GPS UTC messages onto the bus, advancing the fake clock by 100 us before each publish.",
+        "Drive mlog_app to process the queued messages.",
+        "Extract the captured timestamp sequence in forward order."
+      ],
+      "acceptance_criteria": "Captured timestamps are strictly non-decreasing across all 100 records regardless of source, with each adjacent pair differing by at least 100 us.",
+      "expected_artifacts": [],
+      "status": "Draft",
+      "google_test_ref": "apps/mlog_app/tests/mlog_app_test.cpp"
+    }
+  ]
+}

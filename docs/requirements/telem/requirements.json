@@ -1,0 +1,137 @@
+{
+  "module": "TELEM",
+  "requirements": [
+    {
+      "id": "SW-REQ-TELEM-001",
+      "title": "Build Telemetry Packet From Inputs",
+      "description": "The telemetry library shall build a telemetry packet from caller-provided input fields on each call.",
+      "rationale": "telem_lib is the packet builder consumed by the telemetry app at the SYS-019 2 Hz cadence.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-002",
+      "title": "Serialize Packet Into Caller Buffer",
+      "description": "The telemetry library shall serialize each packet into a caller-provided byte buffer.",
+      "rationale": "Caller-owned memory pattern; telem_lib performs no allocation and writes only to injected storage.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-050",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-003",
+      "title": "Packet Content Coverage",
+      "description": "The telemetry library shall include timestamp, phase, GPS fix, baro altitude, nav state, voltage, validity, and health.",
+      "rationale": "Mirrors SYS-020 packet content so ground monitoring sees full mission state.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-020",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-004",
+      "title": "Bounded Packet Size",
+      "description": "The telemetry library shall produce packets whose serialized size does not exceed the configured maximum.",
+      "rationale": "RYLR896 LoRa MTU bounds payload size; lora_lib must accept what telem_lib produces.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-005",
+      "title": "Integrity Field In Packet",
+      "description": "The telemetry library shall append an integrity check field covering the packet contents.",
+      "rationale": "Ground station decoder must validate packets against corruption over the LoRa link.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-006",
+      "title": "Phase-Independent Packet Production",
+      "description": "The telemetry library shall produce a packet on every call regardless of flight phase.",
+      "rationale": "SYS-021 mandates continuous coverage; telem_lib must not gate output on phase state.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-021",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-007",
+      "title": "Embed Sensor Health Bitmap",
+      "description": "The telemetry library shall embed the caller-provided sensor health bitmap in each packet.",
+      "rationale": "SYS-031 requires continuous health observability via every telemetry packet.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-031",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-008",
+      "title": "Embed Monotonic Microsecond Timestamp",
+      "description": "The telemetry library shall embed the caller-provided monotonic microsecond timestamp in each packet.",
+      "rationale": "SYS-026 mandates the monotonic time base on every record, including downlinked packets.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-026",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-009",
+      "title": "Deterministic Serialization",
+      "description": "The telemetry library shall produce identical byte output for identical input fields.",
+      "rationale": "SYS-044 determinism enables Trick regression and ground decoder consistency.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-044",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-010",
+      "title": "POSIX And Pico2 Equivalent Output",
+      "description": "The telemetry library shall produce identical serialized bytes on POSIX and Pico2 builds for identical inputs.",
+      "rationale": "SYS-043 functional equivalence so Trick simulation exercises the flight-side wire format.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-043",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-011",
+      "title": "No Radio Or UART I/O",
+      "description": "The telemetry library shall not perform any UART or radio input or output operations.",
+      "rationale": "Pure encoder scope; transmission belongs to lora_lib, preserving separation of concerns.",
+      "verification_method": "Inspection",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-003",
+      "child_ids": [],
+      "tags": ["FT1"]
+    },
+    {
+      "id": "SW-REQ-TELEM-012",
+      "title": "Embed Navigation Validity Flag",
+      "description": "The telemetry library shall embed the caller-provided navigation validity flag in each packet.",
+      "rationale": "SYS-020 packet content includes validity so ground consumers can gate use of nav fields.",
+      "verification_method": "Test",
+      "status": "Draft",
+      "parent_id": "SW-REQ-SYS-020",
+      "child_ids": [],
+      "tags": ["FT1"]
+    }
+  ]
+}
