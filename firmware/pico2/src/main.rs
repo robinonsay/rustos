@@ -20,10 +20,11 @@ unsafe extern "C" {
 }
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 union Vector {
     handler:   unsafe extern "C" fn(),
@@ -60,19 +61,41 @@ unsafe fn enable_fpu() { unsafe {
 unsafe fn reset_vtor() {
     unsafe{
         VTOR.write_volatile(&raw const VECTOR_TABLE as u32);
+        core::arch::asm!("dsb", "isb", options(nostack, preserves_flags));
     }
 }
+
+#[inline]
+unsafe fn reset_data() {
+    let src = &raw const __sidata;                 // flash (LMA)
+    let dst = &raw const __sdata as *mut u32;      // RAM (VMA)
+    let end     = &raw const __edata as *const u32;
+    let count = (end as usize - dst as usize) / 4;
+    unsafe{copy_nonoverlapping(src, dst, count)}
+}
+
+#[inline]
+unsafe fn reset_bss() {
+    let p = &raw const __sbss as *mut u32;
+    let end   = &raw const __ebss as *const u32;
+    let count = (end as usize - p as usize) / 4;
+    unsafe {p.write_bytes(0, count)}
+}
+#[used] #[unsafe(no_mangle)] static mut DATA_TEST: u32      = 0xDEAD_BEEF;
+#[used] #[unsafe(no_mangle)] static mut BSS_TEST:  [u32; 4] = [0; 4];
 
 #[unsafe(no_mangle)] pub extern "C" fn OnReset() -> ! {
     unsafe{
         enable_fpu();
         reset_vtor();
+        reset_data();
+        reset_bss();
     }
     loop{}
 }
 
 #[unsafe(no_mangle)] pub extern "C" fn DefaultHandler(){
-
+    loop{}
 }
 
 #[unsafe(no_mangle)] pub extern "C" fn OnHardFault(){
