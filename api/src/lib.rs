@@ -1,5 +1,8 @@
 #![no_std]
 
+mod common;
+mod gpio;
+
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }

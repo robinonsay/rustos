@@ -2,6 +2,7 @@
 #![no_main]
 
 use core::{panic::PanicInfo, ptr::copy_nonoverlapping};
+mod gpio;
 
 #[used]                                          // survives rustc
 #[unsafe(link_section = ".boot_info")]           // names the section
