@@ -31,9 +31,10 @@ struct Reset{
 
 #[repr(C)]
 struct Sio{
-    pub volt_select: u32,
+    pub cpuid: u32,
     pub gpio_in: u32,
     pub gpio_in_hi: u32,
+    _reserved: u32,
     pub gpio_out: u32,
     pub gpio_out_hi: u32,
     pub gpio_out_set: u32,
@@ -42,4 +43,8 @@ struct Sio{
     pub gpio_oe_hi: u32,
     pub gpio_oe_set: u32,
     pub gpio_oe_set_hi: u32,
+    pub gpio_oe_clr:     u32,  // 0x040
+    pub gpio_oe_clr_hi:  u32,  // 0x044
+    pub gpio_oe_xor:     u32,  // 0x048
+    pub gpio_oe_xor_hi:  u32,  // 0x04c
 }
