@@ -1,289 +1,402 @@
      VMA      LMA     Size Align Out     In      Symbol
        0        0        0     1 _min_stack_size = 8K
 10000000 10000000      110   512 .vector_table
-10000000 10000000      110     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.vector_table)
+10000000 10000000      110     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.vector_table)
 10000000 10000000      110     1                 pico2::VECTOR_TABLE
 10000110 10000110        0     1         . = ALIGN(4)
 10000110 10000110       14     4 .boot_info
-10000110 10000110       14     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.boot_info)
+10000110 10000110       14     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.boot_info)
 10000110 10000110       14     1                 pico2::BOOT_INFO
 10000124 10000124        0     1         . = ALIGN(4)
-10000124 10000124      85c     2 .text
-10000124 10000124        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text.DefaultHandler)
+10000124 10000124     1504     4 .text
+10000124 10000124        e     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.text._RNvXNtNtNtCs3Mo3VzDWASZ_4core4iter6traits7collectINtNtNtB8_3ops5range5RangelENtB2_12IntoIterator9into_iterCs1opqryBqG0Y_5pico2)
 10000124 10000124        0     1                 $t
-10000125 10000125        8     1                 DefaultHandler
-1000012c 1000012c        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text.OnHardFault)
-1000012c 1000012c        0     1                 $t
-1000012d 1000012d        8     1                 OnHardFault
-10000134 10000134       18     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text.OnReset)
-10000134 10000134        0     1                 $t
-10000135 10000135       18     1                 OnReset
-1000014c 1000014c       56     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210enable_fpuB1_)
-1000014c 1000014c        0     1                 $t
-1000014d 1000014d       56     1                 pico2::enable_fpu
-100001a2 100001a2       8a     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210reset_dataB1_)
-100001a2 100001a2        0     1                 $t
-100001a3 100001a3       8a     1                 pico2::reset_data
-1000022c 1000022c       3e     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210reset_vtorB1_)
-1000022c 1000022c        0     1                 $t
-1000022d 1000022d       3e     1                 pico2::reset_vtor
-1000026a 1000026a        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico24main)
-1000026a 1000026a        0     1                 $t
-1000026b 1000026b        8     1                 pico2::main
-10000272 10000272       7c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico29reset_bssB1_)
-10000272 10000272        0     1                 $t
-10000273 10000273       7c     1                 pico2::reset_bss
-100002ee 100002ee        c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.text._RNvCs6rREvFdRhLb_7___rustc17rust_begin_unwind)
-100002ee 100002ee        0     1                 $t
-100002ef 100002ef        c     1                 __rustc::rust_begin_unwind
-100002fa 100002fa       80     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core9ub_checks23maybe_is_nonoverlapping7runtimeCs1opqryBqG0Y_5pico2)
-100002fa 100002fa        0     1                 $t
-100002fb 100002fb       80     1                 core::ub_checks::maybe_is_nonoverlapping::runtime
-1000037a 1000037a       4a     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.text._RNvMNtNtCs3Mo3VzDWASZ_4core3ptr9const_ptrPu13is_aligned_toCs1opqryBqG0Y_5pico2)
-1000037a 1000037a        0     1                 $t
-1000037b 1000037b       4a     1                 <*const ()>::is_aligned_to
-100003c4 100003c4       4e     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr11write_bytes18precondition_checkCs1opqryBqG0Y_5pico2)
-100003c4 100003c4        0     1                 $t
-100003c5 100003c5       4e     1                 core::ptr::write_bytes::precondition_check
-10000412 10000412       32     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr13read_volatile18precondition_checkCs1opqryBqG0Y_5pico2)
-10000412 10000412        0     1                 $t
-10000413 10000413       32     1                 core::ptr::read_volatile::precondition_check
-10000444 10000444       34     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr14write_volatile18precondition_checkCs1opqryBqG0Y_5pico2)
-10000444 10000444        0     1                 $t
-10000445 10000445       34     1                 core::ptr::write_volatile::precondition_check
-10000478 10000478       c0     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr19copy_nonoverlapping18precondition_checkCs1opqryBqG0Y_5pico2)
-10000478 10000478        0     1                 $t
-10000479 10000479       c0     1                 core::ptr::copy_nonoverlapping::precondition_check
-10000538 10000538       16     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking14panic_nounwind)
-10000538 10000538        0     1                 $t
-10000539 10000539       16     1                 core::panicking::panic_nounwind
-1000054e 1000054e       20     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking18panic_nounwind_fmt)
-1000054e 1000054e        0     1                 $t
-1000054f 1000054f       20     1                 core::panicking::panic_nounwind_fmt
-1000056e 1000056e       1c     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking9panic_fmt)
-1000056e 1000056e        0     1                 $t
-1000056f 1000056f       1c     1                 core::panicking::panic_fmt
-1000058a 1000058a       14     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtNtCs3Mo3VzDWASZ_4core9panicking11panic_const24panic_const_sub_overflow)
-1000058a 1000058a        0     1                 $t
-1000058b 1000058b       14     1                 core::panicking::panic_const::panic_const_sub_overflow
-1000059e 1000059e       ae     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.text.__aeabi_memclr4)
-1000059e 1000059e        0     1                 $t
-1000059f 1000059f       ae     1                 __aeabi_memclr4
-1000064c 1000064c      296     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.text._RNvNtCshN8u14CARpE_17compiler_builtins3mem6memcpy)
-1000064c 1000064c        0     1                 $t
-1000064d 1000064d      296     1                 compiler_builtins::mem::memcpy
-100008e2 100008e2       9c     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.text.__aeabi_memcpy4)
-100008e2 100008e2        0     1                 $t
-100008e3 100008e3       9c     1                 __aeabi_memcpy4
-1000097e 1000097e        2     1         . = ALIGN(4)
-10000980 10000980      61c     4 .rodata
-10000980 10000980      153     1         <internal>:(.rodata.str1.1)
-10000ad4 10000ad4       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.1)
-10000ad4 10000ad4       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.1
-10000ae4 10000ae4       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.3)
-10000ae4 10000ae4       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.3
-10000af4 10000af4       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.4)
-10000af4 10000af4       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.4
-10000b04 10000b04       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.5)
-10000b04 10000b04       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.5
-10000b14 10000b14       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.6)
-10000b14 10000b14       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.6
-10000b24 10000b24       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.7)
-10000b24 10000b24       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.7
-10000b34 10000b34       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.rodata..Lanon.7cfe5237516fb2fb5483830499b0449f.9)
-10000b34 10000b34       10     1                 .Lanon.7cfe5237516fb2fb5483830499b0449f.9
-10000b44 10000b44       3d     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.rodata..Lanon.d27e68d338243c8584bffff20cbe58d6.0)
-10000b44 10000b44       3d     1                 .Lanon.d27e68d338243c8584bffff20cbe58d6.0
-10000b81 10000b81       2a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.rodata..Lanon.73a8768444fa2ba08349558475c74e21.0)
-10000b81 10000b81       2a     1                 .Lanon.73a8768444fa2ba08349558475c74e21.0
-10000bac 10000bac       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.rodata..Lanon.73a8768444fa2ba08349558475c74e21.2)
-10000bac 10000bac       10     1                 .Lanon.73a8768444fa2ba08349558475c74e21.2
-10000bbc 10000bbc       e4     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.0)
-10000bbc 10000bbc       e4     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.0
-10000ca0 10000ca0       d6     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.1)
-10000ca0 10000ca0       d6     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.1
-10000d76 10000d76       d7     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.2)
-10000d76 10000d76       d7     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.2
-10000e4d 10000e4d      11b     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.3)
-10000e4d 10000e4d      11b     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.3
-10000f68 10000f68       10     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.188)
-10000f68 10000f68       10     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.188
-10000f78 10000f78       21     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.227)
-10000f78 10000f78       21     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.227
-10000f99 10000f99        3     1         . = ALIGN(4)
-20000000 10000f9c        4     4 .data
-20000000 10000f9c        0     1         __sdata = .
-20000000 10000f9c        4     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.data.DATA_TEST)
-20000000 10000f9c        4     1                 DATA_TEST
-20000004 10000fa0        0     1         . = ALIGN(4)
-20000004 10000fa0        0     1         __edata = .
-20000004 10000fa0        0     1 __sidata = LOADADDR(.data)
-20000004 20000004       10     4 .bss
-20000004 20000004        0     1         __sbss = .
-20000004 20000004       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.bss.BSS_TEST)
-20000004 20000004       10     1                 BSS_TEST
-20000014 20000014        0     1         . = ALIGN(4)
-20000014 20000014        0     1         __ebss = .
-20000018 20000018     2000     8 .stack
-20000018 20000018     2000     1         . = . + _min_stack_size
-20002018 20002018        0     1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)
-20002018 20002018        0     1 
-20002018 20002018        0     1 
-20002018 20002018        0     1 
-20002018 20002018        0     1 
-20002018 20002018        0     1 
-       0        0     14b7     1 .debug_abbrev
-       0        0      21b     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_abbrev)
-     21b      21b      173     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_abbrev)
-     38e      38e       5e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.debug_abbrev)
-     3ec      3ec      148     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_abbrev)
-     534      534       2e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.05er2an.rcgu.o:(.debug_abbrev)
-     562      562      312     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_abbrev)
-     874      874       5b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_abbrev)
-     8cf      8cf       2e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_abbrev)
-     8fd      8fd      14c     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_abbrev)
-     a49      a49       9f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_abbrev)
-     ae8      ae8       b2     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_abbrev)
-     b9a      b9a       5f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_abbrev)
-     bf9      bf9      131     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_abbrev)
-     d2a      d2a       7d     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_abbrev)
-     da7      da7       c5     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_abbrev)
-     e6c      e6c       2e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_abbrev)
-     e9a      e9a      166     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_abbrev)
-    1000     1000       9b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_abbrev)
-    109b     109b       9b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_abbrev)
-    1136     1136       af     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_abbrev)
-    11e5     11e5       c5     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_abbrev)
-    12aa     12aa       e0     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_abbrev)
-    138a     138a       5f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_abbrev)
-    13e9     13e9       ce     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_abbrev)
-       0        0    2961f     1 .debug_info
-       0        0      960     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_info)
-     960      960      36a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_info)
-     cca      cca       a3     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.debug_info)
-     d6d      d6d      60a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_info)
-    1377     1377       49     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.05er2an.rcgu.o:(.debug_info)
-    13c0     13c0    22ddf     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_info)
-   2419f    2419f       86     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_info)
-   24225    24225       51     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_info)
-   24276    24276     1574     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_info)
-   257ea    257ea      187     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_info)
-   25971    25971      1fb     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_info)
-   25b6c    25b6c       95     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_info)
-   25c01    25c01      c74     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_info)
-   26875    26875      105     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_info)
-   2697a    2697a      292     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_info)
-   26c0c    26c0c       51     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_info)
-   26c5d    26c5d     19ae     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_info)
-   2860b    2860b      197     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_info)
-   287a2    287a2      1dd     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_info)
-   2897f    2897f      273     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_info)
-   28bf2    28bf2      2ad     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_info)
-   28e9f    28e9f      242     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_info)
-   290e1    290e1       a1     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_info)
-   29182    29182      49d     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_info)
-       0        0     14d0     1 .debug_aranges
-       0        0       80     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_aranges)
-      80       80       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_aranges)
-      a0       a0       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.debug_aranges)
-      c0       c0       38     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_aranges)
-      f8       f8       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.05er2an.rcgu.o:(.debug_aranges)
-     118      118     1130     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_aranges)
-    1248     1248       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_aranges)
-    1268     1268       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_aranges)
-    1288     1288       38     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_aranges)
-    12c0     12c0       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_aranges)
-    12e0     12e0       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_aranges)
-    1300     1300       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_aranges)
-    1320     1320       38     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_aranges)
-    1358     1358       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_aranges)
-    1378     1378       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_aranges)
-    1398     1398       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_aranges)
-    13b8     13b8       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_aranges)
-    13e8     13e8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_aranges)
-    1408     1408       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_aranges)
-    1428     1428       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_aranges)
-    1448     1448       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_aranges)
-    1468     1468       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_aranges)
-    1488     1488       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_aranges)
-    14a8     14a8       28     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_aranges)
-       0        0    13020     1 .debug_ranges
-       0        0       c8     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_ranges)
-      c8       c8       30     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_ranges)
-      f8       f8       88     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_ranges)
-     180      180    11270     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_ranges)
-   113f0    113f0       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_ranges)
-   11408    11408      818     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_ranges)
-   11c20    11c20       48     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_ranges)
-   11c68    11c68      400     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_ranges)
-   12068    12068       48     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_ranges)
-   120b0    120b0       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_ranges)
-   120e0    120e0      b90     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_ranges)
-   12c70    12c70       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_ranges)
-   12c88    12c88       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_ranges)
-   12ca0    12ca0       60     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_ranges)
-   12d00    12d00       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_ranges)
-   12d30    12d30       60     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_ranges)
-   12d90    12d90      290     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_ranges)
-       0        0    47b60     1 .debug_str
-       0        0    47b60     1         <internal>:(.debug_str)
+10000125 10000125        e     1                 <core::ops::range::Range<i32> as core::iter::traits::collect::IntoIterator>::into_iter
+10000132 10000132       4a     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.text._RNvXs3_NtNtCs3Mo3VzDWASZ_4core4iter5rangeINtNtNtB9_3ops5range5RangelENtB5_17RangeIteratorImpl9spec_nextCs1opqryBqG0Y_5pico2)
+10000132 10000132        0     1                 $t
+10000133 10000133       4a     1                 <core::ops::range::Range<i32> as core::iter::range::RangeIteratorImpl>::spec_next
+1000017c 1000017c       10     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.text._RNvXs4_NtNtCs3Mo3VzDWASZ_4core4iter5rangeINtNtNtB9_3ops5range5RangelENtNtNtB7_6traits8iterator8Iterator4nextCs1opqryBqG0Y_5pico2)
+1000017c 1000017c        0     1                 $t
+1000017d 1000017d       10     1                 <core::ops::range::Range<i32> as core::iter::traits::iterator::Iterator>::next
+1000018c 1000018c        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text.DefaultHandler)
+1000018c 1000018c        0     1                 $t
+1000018d 1000018d        8     1                 DefaultHandler
+10000194 10000194        8     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text.OnHardFault)
+10000194 10000194        0     1                 $t
+10000195 10000195        8     1                 OnHardFault
+1000019c 1000019c       18     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text.OnReset)
+1000019c 1000019c        0     1                 $t
+1000019d 1000019d       18     1                 OnReset
+100001b4 100001b4       56     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210enable_fpuB1_)
+100001b4 100001b4        0     1                 $t
+100001b5 100001b5       56     1                 pico2::enable_fpu
+1000020a 1000020a       8a     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210reset_dataB1_)
+1000020a 1000020a        0     1                 $t
+1000020b 1000020b       8a     1                 pico2::reset_data
+10000294 10000294       3e     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico210reset_vtorB1_)
+10000294 10000294        0     1                 $t
+10000295 10000295       3e     1                 pico2::reset_vtor
+100002d2 100002d2        c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico24main)
+100002d2 100002d2        0     1                 $t
+100002d3 100002d3        c     1                 pico2::main
+100002de 100002de       7c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs1opqryBqG0Y_5pico29reset_bssB1_)
+100002de 100002de        0     1                 $t
+100002df 100002df       7c     1                 pico2::reset_bss
+1000035a 1000035a        c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.text._RNvCs6rREvFdRhLb_7___rustc17rust_begin_unwind)
+1000035a 1000035a        0     1                 $t
+1000035b 1000035b        c     1                 __rustc::rust_begin_unwind
+10000366 10000366       80     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core9ub_checks23maybe_is_nonoverlapping7runtimeCs1opqryBqG0Y_5pico2)
+10000366 10000366        0     1                 $t
+10000367 10000367       80     1                 core::ub_checks::maybe_is_nonoverlapping::runtime
+100003e6 100003e6       22     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.text._RNvMNtNtCs3Mo3VzDWASZ_4core3ptr9const_ptrPm13read_volatileCs1opqryBqG0Y_5pico2)
+100003e6 100003e6        0     1                 $t
+100003e7 100003e7       22     1                 <*const u32>::read_volatile
+10000408 10000408       4a     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.text._RNvMNtNtCs3Mo3VzDWASZ_4core3ptr9const_ptrPu13is_aligned_toCs1opqryBqG0Y_5pico2)
+10000408 10000408        0     1                 $t
+10000409 10000409       4a     1                 <*const ()>::is_aligned_to
+10000452 10000452       74     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.text._RNvNtNtCs1opqryBqG0Y_5pico24gpio4gpio10reset_gpio)
+10000452 10000452        0     1                 $t
+10000453 10000453       74     1                 pico2::gpio::gpio::reset_gpio
+100004c6 100004c6       5c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.text._RNvNtNtCs1opqryBqG0Y_5pico24gpio4gpio15toggle_gpio_pin)
+100004c6 100004c6        0     1                 $t
+100004c7 100004c7       5c     1                 pico2::gpio::gpio::toggle_gpio_pin
+10000522 10000522      1c4     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.text._RNvNtNtCs1opqryBqG0Y_5pico24gpio4gpio22configure_gpio_pin_out)
+10000522 10000522        0     1                 $t
+10000523 10000523      1c4     1                 pico2::gpio::gpio::configure_gpio_pin_out
+100006e6 100006e6       3c     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.text._RNvNtNtCs1opqryBqG0Y_5pico24gpio4gpio9gpio_demo)
+100006e6 100006e6        0     1                 $t
+100006e7 100006e7       3c     1                 pico2::gpio::gpio::gpio_demo
+10000722 10000722       4e     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr11write_bytes18precondition_checkCs1opqryBqG0Y_5pico2)
+10000722 10000722        0     1                 $t
+10000723 10000723       4e     1                 core::ptr::write_bytes::precondition_check
+10000770 10000770       32     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr13read_volatile18precondition_checkCs1opqryBqG0Y_5pico2)
+10000770 10000770        0     1                 $t
+10000771 10000771       32     1                 core::ptr::read_volatile::precondition_check
+100007a2 100007a2       34     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr14write_volatile18precondition_checkCs1opqryBqG0Y_5pico2)
+100007a2 100007a2        0     1                 $t
+100007a3 100007a3       34     1                 core::ptr::write_volatile::precondition_check
+100007d6 100007d6       c0     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core3ptr19copy_nonoverlapping18precondition_checkCs1opqryBqG0Y_5pico2)
+100007d6 100007d6        0     1                 $t
+100007d7 100007d7       c0     1                 core::ptr::copy_nonoverlapping::precondition_check
+10000896 10000896       20     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.text._RNvNvNtCs3Mo3VzDWASZ_4core4hint21unreachable_unchecked18precondition_checkCs1opqryBqG0Y_5pico2)
+10000896 10000896        0     1                 $t
+10000897 10000897       20     1                 core::hint::unreachable_unchecked::precondition_check
+100008b6 100008b6       60     2         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.text._RNvXsI_NtNtCs3Mo3VzDWASZ_4core4iter5rangelNtB5_4Step17forward_uncheckedCs1opqryBqG0Y_5pico2)
+100008b6 100008b6        0     1                 $t
+100008b7 100008b7       60     1                 <i32 as core::iter::range::Step>::forward_unchecked
+10000918 10000918      266     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text._RNvMsa_NtCs3Mo3VzDWASZ_4core3fmtNtB5_9Formatter12pad_integral)
+10000918 10000918        0     1                 $t
+10000919 10000919      266     1                 <core::fmt::Formatter>::pad_integral
+10000a86 10000a86        0     1                 $d
+10000a8a 10000a8a        0     1                 $t
+10000b7e 10000b7e       16     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking14panic_nounwind)
+10000b7e 10000b7e        0     1                 $t
+10000b7f 10000b7f       16     1                 core::panicking::panic_nounwind
+10000b94 10000b94       28     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking18panic_bounds_check)
+10000b94 10000b94        0     1                 $t
+10000b95 10000b95       28     1                 core::panicking::panic_bounds_check
+10000bb4 10000bb4        0     1                 $d
+10000bbc 10000bbc       20     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking18panic_nounwind_fmt)
+10000bbc 10000bbc        0     1                 $t
+10000bbd 10000bbd       20     1                 core::panicking::panic_nounwind_fmt
+10000bdc 10000bdc       1c     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtCs3Mo3VzDWASZ_4core9panicking9panic_fmt)
+10000bdc 10000bdc        0     1                 $t
+10000bdd 10000bdd       1c     1                 core::panicking::panic_fmt
+10000bf8 10000bf8      4fa     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text._RNvNtNtCs3Mo3VzDWASZ_4core3str5count14do_count_chars)
+10000bf8 10000bf8        0     1                 $t
+10000bf9 10000bf9      4fa     1                 core::str::count::do_count_chars
+100010f2 100010f2       14     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtNtCs3Mo3VzDWASZ_4core9panicking11panic_const24panic_const_shl_overflow)
+100010f2 100010f2        0     1                 $t
+100010f3 100010f3       14     1                 core::panicking::panic_const::panic_const_shl_overflow
+10001106 10001106       14     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text.unlikely._RNvNtNtCs3Mo3VzDWASZ_4core9panicking11panic_const24panic_const_sub_overflow)
+10001106 10001106        0     1                 $t
+10001107 10001107       14     1                 core::panicking::panic_const::panic_const_sub_overflow
+1000111a 1000111a       44     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text._RNvNvMsa_NtCs3Mo3VzDWASZ_4core3fmtNtB7_9Formatter12pad_integral12write_prefix)
+1000111a 1000111a        0     1                 $t
+1000111b 1000111b       44     1                 <core::fmt::Formatter>::pad_integral::write_prefix
+1000115e 1000115e       ea     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.text._RNvXs8_NtNtNtCs3Mo3VzDWASZ_4core3fmt3num3impmNtB9_7Display3fmt)
+1000115e 1000115e        0     1                 $t
+1000115f 1000115f       ea     1                 <u32 as core::fmt::Display>::fmt
+1000115f 1000115f       ea     1                 <usize as core::fmt::Display>::fmt
+10001248 10001248       ae     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.text.__aeabi_memclr4)
+10001248 10001248        0     1                 $t
+10001249 10001249       ae     1                 __aeabi_memclr4
+100012f6 100012f6      296     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.text._RNvNtCshN8u14CARpE_17compiler_builtins3mem6memcpy)
+100012f6 100012f6        0     1                 $t
+100012f7 100012f7      296     1                 compiler_builtins::mem::memcpy
+1000158c 1000158c       9c     2         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.text.__aeabi_memcpy4)
+1000158c 1000158c        0     1                 $t
+1000158d 1000158d       9c     1                 __aeabi_memcpy4
+10001628 10001628        0     1         . = ALIGN(4)
+10001628 10001628      9b0     4 .rodata
+10001628 10001628      21f     1         <internal>:(.rodata.str1.1)
+10001848 10001848       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.1)
+10001848 10001848       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.1
+10001858 10001858       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.3)
+10001858 10001858       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.3
+10001868 10001868       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.4)
+10001868 10001868       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.4
+10001878 10001878       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.5)
+10001878 10001878       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.5
+10001888 10001888       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.6)
+10001888 10001888       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.6
+10001898 10001898       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.7)
+10001898 10001898       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.7
+100018a8 100018a8       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.rodata..Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.9)
+100018a8 100018a8       10     1                 .Lanon.9684e277b5ecc7ac2ce496f605c3e5e2.9
+100018b8 100018b8       3d     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.rodata..Lanon.d27e68d338243c8584bffff20cbe58d6.0)
+100018b8 100018b8       3d     1                 .Lanon.d27e68d338243c8584bffff20cbe58d6.0
+100018f5 100018f5       2a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.rodata..Lanon.d575176b06e5980a4ee6d3c18944776e.0)
+100018f5 100018f5       2a     1                 .Lanon.d575176b06e5980a4ee6d3c18944776e.0
+10001920 10001920       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.rodata..Lanon.d575176b06e5980a4ee6d3c18944776e.2)
+10001920 10001920       10     1                 .Lanon.d575176b06e5980a4ee6d3c18944776e.2
+10001930 10001930       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.1)
+10001930 10001930       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.1
+10001940 10001940       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.2)
+10001940 10001940       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.2
+10001950 10001950       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.3)
+10001950 10001950       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.3
+10001960 10001960       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.4)
+10001960 10001960       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.4
+10001970 10001970       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.5)
+10001970 10001970       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.5
+10001980 10001980       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.6)
+10001980 10001980       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.6
+10001990 10001990       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.7)
+10001990 10001990       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.7
+100019a0 100019a0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.8)
+100019a0 100019a0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.8
+100019b0 100019b0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.9)
+100019b0 100019b0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.9
+100019c0 100019c0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.10)
+100019c0 100019c0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.10
+100019d0 100019d0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.11)
+100019d0 100019d0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.11
+100019e0 100019e0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.12)
+100019e0 100019e0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.12
+100019f0 100019f0       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.13)
+100019f0 100019f0       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.13
+10001a00 10001a00       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.14)
+10001a00 10001a00       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.14
+10001a10 10001a10       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.15)
+10001a10 10001a10       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.15
+10001a20 10001a20       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.rodata..Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.16)
+10001a20 10001a20       10     1                 .Lanon.4d18f9ed72bd26f5b25cc9cea3f21e45.16
+10001a30 10001a30       e4     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.0)
+10001a30 10001a30       e4     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.0
+10001b14 10001b14       d6     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.1)
+10001b14 10001b14       d6     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.1
+10001bea 10001bea       d7     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.2)
+10001bea 10001bea       d7     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.2
+10001cc1 10001cc1      11b     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.rodata..Lanon.9c471b3693c0e460717c50419b3f7305.3)
+10001cc1 10001cc1      11b     1                 .Lanon.9c471b3693c0e460717c50419b3f7305.3
+10001ddc 10001ddc       c7     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.rodata..Lanon.2119ec2c62636eb0e54eebc0b5452438.0)
+10001ddc 10001ddc       c7     1                 .Lanon.2119ec2c62636eb0e54eebc0b5452438.0
+10001ea4 10001ea4        8     4         <internal>:(.rodata.cst8)
+10001eac 10001eac       10     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.rodata..Lanon.41a81d64abf9d46a8d08edd59851c46a.2)
+10001eac 10001eac       10     1                 .Lanon.41a81d64abf9d46a8d08edd59851c46a.2
+10001ebc 10001ebc       10     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.188)
+10001ebc 10001ebc       10     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.188
+10001ecc 10001ecc       c8     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.202)
+10001ecc 10001ecc       c8     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.202
+10001f94 10001f94       23     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.225)
+10001f94 10001f94       23     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.225
+10001fb7 10001fb7       21     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.rodata..Lanon.3ab587746965ea487671b64d29c5e63b.227)
+10001fb7 10001fb7       21     1                 .Lanon.3ab587746965ea487671b64d29c5e63b.227
+10001fd8 10001fd8        0     1         . = ALIGN(4)
+20000000 20000000        0     4 .data
+20000000 20000000        0     1         __sdata = .
+20000000 20000000        0     1         . = ALIGN(4)
+20000000 20000000        0     1         __edata = .
+20000000 20000000        0     1 __sidata = LOADADDR(.data)
+20000000 20000000        0     4 .bss
+20000000 20000000        0     1         __sbss = .
+20000000 20000000        0     1         . = ALIGN(4)
+20000000 20000000        0     1         __ebss = .
+20000000 20000000     2000     8 .stack
+20000000 20000000     2000     1         . = . + _min_stack_size
+20002000 20002000        0     1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+20002000 20002000        0     1 
+       0        0     1942     1 .debug_abbrev
+       0        0       f9     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_abbrev)
+      f9       f9      207     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_abbrev)
+     300      300      173     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_abbrev)
+     473      473       96     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_abbrev)
+     509      509      15e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_abbrev)
+     667      667      148     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_abbrev)
+     7af      7af       77     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.debug_abbrev)
+     826      826      199     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_abbrev)
+     9bf      9bf       2e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.1ym4pv3.rcgu.o:(.debug_abbrev)
+     9ed      9ed      312     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_abbrev)
+     cff      cff       5b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_abbrev)
+     d5a      d5a       2e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_abbrev)
+     d88      d88      14c     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_abbrev)
+     ed4      ed4       9f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_abbrev)
+     f73      f73       b2     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_abbrev)
+    1025     1025       5f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_abbrev)
+    1084     1084      131     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_abbrev)
+    11b5     11b5       7d     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_abbrev)
+    1232     1232       c5     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_abbrev)
+    12f7     12f7       2e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_abbrev)
+    1325     1325      166     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_abbrev)
+    148b     148b       9b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_abbrev)
+    1526     1526       9b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_abbrev)
+    15c1     15c1       af     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_abbrev)
+    1670     1670       c5     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_abbrev)
+    1735     1735       e0     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_abbrev)
+    1815     1815       5f     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_abbrev)
+    1874     1874       ce     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_abbrev)
+       0        0    2a56a     1 .debug_info
+       0        0      235     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_info)
+     235      235      92f     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_info)
+     b64      b64      36a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_info)
+     ece      ece      12b     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_info)
+     ff9      ff9      85c     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_info)
+    1855     1855      60a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_info)
+    1e5f     1e5f       9d     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.debug_info)
+    1efc     1efc      3c6     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_info)
+    22c2     22c2       49     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.1ym4pv3.rcgu.o:(.debug_info)
+    230b     230b    22ddf     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_info)
+   250ea    250ea       86     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_info)
+   25170    25170       51     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_info)
+   251c1    251c1     1574     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_info)
+   26735    26735      187     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_info)
+   268bc    268bc      1fb     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_info)
+   26ab7    26ab7       95     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_info)
+   26b4c    26b4c      c74     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_info)
+   277c0    277c0      105     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_info)
+   278c5    278c5      292     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_info)
+   27b57    27b57       51     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_info)
+   27ba8    27ba8     19ae     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_info)
+   29556    29556      197     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_info)
+   296ed    296ed      1dd     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_info)
+   298ca    298ca      273     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_info)
+   29b3d    29b3d      2ad     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_info)
+   29dea    29dea      242     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_info)
+   2a02c    2a02c       a1     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_info)
+   2a0cd    2a0cd      49d     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_info)
+       0        0     1570     1 .debug_aranges
+       0        0       30     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_aranges)
+      30       30       70     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_aranges)
+      a0       a0       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_aranges)
+      c0       c0       28     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_aranges)
+      e8       e8       38     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_aranges)
+     120      120       38     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_aranges)
+     158      158       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.debug_aranges)
+     178      178       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_aranges)
+     198      198       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.1ym4pv3.rcgu.o:(.debug_aranges)
+     1b8      1b8     1130     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_aranges)
+    12e8     12e8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_aranges)
+    1308     1308       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_aranges)
+    1328     1328       38     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_aranges)
+    1360     1360       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_aranges)
+    1380     1380       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_aranges)
+    13a0     13a0       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_aranges)
+    13c0     13c0       38     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_aranges)
+    13f8     13f8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_aranges)
+    1418     1418       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_aranges)
+    1438     1438       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_aranges)
+    1458     1458       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_aranges)
+    1488     1488       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_aranges)
+    14a8     14a8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_aranges)
+    14c8     14c8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_aranges)
+    14e8     14e8       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_aranges)
+    1508     1508       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_aranges)
+    1528     1528       20     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_aranges)
+    1548     1548       28     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_aranges)
+       0        0    131b8     1 .debug_ranges
+       0        0       20     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_ranges)
+      20       20       c8     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_ranges)
+      e8       e8       30     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_ranges)
+     118      118       18     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_ranges)
+     130      130      118     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_ranges)
+     248      248       88     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_ranges)
+     2d0      2d0       48     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_ranges)
+     318      318    11270     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_ranges)
+   11588    11588       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_ranges)
+   115a0    115a0      818     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_ranges)
+   11db8    11db8       48     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_ranges)
+   11e00    11e00      400     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_ranges)
+   12200    12200       48     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_ranges)
+   12248    12248       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_ranges)
+   12278    12278      b90     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_ranges)
+   12e08    12e08       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_ranges)
+   12e20    12e20       18     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_ranges)
+   12e38    12e38       60     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_ranges)
+   12e98    12e98       30     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_ranges)
+   12ec8    12ec8       60     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_ranges)
+   12f28    12f28      290     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_ranges)
+       0        0    48528     1 .debug_str
+       0        0    48528     1         <internal>:(.debug_str)
        0        0       99     1 .comment
        0        0       99     1         <internal>:(.comment)
        0        0       3a     1 .ARM.attributes
-       0        0       3a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.ARM.attributes)
-       0        0     4e90     4 .debug_frame
-       0        0      110     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_frame)
-     110      110       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_frame)
-     140      140       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.debug_frame)
-     170      170       84     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_frame)
-     1f4      1f4       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.05er2an.rcgu.o:(.debug_frame)
-     224      224     4738     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_frame)
-    495c     495c       3c     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_frame)
-    4998     4998       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_frame)
-    49c8     49c8       b4     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_frame)
-    4a7c     4a7c       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_frame)
-    4ab4     4ab4       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_frame)
-    4ae4     4ae4       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_frame)
-    4b14     4b14       b4     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_frame)
-    4bc8     4bc8       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_frame)
-    4bfc     4bfc       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_frame)
-    4c30     4c30       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_frame)
-    4c60     4c60       90     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_frame)
-    4cf0     4cf0       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_frame)
-    4d28     4d28       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_frame)
-    4d60     4d60       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_frame)
-    4d90     4d90       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_frame)
-    4dc4     4dc4       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_frame)
-    4df8     4df8       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_frame)
-    4e28     4e28       68     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_frame)
-       0        0    25d00     1 .debug_line
-       0        0      28e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.05er2an.rcgu.o:(.debug_line)
-     28e      28e      27f     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.05er2an.rcgu.o:(.debug_line)
-     50d      50d       bd     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.05er2an.rcgu.o:(.debug_line)
-     5ca      5ca      308     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.05er2an.rcgu.o:(.debug_line)
-     8d2      8d2       af     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.05er2an.rcgu.o:(.debug_line)
-     981      981    204d3     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_line)
-   20e54    20e54      108     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_line)
-   20f5c    20f5c       70     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_line)
-   20fcc    20fcc     1026     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_line)
-   21ff2    21ff2      213     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_line)
-   22205    22205      310     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_line)
-   22515    22515       da     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_line)
-   225ef    225ef      bcb     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_line)
-   231ba    231ba      1f8     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_line)
-   233b2    233b2      356     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_line)
-   23708    23708       75     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_line)
-   2377d    2377d     112b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_line)
-   248a8    248a8      217     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_line)
-   24abf    24abf      236     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_line)
-   24cf5    24cf5      2a0     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_line)
-   24f95    24f95      368     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_line)
-   252fd    252fd      26a     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_line)
-   25567    25567      12b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_line)
-   25692    25692      66e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_line)
-       0        0      610     4 .symtab
-       0        0      610     4         <internal>:(.symtab)
+       0        0       3a     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.ARM.attributes)
+       0        0     4ff8     4 .debug_frame
+       0        0       68     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_frame)
+      68       68      110     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_frame)
+     178      178       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_frame)
+     1a8      1a8       4c     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_frame)
+     1f4      1f4       84     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_frame)
+     278      278       84     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_frame)
+     2fc      2fc       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.debug_frame)
+     32c      32c       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_frame)
+     35c      35c       30     4         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.1ym4pv3.rcgu.o:(.debug_frame)
+     38c      38c     4738     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_frame)
+    4ac4     4ac4       3c     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_frame)
+    4b00     4b00       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_frame)
+    4b30     4b30       b4     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_frame)
+    4be4     4be4       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_frame)
+    4c1c     4c1c       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_frame)
+    4c4c     4c4c       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_frame)
+    4c7c     4c7c       b4     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_frame)
+    4d30     4d30       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_frame)
+    4d64     4d64       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_frame)
+    4d98     4d98       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_frame)
+    4dc8     4dc8       90     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_frame)
+    4e58     4e58       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_frame)
+    4e90     4e90       38     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_frame)
+    4ec8     4ec8       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_frame)
+    4ef8     4ef8       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_frame)
+    4f2c     4f2c       34     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_frame)
+    4f60     4f60       30     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_frame)
+    4f90     4f90       68     4         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_frame)
+       0        0    266ce     1 .debug_line
+       0        0      208     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2dtyotjk1vrqx2hgi51wjmuja.1ym4pv3.rcgu.o:(.debug_line)
+     208      208      292     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2gmh8k3es22y57d57r433mrw7.1ym4pv3.rcgu.o:(.debug_line)
+     49a      49a      27f     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.2qn9umykawrjghns3j228d6xm.1ym4pv3.rcgu.o:(.debug_line)
+     719      719      16e     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.5ixtm7bjqybwk2uutcrg9bnsd.1ym4pv3.rcgu.o:(.debug_line)
+     887      887      3c5     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.718sej4hnr8nvy2fq8l2yrqdk.1ym4pv3.rcgu.o:(.debug_line)
+     c4c      c4c      308     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.abb8etpusw12suq492ufcxkyy.1ym4pv3.rcgu.o:(.debug_line)
+     f54      f54       ad     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.au02bjilnrubrb934yaeefmmd.1ym4pv3.rcgu.o:(.debug_line)
+    1001     1001      29f     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.b27d1fp8r05otxarl88yb9elq.1ym4pv3.rcgu.o:(.debug_line)
+    12a0     12a0       af     1         /Users/robinonsay/rust/rustos/target/thumbv8m.main-none-eabihf/debug/deps/pico2-86b29d2516d57d74.dq6oc81negpnxwjbqg5bmjseb.1ym4pv3.rcgu.o:(.debug_line)
+    134f     134f    204d3     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcore-8ed364285fed311f.rlib(core-8ed364285fed311f.core.2c088511ea2688e3-cgu.0.rcgu.o):(.debug_line)
+   21822    21822      108     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.113.rcgu.o):(.debug_line)
+   2192a    2192a       70     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.171.rcgu.o):(.debug_line)
+   2199a    2199a     1026     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.003.rcgu.o):(.debug_line)
+   229c0    229c0      213     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.196.rcgu.o):(.debug_line)
+   22bd3    22bd3      310     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.201.rcgu.o):(.debug_line)
+   22ee3    22ee3       da     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.210.rcgu.o):(.debug_line)
+   22fbd    22fbd      bcb     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.013.rcgu.o):(.debug_line)
+   23b88    23b88      1f8     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.225.rcgu.o):(.debug_line)
+   23d80    23d80      356     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.275.rcgu.o):(.debug_line)
+   240d6    240d6       75     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.280.rcgu.o):(.debug_line)
+   2414b    2414b     112b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.000.rcgu.o):(.debug_line)
+   25276    25276      217     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.288.rcgu.o):(.debug_line)
+   2548d    2548d      236     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.308.rcgu.o):(.debug_line)
+   256c3    256c3      2a0     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.322.rcgu.o):(.debug_line)
+   25963    25963      368     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.413.rcgu.o):(.debug_line)
+   25ccb    25ccb      26a     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.415.rcgu.o):(.debug_line)
+   25f35    25f35      12b     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.346.rcgu.o):(.debug_line)
+   26060    26060      66e     1         /Users/robinonsay/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/thumbv8m.main-none-eabihf/lib/libcompiler_builtins-7bce56505f694de9.rlib(compiler_builtins-7bce56505f694de9.compiler_builtins.cf3d97d767db3a0c-cgu.020.rcgu.o):(.debug_line)
+       0        0      9b0     4 .symtab
+       0        0      9b0     4         <internal>:(.symtab)
        0        0       c8     1 .shstrtab
        0        0       c8     1         <internal>:(.shstrtab)
-       0        0      ba9     1 .strtab
-       0        0      ba9     1         <internal>:(.strtab)
+       0        0     14ba     1 .strtab
+       0        0     14ba     1         <internal>:(.strtab)

@@ -2,6 +2,9 @@
 #![no_main]
 
 use core::{panic::PanicInfo, ptr::copy_nonoverlapping};
+
+use crate::gpio::gpio::gpio_demo;
+mod common;
 mod gpio;
 
 #[used]                                          // survives rustc
@@ -82,8 +85,6 @@ unsafe fn reset_bss() {
     let count = (end as usize - p as usize) / 4;
     unsafe {p.write_bytes(0, count)}
 }
-#[used] #[unsafe(no_mangle)] static mut DATA_TEST: u32      = 0xDEAD_BEEF;
-#[used] #[unsafe(no_mangle)] static mut BSS_TEST:  [u32; 4] = [0; 4];
 
 #[unsafe(no_mangle)] pub extern "C" fn OnReset() -> ! {
     unsafe{
@@ -118,5 +119,8 @@ static VECTOR_TABLE: [Vector; 68] = {
 };
 
 fn main() -> !{
+    unsafe{
+        gpio_demo();
+    }
     loop{}
 }

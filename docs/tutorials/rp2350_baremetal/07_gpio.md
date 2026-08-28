@@ -6,7 +6,7 @@ revision: B
 effective_date: 2026-08-25
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-06
-sources: RP2350 datasheet 2.1.3, 2.2.4, 3.1, 3.1.11 (Table 16), 3.1.3 (Table 23), 3.6.1, 7.5, 7.5.3 (Tables 534/536), 9.1, 9.3, 9.7, 9.8, 9.9, 9.11 (Tables 700/850/852), 12.9.2; errata E9; docs/icd/rp2350/gpio/
+sources: RP2350 datasheet 2.1.3, 2.2.4, 3.1, 3.1.11 (Table 16), 3.1.3 (Table 23), 3.6.1, 7.5, 7.5.3 (Tables 534/536), 9.1, 9.3, 9.6, 9.6.1, 9.7, 9.8, 9.9, 9.11 (Tables 700/850/852), 12.9.2; errata E9; docs/icd/rp2350/gpio/
 ---
 
 # Chapter 07 — GPIO and IO_BANK0
@@ -233,7 +233,7 @@ off by one, with `pads[0]` landing on `VOLTAGE_SELECT`.
 
 That misfire is worse than a wrong pin. `VOLTAGE_SELECT` bit 0 sets the input
 threshold for **all 30 pins at once** — 0 for IOVDD 2.5-3.3 V, 1 for 1.8 V
-(9.7). Write a pad config word with an odd value there and you have told the
+(9.6, Table 851). Write a pad config word with an odd value there and you have told the
 chip the board runs at 1.8 V when it does not. No fault, no warning; just
 marginal receive thresholds bank-wide.
 

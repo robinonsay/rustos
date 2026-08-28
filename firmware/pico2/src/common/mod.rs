@@ -1,1 +1,1 @@
-mod reg;
+pub mod reg;
