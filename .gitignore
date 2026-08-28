@@ -1,1 +1,12 @@
+# Rust build output
 target/
+
+# Firmware build products
+*.elf
+*.uf2
+*.bin
+*.hex
+*.map
+
+# macOS
+.DS_Store
