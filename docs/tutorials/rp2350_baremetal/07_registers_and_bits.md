@@ -2,47 +2,54 @@
 document_type: "Tutorial Chapter — Registers, Bits, and Register Blocks"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 7 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-06
 sources: RP2350 datasheet §2.1.3 (PDF p27), §2.1.5 (PDF p28), §3.1.11 (Tables 16/45, PDF p55-56, p69), §7.5 (Tables 533/534, PDF p504), §9.11.1 (Tables 648/700, PDF p603-606, p650), §9.11.3 (Tables 850/851/852, PDF p783-785)
 creates: nothing
-describes: firmware/pico2/src/gpio/mod.rs and firmware/pico2/src/common/reg.rs
-  (chapter 08 §8.3 and §8.4 write both), .cargo/config.toml
+describes: firmware/pico2/src/gpio/mod.rs, firmware/pico2/src/common/reg.rs,
+  firmware/pico2/src/common/reset.rs (chapter 08 §8.3-§8.5 write them),
+  api/src/gpio/mod.rs, .cargo/config.toml
 ---
 
 # Chapter 07 — Registers, Bits, and Register Blocks
 
-This is the whole of the firmware's GPIO toggle, from
-`firmware/pico2/src/gpio/gpio.rs`:
+This is the firmware's whole "drive the pin" path — the body of the
+`Write<bool>` implementation in `firmware/pico2/src/gpio/gpio.rs`, quoted
+verbatim (chapter 08 §8.11 explains the trait around it):
 
 ```rust
-unsafe fn toggle_gpio_pin(pin: usize)
-{
-    let sio_addr = RegAddr::SIO as usize as *mut Sio;
-    unsafe{
-        let toggle = &raw mut (*sio_addr).gpio_out_xor;
-        toggle.write_volatile(1 << pin);
+    fn write(&mut self, value: bool) -> Result<(), Self::Error> {
+        let sio_addr = RegAddr::SIO as usize as *mut Sio;
+        unsafe
+        {
+            let set_reg = match value{
+                true => &raw mut (*sio_addr).gpio_out_set,
+                false => &raw mut (*sio_addr).gpio_out_clr
+            };
+            set_reg.write_volatile(1 << self.pin_no);
+        }
+        return  Ok(());
     }
-}
 ```
 
 Five things happen there, none of them anything to do with GPIO: an integer
 becomes a pointer, a `#[repr(C)]` struct turns a register name into an offset,
-`&raw mut` produces a field address without producing a reference, `1 << pin`
-builds a bit position, and `write_volatile` forces the store to happen. This
-chapter is those five techniques. Chapter 08 is then pure sequence — which
-register, in which order, and why.
+`&raw mut` produces a field address without producing a reference,
+`1 << self.pin_no` builds a bit position, and `write_volatile` forces the store
+to happen. This chapter is those five techniques. Chapter 08 is then pure
+sequence — which register, in which order, and why.
 
-Nothing in this chapter is typed into a file. It quotes `gpio.rs`, `gpio/mod.rs`
-and `common/reg.rs` as worked examples of those five techniques; chapter 08 §8.3
-and §8.4 are where you actually create those files, and creating them here would
-not work — `gpio/mod.rs` opens with `pub mod gpio;`, naming a file that does not
-exist until §8.5.
+Nothing in this chapter is typed into a file. It quotes `gpio.rs`,
+`gpio/mod.rs`, `common/reg.rs` and `common/reset.rs` as worked examples of
+those five techniques; chapter 08 §8.3 through §8.5 are where you actually
+create those files, and creating them here would not work — `gpio/mod.rs`
+opens with `pub mod gpio;`, naming a file that does not exist until §8.6.
 
-Citation, callout and numbering conventions are the index's; this chapter does
-not restate them.
+Citation, callout and numbering conventions are the index's; so is the
+convention that listings from the tree elide its `///` doc comments and quote
+the code lines byte-for-byte. This chapter does not restate them.
 
 ## 7.1 `volatile`
 
@@ -73,21 +80,29 @@ with its `CPACR` and `VTOR` writes.
 The fourth row is the one the firmware actually performs. `RESETS.RESET` at
 `0x40020000` holds one reset bit per peripheral, all reset to `0x1`
 (Table 534, datasheet §7.5, PDF p504). The firmware wants bits 6 and 9 cleared
-and every other bit left exactly as it was, so `reset_gpio` reads, masks, and
-writes back:
+and every other bit left exactly as it was, so `clr_reset_reg` in
+`common/reset.rs` reads, masks, and writes back — verbatim, the function's
+body:
 
 ```rust
+    // Create pointer to reset addresses
+    let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    unsafe{
         // read current registers
         let reset = &raw mut (*reset_addr).reset;
         let current = reset.read_volatile();
         // reset IO and PAD
-        reset.write_volatile(current & !IO_PAD_BITMASK);
+        reset.write_volatile(current & mask);
+
+    }
 ```
 
-A plain `write_volatile(0)` here would deassert every reset on the chip at once,
-including bit 7 (`IO_QSPI`) and bit 10 (`PADS_QSPI`) — the pins the image is
-executing from. Chapter 08 §8.5 walks this code as step 1 of the bring-up
-sequence, and chapter 09 §9.2.1 gives the full bit list.
+The `mask` parameter arrives already complemented — the caller writes
+`clr_reset_reg(!IO_PAD_BITMASK)`, so `current & mask` clears exactly bits 6
+and 9. A plain `write_volatile(0)` here would deassert every reset on the chip
+at once, including bit 7 (`IO_QSPI`) and bit 10 (`PADS_QSPI`) — the pins the
+image is executing from. Chapter 08 §8.5 walks this code as step 1 of the
+bring-up sequence, and chapter 09 §9.2.1 gives the full bit list.
 
 Applying RMW everywhere out of caution is its own bug: it makes
 write-1-to-clear registers behave very strangely, and it can preserve stale
@@ -119,7 +134,9 @@ site. From `configure_gpio_pin_out`, verbatim:
         let mut current_pad = pad.read_volatile();
         const IE: u8 = 6;
         const OD: u8 = 7;
+        // OD must be clear or the pad refuses to drive regardless of SIO.
         current_pad &= !(1 << OD);
+        // IE on so the pin can also be read back; see the doc comment.
         current_pad |= 1 << IE;
         pad.write_volatile( current_pad);
 ```
@@ -138,9 +155,10 @@ pub const PADS_IE:  u32 = 1 << 6;
 pub const PADS_PDE: u32 = 1 << 2;
 ```
 
-The firmware has no such module — `IE`, `OD` and `ISO` are declared inside the
-one function that uses them, and there are no pad constants anywhere else. The
-positions and reset values are Table 852 (PDF p785); chapter 09 has the table.
+The firmware has no such module — `IE`, `OD`, `ISO`, `PUE` and `PDE` are
+declared inside the two functions that use them, and there are no pad
+constants anywhere else. The positions and reset values are Table 852
+(PDF p785); chapter 09 has the table.
 
 ### 7.3.2 Multi-bit fields — clear, then set
 
@@ -194,14 +212,14 @@ immediate. ARM materialises constants in halfword pairs. This is the head of
 output):
 
 ```asm
-1000012a <OnReset>:
-1000012a:      	push	{r7, lr}
-1000012c:      	mov	r7, sp
-1000012e:      	movw	r0, #0xed88
-10000132:      	movt	r0, #0xe000
-10000136:      	ldr	r1, [r0]
-10000138:      	orr	r1, r1, #0xf00000
-1000013c:      	str	r1, [r0]
+10000306 <OnReset>:
+10000306:      	push	{r7, lr}
+10000308:      	mov	r7, sp
+1000030a:      	movw	r0, #0xed88
+1000030e:      	movt	r0, #0xe000
+10000312:      	ldr	r1, [r0]
+10000314:      	orr	r1, r1, #0xf00000
+10000318:      	str	r1, [r0]
 ```
 
 `movw` loads the low halfword and zeroes the top; `movt` loads the high
@@ -214,23 +232,33 @@ READ, `orr` MODIFY, `str` WRITE. ARM is a **load/store architecture** —
 arithmetic works only on registers, memory only via `ldr`/`str`, and there is
 no instruction that ORs a value into a memory location. A read-modify-write is
 structurally three instructions, and your Rust maps onto them one-to-one
-because it has to. The same shape appears for `RESETS.RESET` in `main` (`ldr` /
-`bic` / `str` at `0x1000019c`), with `bic` — bit clear — standing in for the
-`& !mask`.
+because it has to. The same shape appears for `RESETS.RESET`, inlined into
+`demo::main` in the finished build at `0x1000014c`, with `bic` — bit clear —
+standing in for the `& mask`:
+
+```asm
+1000014c:      	ldr	r1, [r0, #-8]
+10000150:      	bic	r1, r1, #0x240
+10000154:      	str	r1, [r0, #-8]
+```
+
+(`r0` holds `0x40020008`, the `RESET_DONE` address the poll loop below it
+needs, so LLVM reaches `RESET` at offset `-8` from it — one materialised base
+serving two registers, the same trick as `VTOR` in chapter 06 §6.5.)
 
 One optimiser habit is worth recognising in a disassembly: it merges adjacent
 field updates. The clear-then-set pair of §7.3.1 touches bits 7 and 6 of the
 same word, and LLVM turns the whole read-modify-write into a single bitfield
-insert:
+insert — from `init_output` in the finished build:
 
 ```asm
-100001ea:      	ldr.w	r3, [r12]
-100001ee:      	bfi	r3, r2, #6, #2
+100003fa:      	ldr.w	r3, [r1, r2, lsl #2]
+100003fe:      	bfi	r3, r12, #6, #2
 ...
-100001f6:      	str.w	r3, [r12]
+10000406:      	str.w	r3, [r1, r2, lsl #2]
 ```
 
-`r2` holds `1`, so `bfi r3, r2, #6, #2` writes `0b01` into bits 7:6 — `IE = 1`
+`r12` holds `1`, so `bfi r3, r12, #6, #2` writes `0b01` into bits 7:6 — `IE = 1`
 and `OD = 0` in one instruction, from source that clears one bit and sets the
 other separately. The two volatile calls are still exactly two bus accesses,
 which is the guarantee that matters; what happens between them is not your
@@ -254,19 +282,24 @@ rest untouched, in one store, with no read — the clean way to release two
 occupy 16 kB per block, and native atomic writes cost the same cycles as normal
 ones.
 
-**The firmware does not use them.** `reset_gpio` does a plain read-modify-write
-at `RESETS + 0x0`. Both are correct; the alias version is interrupt- and
-core-safe, the RMW version is what is in the tree. Do not read the alias table
-as a description of the shipping code.
+**The firmware does not use them.** `clr_reset_reg` and `set_reset_reg` do a
+plain read-modify-write at `RESETS + 0x0`. Both approaches are correct here;
+the alias version is interrupt- and core-safe with no window between the read
+and the write, the RMW version is what is in the tree — and the tree's own doc
+comment on `clr_reset_reg` says as much, naming the single store to
+`RESET_CLR` at `0x40023000` as the alternative. Do not read the alias table as
+a description of the shipping code.
 
 > **Silent-failure trap.** §2.1.3 lists the blocks that do **not** support
 > atomic register access, and `SIO` is first: *"SIO (Section 3.1), though some
 > individual registers (e.g. GPIO) have set, clear, and XOR aliases"*. SIO's
 > `_SET`/`_CLR`/`_XOR` are real registers at real offsets (§7.6.2), not address
-> aliases. Table 16 ends at offset `0x1e4` (`TMDS_POP_DOUBLE_L2`, PDF p61), so
-> `SIO_BASE + 0x3000` is past every SIO register there is. **Inferred:** the store goes nowhere useful and the
-> bits you meant to clear stay set, with no fault. The exclusion list also
-> covers the CoreSight window, the Cortex-M33 PPB, and the OTP SBPI bridge.
+> aliases — the chapter-opening `write` targets two of them. Table 16 ends at
+> offset `0x1e4` (`TMDS_POP_DOUBLE_L2`, PDF p61), so `SIO_BASE + 0x3000` is
+> past every SIO register there is. **Inferred:** the store goes nowhere useful
+> and the bits you meant to clear stay set, with no fault. The exclusion list
+> also covers the CoreSight window, the Cortex-M33 PPB, and the OTP SBPI
+> bridge.
 
 ## 7.6 Modelling a register block as a `#[repr(C)]` struct
 
@@ -277,15 +310,17 @@ algorithm is doing arithmetic on your behalf, and it does not know what the
 datasheet says. Three ways that goes wrong — §7.6.1, §7.6.2 and §7.6.3 — all of
 them silent.
 
-The firmware declares five such structs in `firmware/pico2/src/gpio/mod.rs`,
-all private to the module with `pub` fields. The two simple ones, verbatim
-(they are not adjacent in the file; `IoBank` and `PadsBank` sit between them):
+The firmware declares five such structs: `GpioRegs`, `IoBank`, `PadsBank` and
+`Sio` in `firmware/pico2/src/gpio/mod.rs`, and `Reset` in
+`firmware/pico2/src/common/reset.rs`, next to the three functions that use it.
+All five are private to their modules with `pub` fields. The two simple ones,
+code lines verbatim (each field carries a long doc comment in the tree):
 
 ```rust
 #[repr(C)]
 struct GpioRegs{
-    pub status: u32,  // Status Register
-    pub ctrl: u32,    // Ctrl Register
+    pub status: u32,
+    pub ctrl: u32,
 }
 
 #[repr(C)]
@@ -304,44 +339,50 @@ in `firmware/pico2/src/common/reg.rs`:
 ```rust
 #[repr(usize)]
 #[derive(Clone, Copy)]
+// Variant names deliberately match the datasheet's block names exactly, so
+// code can be checked against the register listings without translation.
+#[allow(non_camel_case_types)]
 pub enum RegAddr {
-    RESET = 0x4002_0000 as usize,
-    IO_BANK0 = 0x4002_8000 as usize,
-    SIO = 0xd000_0000 as usize,
-    PADS_BANK0 = 0x4003_8000 as usize,
+    RESET = 0x4002_0000,
+    IO_BANK0 = 0x4002_8000,
+    PADS_BANK0 = 0x4003_8000,
+    SIO = 0xd000_0000,
 }
 ```
 
 The two are joined with a double cast, `RegAddr::RESET as usize as *mut Reset`:
 the first cast turns the variant into its discriminant (`#[repr(usize)]` is
 what makes that well-defined), the second turns the integer into a pointer.
-The SCREAMING_SNAKE variant names cost two `non_camel_case_types` warnings on
-every build — `IO_BANK0` and `PADS_BANK0`; `RESET` and `SIO` are single words
-and do not trip the lint (chapter 08 §8.13 has the full warning inventory).
+The SCREAMING_SNAKE variant names would trip the `non_camel_case_types` lint —
+`IO_BANK0` and `PADS_BANK0`; `RESET` and `SIO` are single words and would
+not — which is why the enum carries `#[allow(non_camel_case_types)]` and the
+comment above it saying what the names buy.
 
 ### 7.6.1 Leading per-bank registers
 
 `PADS_BANK0` does not open with a pad. Offset `0x00` is `VOLTAGE_SELECT`, a
 per-bank input-threshold control (Table 850, §9.11.3, PDF p783). The pin array
-starts one word later, and the struct says so:
+starts one word later, and the struct says so (code lines verbatim; the tree
+documents each field's offset in its doc comment):
 
 ```rust
 #[repr(C)]
 struct PadsBank{
-    pub voltage_select: u32,   // 0x00  bank-wide input threshold
+    pub voltage_select: u32,
     pub pads: [u32; 48],
-    pub swclk: u32,            // 0xc4
-    pub swd: u32,              // 0xc8
+    pub swclk: u32,
+    pub swd: u32,
 }
 ```
 
-`IO_BANK0` does **not** do this — it opens directly with `GPIO0_STATUS` at
-offset `0x000` (Table 648, §9.11.1, PDF p603). The two blocks are not parallel
-in shape, which is why the mistake is easy: index a pads array from offset `0`
-and every pin is off by one, with `pads[0]` landing on `VOLTAGE_SELECT`, whose
-bit 0 sets the input threshold for the whole bank (Table 851, PDF p785).
-Transcribe offset `0x00` from the register list rather than assuming the block
-starts with the thing you came for.
+`voltage_select` is offset `0x00`, `pads[n]` is `0x04 + 4n`, `swclk` is `0xc4`
+and `swd` is `0xc8`. `IO_BANK0` does **not** do this — it opens directly with
+`GPIO0_STATUS` at offset `0x000` (Table 648, §9.11.1, PDF p603). The two blocks
+are not parallel in shape, which is why the mistake is easy: index a pads array
+from offset `0` and every pin is off by one, with `pads[0]` landing on
+`VOLTAGE_SELECT`, whose bit 0 sets the input threshold for the whole bank
+(Table 851, PDF p785). Transcribe offset `0x00` from the register list rather
+than assuming the block starts with the thing you came for.
 
 `swclk` and `swd` are the debug-port pads. Naming them is correct — they are
 part of the block — but think twice before letting a general pin allocator
@@ -349,8 +390,8 @@ index them, because a bug that reconfigures them disconnects your debugger.
 
 ### 7.6.2 Reserved gaps
 
-Two of the four blocks have holes, announced by nothing except a jump in the
-offset column of the register list.
+Two of the four GPIO-path blocks have holes, announced by nothing except a jump
+in the offset column of the register list.
 
 `IO_BANK0` has 128 bytes of nothing between `GPIO47_CTRL` (ending at `0x180`)
 and `IRQSUMMARY_PROC0_SECURE0` at `0x200` (Table 648, PDF p605):
@@ -371,7 +412,8 @@ words follow. There are exactly 12 `IRQSUMMARY` registers (`0x200`-`0x22c`) and
 first register it deliberately does not model.
 
 `SIO` has a single reserved word at `0x00c`. Table 16 (§3.1.11, PDF p55) runs
-`0x008 GPIO_HI_IN` straight to `0x010 GPIO_OUT` with nothing between:
+`0x008 GPIO_HI_IN` straight to `0x010 GPIO_OUT` with nothing between. Here the
+tree's own trailing offset comments are kept, because they are the point:
 
 ```rust
 #[repr(C)]
@@ -484,8 +526,8 @@ regardless, in an order the source does not state.
 
 Transcribe the register list literally instead, one `u32` per register, as the
 firmware does. Every field is then `u32`, the struct's alignment is 4, and no
-padding exists anywhere — which is why all five structs in `mod.rs` are
-padding-free by construction.
+padding exists anywhere — which is why all five structs are padding-free by
+construction.
 
 ### 7.6.4 Two attributes to leave off
 
@@ -495,7 +537,8 @@ LLVM may reorder, coalesce or delete those loads, and some SIO registers have
 read side effects: `INTERP0_POP_LANE0` at offset `0x094` is *"Read LANE0
 result, and simultaneously write lane results to both accumulators (POP)"*
 (Table 45, PDF p69). An operation you never want should not be expressible.
-None of the five structs derives `Clone` or `Copy`.
+None of the five register structs derives `Clone` or `Copy` (the `RegAddr`
+*enum* does, and that is fine — copying an address is not reading a register).
 
 **`unsafe impl Sync`.** `u32` and arrays of `u32` are already `Sync`, so these
 structs get it for free, and none of them declares it. Writing it by hand
@@ -511,54 +554,70 @@ The rule that makes the whole approach sound:
 // PROPOSED — not in the tree today
 // NO — a real reference
 let sio: &mut Sio = unsafe { &mut *(SIO_BASE as *mut Sio) };
-sio.gpio_out_xor = 1 << 25;
+sio.gpio_out_set = 1 << 25;
 
 // YES — raw pointer plus an explicit volatile access
 let p = SIO_BASE as *mut Sio;
-unsafe { (&raw mut (*p).gpio_out_xor).write_volatile(1 << 25) };
+unsafe { (&raw mut (*p).gpio_out_set).write_volatile(1 << 25) };
 ```
 
-The second form is what `toggle_gpio_pin` at the top of this chapter does.
-`&mut T` promises LLVM the memory is uniquely owned and does not change
+The second form is what the `write` implementation at the top of this chapter
+does. `&mut T` promises LLVM the memory is uniquely owned and does not change
 underneath. Both halves are false for MMIO: the other core writes these
 registers, and so does the hardware. The plain assignment is also a normal
 store, which the optimiser may sink, hoist, merge with a neighbour, or drop as
 dead. `write_volatile` on a raw pointer pins it to one access, at one address,
 in program order.
 
-Every access in `gpio.rs` follows this shape, and no `&` or `&mut` is ever
-formed over a peripheral.
+Every access in `gpio.rs` and `reset.rs` follows this shape, and no `&` or
+`&mut` is ever formed over a peripheral.
 
-## 7.7 The host-testable seam (proposed — not yet built)
+## 7.7 The host-testable seam
 
 Register *addresses*, *masks*, *shifts* and *offset arithmetic* are pure
 computation. Only the `_volatile` calls touch hardware. That is a seam: the
 arithmetic can be tested on your laptop, and only the pokes need a board.
 
-**None of this is built.** The firmware writes the mux register as
-`io_ctrl.write_volatile(SIO)` with a function-local `const SIO: u32 = 5`, and
-there is no named constant, no mask helper and no test of any of it anywhere in
-the workspace. The `api` crate that `firmware/pico2/Cargo.toml` depends on
-contains, in full, an `add` function, an `ErrorType`/`Write`/`Read` trait trio,
-and a `GpioPin` marker trait — the latter two behind `mod common;` and
-`mod gpio;`, both private, so nothing outside the crate can name them yet:
+The workspace draws that seam as a crate boundary, and — unlike earlier
+revisions of this project — the seam is now wired in. The `api` crate declares
+the portable vocabulary:
+
+- `api::common` — `ErrorType` (one associated error type per peripheral),
+  `Write<T>` and `Read<T>` (value in, value out), and `Block` (release a
+  peripheral's reset bits / put them back);
+- `api::common::board` — `Board`, the one concrete type: a take-once holder
+  that starts every `Block` it is given (chapter 08 §8.12);
+- `api::gpio` — `Pull` (which pull resistor an input gets), the `Gpio` factory
+  trait (validate a pin number, hand back a configured pin), and the marker
+  that ties it together, verbatim from `api/src/gpio/mod.rs`:
 
 ```rust
-use crate::common::{Read, Write};
-
 pub trait GpioPin: Write<bool> + Read<bool> {}
 ```
 
-The firmware never writes `use api::...`. The dependency is declared and unused.
+The firmware consumes it. `firmware/pico2/src/gpio/gpio.rs` opens with
 
-What *does* exist is the mechanism for testing such a crate: the `xtest` alias
-in `.cargo/config.toml`, which overrides the global `[build] target` and picks
-the one crate that has tests. Chapter 01 §1.5.1 sets it up and shows it running.
+```rust
+use api::common::{Block, ErrorType, Read, Write};
+use api::gpio::{Gpio, Pull};
+```
 
-A `#![no_std]` library is still host-testable: `no_std` only suppresses the
-implicit `extern crate std`; built for the host, the library compiles unchanged
-and the *test harness* links `std`. That is why the one test that exists runs
-at all, and it is the slot the register arithmetic would drop into:
+and everything chapter 08 builds — the port type, the pin type, the
+configuration functions — is an implementation of those traits. `api` itself
+contains no register address and no `unsafe` *code* (its two `Block` methods
+are declared `unsafe fn`, an obligation passed to implementors, not an unsafe
+body), which is what lets it compile for the host: the `xtest` alias in
+`.cargo/config.toml` overrides the global `[build] target` and builds `api`
+for `aarch64-apple-darwin`. Chapter 01 §1.5.1 sets that up and shows it
+running.
+
+What the seam does not yet hold is tests. `cargo xtest` currently runs **zero
+unit tests** — `api` has no `#[test]` anywhere — and the register arithmetic
+that would benefit most is still function-local inside `gpio.rs`, on the wrong
+side of the boundary. A `#![no_std]` library is still host-testable: `no_std`
+only suppresses the implicit `extern crate std`; built for the host, the
+library compiles unchanged and the *test harness* links `std`. This is the
+slot the arithmetic would drop into:
 
 ```rust
 // PROPOSED — not in the tree today
@@ -622,5 +681,5 @@ That is the whole vocabulary: `volatile`, read-modify-write versus plain write,
 shift-and-mask instead of bitfields, `#[repr(C)]` over a base address, `&raw`
 instead of `&`. Every one of them appears in this chapter attached to a
 fragment, out of order and out of context. **Chapter 08** puts them back in
-order — six writes to four peripherals, in the sequence the hardware requires,
+order — the writes to four peripherals, in the sequence the hardware requires,
 ending with a lit LED.

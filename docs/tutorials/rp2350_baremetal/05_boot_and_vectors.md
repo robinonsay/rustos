@@ -2,17 +2,17 @@
 document_type: "Tutorial Chapter — Boot Metadata and the Vector Table"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 5 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-04
 sources: RP2350 datasheet §5.9.1 (PDF p417-418), §5.9.3.1 (PDF p420-421), §5.9.3.3 (PDF p423), §5.9.5 / §5.9.5.1 (PDF p427), §5.9.5.2 (PDF p428), §3.2 Table 94 (PDF p83-84), §3.7.4.5 (PDF p135-136), §3.7.4.6 / §3.7.4.7 (PDF p137), Table 200 ICSR (PDF p182), Table 206 SHPR2 / Table 207 SHPR3 (PDF p185-186), Table 249 SFSR (PDF p200-201)
-creates: firmware/pico2/src/main.rs — through §5.9's listing, with one placeholder
+creates: firmware/pico2/src/lib.rs — through §5.9's listing, with one placeholder
 ---
 
 # Chapter 05 — Boot Metadata and the Vector Table
 
-Two `static`s in `firmware/pico2/src/main.rs` that the *hardware* reads before
+Two `static`s in `firmware/pico2/src/lib.rs` that the *hardware* reads before
 any of your code runs. Neither is called from anywhere; both are load-bearing.
 By the end of this chapter you will have pulled them out of the built image byte
 by byte and confirmed the bytes are the ones the datasheet asks for.
@@ -27,21 +27,21 @@ the other way, by writing `datasheet §9.4` in full.
 
 ## 5.1 What the bootrom needs
 
-Chapter 04 §4.11.2 has the first three sections of the **finished** image —
-still the target, not something you can build yet; §5.9 gives this chapter's
-own build and its numbers, which are smaller:
+Chapter 04 §4.11.2 has the sections of the **finished** image — still the
+target, not something you can build yet; §5.9 gives this chapter's own build
+and its numbers, which are smaller:
 
 ```
 Sections:
 Idx Name            Size     VMA      Type
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           000005ac 10000124 TEXT
+  3 .text           00001888 10000124 TEXT
 ```
 
 `.vector_table` and `.boot_info` are this chapter; `.text` is chapters 06 and
-08. Two data blobs sit in front of every instruction you wrote, and the bootrom
-demands them in two separate ways.
+08. Two data blobs sit in front of every instruction in the image, and the
+bootrom demands them in two separate ways.
 
 **First, a metadata block.** §5.9.5 (PDF p427): "A minimum amount of metadata
 (i.e. a valid IMAGE_DEF block) must be embedded in any binary for the bootrom to
@@ -70,7 +70,10 @@ RP2040, there is no requirement for flash binaries to have a checksummed
 "boot2" flash setup function at flash address 0. The RP2350 bootrom performs a
 simple best-effort XIP setup during flash scanning, and a flash-resident program
 can continue executing in this state." There is no second-stage bootloader to
-write, and you are already executing from flash when your reset handler starts.
+write, and your reset handler is already executing from flash when it starts.
+(XIP — execute-in-place — is the hardware that maps the external flash chip
+into the address space so the CPU can fetch instructions from it directly;
+chapter 03 §3.2 is the full story.)
 
 ## 5.2 Block structure (§5.9.1)
 
@@ -150,18 +153,15 @@ PDF p428) is the same 20 bytes with word 1 as `0x11010142`: `0x1021` becomes
 
 ## 5.4 Writing it in Rust
 
-### 5.4.1 The head of the file
+### 5.4.1 Where it goes
 
-This is the chapter that creates `firmware/pico2/src/main.rs`. Everything you
-type from here to the end of chapter 08 goes into that one file, in the order
-the chapters give it, and §5.9 prints the whole thing as it stands when this
-chapter ends.
-
-Start it with the six lines chapter 01 §1.9 already built and linked:
+This is the chapter where `firmware/pico2/src/lib.rs` starts becoming the real
+runtime. Everything you type in this chapter and the next goes into that one
+file; chapter 08 then adds the driver modules beside it. The file already has
+its head from chapter 01 §1.9:
 
 ```rust
 #![no_std]
-#![no_main]
 
 use core::panic::PanicInfo;
 
@@ -171,28 +171,27 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-Verbatim from the tree, with one subtraction: in the finished file that `use`
-line reads `use core::{panic::PanicInfo, ptr::copy_nonoverlapping};`, and two
-`mod` declarations sit under it. Chapter 06 §6.4.3 adds the
-`copy_nonoverlapping` import at the point the code needs it, and chapter 08
-§8.12.2 adds the modules at the point the files they name exist. Adding either one
-now is a compile error, because it would name something you have not written.
-
-Everything else in this chapter is appended below the panic handler.
+One convention before the first listing, because it holds for the rest of the
+tutorial: the tree's `lib.rs` carries long `//!` and `///` documentation
+comments on nearly every item. The listings here **elide those comments and
+quote the code lines byte-for-byte**; where a listing keeps a comment, it is
+the tree's. So your file and the tree's will differ in comments and in nothing
+else. `demo/src/main.rs` stays as chapter 01 left it — two attributes and
+`use pico2 as _;` — until chapter 06 gives it a job.
 
 ### 5.4.2 The boot block
 
-Five words, verbatim from `firmware/pico2/src/main.rs`:
+Five words, verbatim from `firmware/pico2/src/lib.rs`:
 
 ```rust
-#[used]                                          // survives rustc
-#[unsafe(link_section = ".boot_info")]           // names the section
-static BOOT_INFO: [u32;5] = [
+#[used]
+#[unsafe(link_section = ".boot_info")]
+static BOOT_INFO: [u32; 5] = [
     0xffffded3,
     0x10210142,
     0x000001ff,
     0x00000000,
-    0xab123579
+    0xab123579,
 ];
 ```
 
@@ -209,7 +208,7 @@ Chapter 02 §2.5 covers the `#[used]` / `KEEP()` split; the short version is tha
 they defend against two different tools at two different times, and you need
 both.
 
-Declare it `[u32;5]`, **not** `[u8;20]`: writing `u32` literals on a
+Declare it `[u32; 5]`, **not** `[u8; 20]`: writing `u32` literals on a
 little-endian target produces exactly the byte sequence the datasheet's "LE
 Value" column specifies, whereas a byte array means doing the endian swap by
 hand, and a swapped header is not a header. `link_section` is one of the
@@ -218,22 +217,10 @@ because a mistyped section name produces a broken binary and no diagnostic.
 
 ## 5.5 Verifying the boot block
 
-Dump the section out of the ELF with
-`llvm-objdump -s -j .boot_info target/thumbv8m.main-none-eabihf/release/pico2`:
-
-```
-target/thumbv8m.main-none-eabihf/release/pico2:	file format elf32-littlearm
-Contents of section .boot_info:
- 10000110 d3deffff 42012110 ff010000 00000000  ....B.!.........
- 10000120 793512ab                             y5..
-```
-
-Read the first group as bytes: `d3 de ff ff` is `0xffffded3` little-endian.
-Every word matches §5.3. If your bytes come out reversed, you used a byte array.
-
-That listing is the finished image. Run the same command now, with `BOOT_INFO`
-the only thing you have added to chapter 01 §1.9's stub, and you get the same
-twenty bytes in the same order at a different address:
+Add `BOOT_INFO` above the panic handler, build, and dump the section out of the
+ELF with
+`llvm-objdump -s -j .boot_info target/thumbv8m.main-none-eabihf/release/demo`.
+Staged — this is your build as it stands right now:
 
 ```
 Contents of section .boot_info:
@@ -241,41 +228,44 @@ Contents of section .boot_info:
  10000010 793512ab                             y5..
 ```
 
-`0x10000000` rather than `0x10000110`, because `.vector_table` is still empty
-until §5.6 puts 272 bytes in front of it, and the linker still reports
-`cannot find entry symbol OnReset` (chapter 04 §4.11.1). The bytes are the part
-under test here, and they do not move.
+Read the first group as bytes: `d3 de ff ff` is `0xffffded3` little-endian.
+Every word matches §5.3. If your bytes come out reversed, you used a byte array.
+The linker still reports `cannot find entry symbol OnReset` (chapter 04
+§4.11.1) and the memory report says `FLASH: 20 B` — the block is the only
+content in the image.
+
+The address is `0x10000000` rather than the finished image's `0x10000110`,
+because `.vector_table` is still empty until §5.6 puts 272 bytes in front of
+it. The bytes are the part under test here, and they do not move.
 
 Then get independent confirmation from Raspberry Pi's own tool. `picotool`
 dispatches on the file extension, so copy the Cargo output to a `.elf` name
 first and point it at the **file** — no board required, and none touched:
 
 ```
-$ picotool info -a pico2.elf
-File pico2.elf:
+$ picotool info -a demo.elf
+File demo.elf:
 
 Program Information
  target chip:         RP2350
  image type:          ARM Secure
 
 Metadata Block 1
- address:             0x10000110
- next block address:  0x10000110
+ address:             0x10000000
+ next block address:  0x10000000
  block type:          image def
  extra security:      not enabled
 ```
 
-(Elided from the real run: the leading path on the `File` line, the empty
-`Fixed Pin Information` and `Build Information` sections, and a repeat of the
-`target chip` / `image type` pair inside the metadata block.)
+(Elided from the real run: the empty `Fixed Pin Information` and
+`Build Information` sections, and a repeat of the `target chip` / `image type`
+pair inside the metadata block.)
 `next block address` equals `address`: the self-loop of §5.2 closed. `ARM
 Secure` is bits 10:8 and bits 5:4 of `0x1021` read back by someone else's
-decoder, which is the point of running it.
-
-This one also works on the staged build — same four lines under
-`Program Information`, and `address` / `next block address` both `0x10000000`.
-`picotool` reads the block, not the vector table, so the twenty bytes are
-already enough for it to call the file an RP2350 ARM Secure image.
+decoder, which is the point of running it. `picotool` reads the block, not the
+vector table, so the twenty bytes are already enough for it to call the file an
+RP2350 ARM Secure image. On the finished image the same command reports the
+same four lines with `address` and `next block address` both `0x10000110`.
 
 ## 5.6 The vector table
 
@@ -322,33 +312,47 @@ table is still 68 entries — the slots exist whether or not anything drives the
 
 Slot 0 is the stack pointer, and its value is `_stack_top` — a symbol the
 linker script defines (chapter 04 §4.9) and no Rust file defines. Declare it
-before you can name it:
+before you can name it. Verbatim from the tree, doc comment included:
 
 ```rust
-unsafe extern "C" { static _stack_top: u32; }
+unsafe extern "C" {
+    /// One past the last valid RAM byte; the initial stack pointer. The stack
+    /// is full-descending, so the first push lands at `_stack_top - 4` and
+    /// this address is never itself dereferenced — which matters, because it
+    /// is outside the decoded SRAM range and would bus-fault.
+    static _stack_top: u32;
+}
 ```
 
-In the tree that line sits immediately under `BOOT_INFO`, next to the vector
+In the tree that block sits immediately under `BOOT_INFO`, next to the vector
 table that consumes it; §5.9 shows it in position. It is `static`, not
 `static mut`, because you only ever take its *address* — the "value" of a linker
 symbol is a fiction, and chapter 02 §2.6 is the section that explains why. The
-four `.data` and `.bss` symbols get the same treatment in chapter 06 §6.4.2,
+five `.data` and `.bss` symbols get the same treatment in chapter 06 §6.4.2,
 when there is code that needs them.
 
 The table itself mixes three things: that **stack pointer** at index 0,
 **function pointers** at 1-67, and **zeros** in the reserved slots. Rust arrays
-are homogeneous, so this needs a union:
+are homogeneous, so this needs a union — verbatim, tree comments and all:
 
 ```rust
 #[repr(C)]
 #[derive(Clone, Copy)]
 union Vector {
-    handler:   unsafe extern "C" fn(),
-    reset:     unsafe extern "C" fn() -> !,
+    /// An ordinary exception or interrupt handler.
+    handler: unsafe extern "C" fn(),
+    /// The reset handler. Diverges: there is nothing to return to.
+    reset: unsafe extern "C" fn() -> !,
+    /// Slot 0 only: the initial stack pointer value.
     stack_top: *const u32,
-    reserved:  u32,
+    /// An architecturally reserved slot, which must read as zero.
+    reserved: u32,
 }
 
+// SAFETY: `Vector` contains a raw pointer, which is not `Sync`, so the
+// compiler will not let a `static` hold one without this. It is sound here
+// because the table is immutable, lives in read-only flash, and is only ever
+// read by hardware performing vector fetches.
 unsafe impl Sync for Vector {}
 ```
 
@@ -360,9 +364,8 @@ Four details, all of which you hit if you write this yourself:
 - **`reset` needs its own field.** A diverging `unsafe extern "C" fn() -> !`
   will not coerce to `unsafe extern "C" fn()` in union-field position; you get
   `error[E0308]: expected fn pointer 'unsafe extern "C" fn() -> ()'`.
-- **`unsafe impl Sync`** is required and sound: the `*const u32` field is what
-  makes the type non-`Sync`, and the union is a 4-byte POD with no interior
-  mutability that nothing mutates after link time.
+- **`unsafe impl Sync`** is required and sound, for the reason the tree's
+  `SAFETY:` comment states.
 - **`&raw const` on an extern static const-evaluates**, so the initial stack
   pointer comes from the linker symbol rather than a hardcoded `0x20082000`.
   Chapter 02 §2.6 explains why it is `&raw const _stack_top` and not
@@ -372,8 +375,7 @@ Four details, all of which you hit if you write this yourself:
 ### 5.6.3 Building 68 entries
 
 A `const` block with mutation is allowed in a static initialiser, so you fill
-the defaults first and then override — verbatim from `main.rs`, brace style and
-all:
+the defaults first and then override — verbatim from `lib.rs`:
 
 ```rust
 #[used]
@@ -382,11 +384,11 @@ static VECTOR_TABLE: [Vector; 68] = {
     let mut t = [Vector { handler: DefaultHandler }; 68];
     t[0] = Vector { stack_top: &raw const _stack_top };
     t[1] = Vector { reset: OnReset };
-    t[3] = Vector {handler: OnHardFault};
-    t[8] = Vector { reserved: 0};
-    t[9] = Vector { reserved: 0};
-    t[10] = Vector { reserved: 0};
-    t[13] = Vector { reserved: 0};
+    t[3] = Vector { handler: OnHardFault };
+    t[8] = Vector { reserved: 0 };
+    t[9] = Vector { reserved: 0 };
+    t[10] = Vector { reserved: 0 };
+    t[13] = Vector { reserved: 0 };
     t
 };
 ```
@@ -397,23 +399,23 @@ necessary; `#[used]` and `KEEP()` apply here exactly as in §5.4.
 ### 5.6.4 The Thumb bit
 
 Same tool, different section —
-`llvm-objdump -s -j .vector_table target/thumbv8m.main-none-eabihf/release/pico2`:
+`llvm-objdump -s -j .vector_table` on the **finished** image:
 
 ```
 Contents of section .vector_table:
- 10000000 00200820 2b010010 25010010 25010010  . . +...%...%...
- 10000010 25010010 25010010 25010010 25010010  %...%...%...%...
- 10000020 00000000 00000000 00000000 25010010  ............%...
- 10000030 25010010 00000000 25010010 25010010  %.......%...%...
+ 10000000 00200820 07030010 01030010 01030010  . . ............
+ 10000010 01030010 01030010 01030010 01030010  ................
+ 10000020 00000000 00000000 00000000 01030010  ................
+ 10000030 01030010 00000000 01030010 01030010  ................
 ```
 
 (The `file format` header line and the remaining 13 output lines — all
-`25010010` — are omitted.) Decode against §5.6.1:
+`01030010` — are omitted.) Decode against §5.6.1:
 
 - Word 0 → `0x20082000`; `nm` reports `_stack_top` at `20082000`. Exact.
-- Word 1 → `0x1000012b`; `nm` reports `OnReset` at `1000012a`.
-- Words 2 and 3 → `0x10000125`; `nm` reports **both** `DefaultHandler` and
-  `OnHardFault` at `10000124`. Hold that thought until §5.8.
+- Word 1 → `0x10000307`; `nm` reports `OnReset` at `10000306`.
+- Words 2 and 3 → `0x10000301`; `nm` reports **both** `DefaultHandler` and
+  `OnHardFault` at `10000300`. Hold that thought until §5.8.
 - Words 8, 9, 10 (offsets `0x20`, `0x24`, `0x28`) and word 13 (offset `0x34`) →
   `0x00000000`, the four reserved slots.
 
@@ -452,15 +454,17 @@ identify. Fault handlers **spin**, because returning re-executes the faulting
 instruction. Returning never clears an interrupt on its own; a default handler
 that returns produces an interrupt storm in which the foreground never advances
 while the chip looks busy — harder to diagnose than a clean freeze. The firmware
-takes the freeze:
+takes the freeze — verbatim, doc comments elided:
 
 ```rust
-#[unsafe(no_mangle)] pub extern "C" fn DefaultHandler(){
-    loop{}
+#[unsafe(no_mangle)]
+pub extern "C" fn DefaultHandler() {
+    loop {}
 }
 
-#[unsafe(no_mangle)] pub extern "C" fn OnHardFault(){
-    loop{}
+#[unsafe(no_mangle)]
+pub extern "C" fn OnHardFault() {
+    loop {}
 }
 ```
 
@@ -492,73 +496,89 @@ build the address has already been taken away from you.
 > `--release`. Every vector that used to distinguish them now points at the same
 > instruction. Under `--debug` they are two addresses and everything looks fine.
 
-This is not hypothetical; it is what the shipping build does. `llvm-nm -n`,
-release binary then debug binary:
+This is not hypothetical. `llvm-nm -n` on this chapter's staged build — where
+`OnReset` is still a placeholder `loop {}` and folds too — release binary then
+debug binary:
 
 ```
 10000124 T DefaultHandler
 10000124 T OnHardFault
-1000012a T OnReset
+10000124 T OnReset
 ```
 ```
-1000018c T DefaultHandler
-10000194 T OnHardFault
-1000019c T OnReset
+10000124 T DefaultHandler
+1000012c T OnHardFault
+10000134 T OnReset
 ```
 
-One address in release, two in debug, and it propagates straight into the
+One address in release, three in debug, and it propagates straight into the
 table. Debug `.vector_table`:
 
 ```
- 10000000 00200820 9d010010 8d010010 95010010  . . ............
+ 10000000 00200820 35010010 25010010 2d010010  . . 5...%...-...
 ```
 
-Word 2 (NMI) is `0x1000018d` = `DefaultHandler` + 1 and word 3 (HardFault) is
-`0x10000195` = `OnHardFault` + 1 — distinct. In release, from §5.6.4, both are
-`0x10000125`, and `llvm-objdump -d` will only ever print one of the two names:
+Word 1 (Reset) is `0x10000135` = `OnReset` + 1, word 2 (NMI) is `0x10000125` =
+`DefaultHandler` + 1 and word 3 (HardFault) is `0x1000012d` = `OnHardFault` + 1
+— distinct. In release all three are `0x10000125`.
+
+The finished firmware keeps the two-way fold: `OnReset` grows a real body in
+chapter 06 and separates, but `DefaultHandler` and `OnHardFault` stay
+byte-identical forever, so the shipping `llvm-nm` reads
+
+```
+10000300 T DefaultHandler
+10000300 T OnHardFault
+10000306 T OnReset
+```
+
+and `llvm-objdump -d` will only ever print one of the two names:
 
 ```asm
-10000124 <OnHardFault>:
-10000124: b580         	push	{r7, lr}
-10000126: 466f         	mov	r7, sp
-10000128: e7fe         	b	0x10000128 <OnHardFault+0x4> @ imm = #-0x4
+10000300 <OnHardFault>:
+10000300: b580         	push	{r7, lr}
+10000302: 466f         	mov	r7, sp
+10000304: e7fe         	b	0x10000304 <OnHardFault+0x4>
 ```
 
-`DefaultHandler` is not missing from the release image; it *is* that. Run those
-two `llvm-nm` commands on your own build and you will see the same collapse — it
+`DefaultHandler` is not missing from the release image; it *is* that. Run the
+`llvm-nm` commands on your own builds and you will see the same collapse — it
 follows from the source, not from anything about this machine.
 
-The practical effect: a Pico 2 stopped at `0x10000128` has told you nothing about
-whether it took a HardFault or an unhandled interrupt, and because slot 2 was
-never overridden an NMI lands there too. To tell them apart, give the handlers
-different bodies — read `IPSR` into a distinct local, spin on a distinct
-constant — so there is nothing left for the folder to fold.
+The practical effect: a Pico 2 stopped at `0x10000304` has told you nothing
+about whether it took a HardFault or an unhandled interrupt, and because slot 2
+was never overridden an NMI lands there too. To tell them apart, give the
+handlers different bodies — read `IPSR` into a distinct local, spin on a
+distinct constant — so there is nothing left for the folder to fold.
 
 ## 5.9 The file so far
 
-Both statics are now checked against the image. Here is all of
-`firmware/pico2/src/main.rs` as this chapter leaves it — every line above,
+Both statics are now checked against the image. Here is
+`firmware/pico2/src/lib.rs` as this chapter leaves it — every listing above,
 assembled in the order the tree has them, plus the one thing the chapter owes
 you. Vector slot 1 names `OnReset`, and `OnReset` is chapter 06's subject, so it
-stands here as a placeholder with its real signature and a spinning body:
+stands here as a placeholder with its real signature and a spinning body. Per
+§5.4.1's convention, the tree's doc comments are elided; every code line is the
+tree's:
 
 ```rust
 #![no_std]
-#![no_main]
 
 use core::panic::PanicInfo;
 
-#[used]                                          // survives rustc
-#[unsafe(link_section = ".boot_info")]           // names the section
-static BOOT_INFO: [u32;5] = [
+#[used]
+#[unsafe(link_section = ".boot_info")]
+static BOOT_INFO: [u32; 5] = [
     0xffffded3,
     0x10210142,
     0x000001ff,
     0x00000000,
-    0xab123579
+    0xab123579,
 ];
 
-unsafe extern "C" { static _stack_top: u32; }
+unsafe extern "C" {
+    static _stack_top: u32;
+}
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -568,25 +588,28 @@ fn panic(_info: &PanicInfo) -> ! {
 #[repr(C)]
 #[derive(Clone, Copy)]
 union Vector {
-    handler:   unsafe extern "C" fn(),
-    reset:     unsafe extern "C" fn() -> !,
+    handler: unsafe extern "C" fn(),
+    reset: unsafe extern "C" fn() -> !,
     stack_top: *const u32,
-    reserved:  u32,
+    reserved: u32,
 }
 
 unsafe impl Sync for Vector {}
 
 // PLACEHOLDER — chapter 06 §6.1 replaces this body
-#[unsafe(no_mangle)] pub extern "C" fn OnReset() -> ! {
-    loop{}
+#[unsafe(no_mangle)]
+pub extern "C" fn OnReset() -> ! {
+    loop {}
 }
 
-#[unsafe(no_mangle)] pub extern "C" fn DefaultHandler(){
-    loop{}
+#[unsafe(no_mangle)]
+pub extern "C" fn DefaultHandler() {
+    loop {}
 }
 
-#[unsafe(no_mangle)] pub extern "C" fn OnHardFault(){
-    loop{}
+#[unsafe(no_mangle)]
+pub extern "C" fn OnHardFault() {
+    loop {}
 }
 
 #[used]
@@ -595,11 +618,11 @@ static VECTOR_TABLE: [Vector; 68] = {
     let mut t = [Vector { handler: DefaultHandler }; 68];
     t[0] = Vector { stack_top: &raw const _stack_top };
     t[1] = Vector { reset: OnReset };
-    t[3] = Vector {handler: OnHardFault};
-    t[8] = Vector { reserved: 0};
-    t[9] = Vector { reserved: 0};
-    t[10] = Vector { reserved: 0};
-    t[13] = Vector { reserved: 0};
+    t[3] = Vector { handler: OnHardFault };
+    t[8] = Vector { reserved: 0 };
+    t[9] = Vector { reserved: 0 };
+    t[10] = Vector { reserved: 0 };
+    t[13] = Vector { reserved: 0 };
     t
 };
 ```
@@ -608,7 +631,8 @@ static VECTOR_TABLE: [Vector; 68] = {
 from the tree, the `reset` union field will not accept anything else, and
 chapter 06 replaces only what is between the braces.
 
-That file builds and links as printed. `cargo build --release`, staged:
+That file builds and links as printed, with `demo/src/main.rs` still chapter
+01's three lines. `cargo build --release`, staged:
 
 ```
 Memory region         Used Size  Region Size  %age Used
@@ -617,7 +641,7 @@ Memory region         Used Size  Region Size  %age Used
 ```
 
 300 bytes: 272 of vector table, 20 of boot block, and 8 of `.text` — because
-`OnReset`, `DefaultHandler` and `OnHardFault` are now three functions with
+`OnReset`, `DefaultHandler` and `OnHardFault` are three functions with
 byte-identical bodies, and §5.8's identical code folding collapses all three
 into one three-instruction body: `push {r7, lr}` / `mov r7, sp` / `b .`, six
 bytes, rounded up to eight by the `. = ALIGN(4)` at the end of `.text`
@@ -631,8 +655,7 @@ Contents of section .vector_table:
 Word 1 is `0x10000125`, the same value as words 2 and 3 — at this stage the
 reset vector and the fault vector are literally the same instruction. That is
 correct for a placeholder and it goes away in chapter 06, where `OnReset` gets a
-body of its own and moves to `0x1000012a`, exactly as §5.6.4's dump of the
-finished image shows.
+body of its own, exactly as §5.6.4's dump of the finished image shows.
 
 Chapter 06 picks up at word 1: what `OnReset` does to the machine before it is
-safe to call `main()`.
+safe to hand control to an application.

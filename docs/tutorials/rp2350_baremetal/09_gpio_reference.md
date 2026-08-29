@@ -2,14 +2,15 @@
 document_type: "Tutorial Chapter — GPIO Reference"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 9 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-08
 sources: RP2350 datasheet §2.1.3 (PDF p27), §2.2 (PDF p33), §3.1.11 (Table 16, PDF p55-56), §3.1.3 (Table 23, PDF p64), §3.6.1, §7.5.2 (PDF p503), §7.5.3 (Tables 533/534/536, PDF p504-506), §9.2 (PDF p586), §9.3 (PDF p586-587), §9.6 (PDF p593), §9.7 (PDF p594-595), §9.8, §9.9 (PDF p595), §9.11.1 (Tables 648/699/700, PDF p603-606, p649-651), §9.11.3 (Tables 850/851/852/877, PDF p783-785, p798), §10.6 ACCESSCTRL register list (PDF p826); errata RP2350-E9 (PDF p1358-1359); Pico 2 datasheet p9
 creates: nothing
 describes: firmware/pico2/src/gpio/mod.rs, firmware/pico2/src/gpio/gpio.rs,
-  firmware/pico2/src/common/reg.rs — all written in chapter 08
+  firmware/pico2/src/common/reg.rs, firmware/pico2/src/common/reset.rs —
+  all written in chapter 08
 reading: reference — skip on a first pass; chapter 08 is self-contained
 ---
 
@@ -18,12 +19,13 @@ reading: reference — skip on a first pass; chapter 08 is self-contained
 ## 9.0 How to use this chapter
 
 You already have a blink. Chapter 08 took you from a held-in-reset chip to
-`SIO.GPIO_OUT_XOR` toggling GP25, and it did that with the minimum number of
-register fields — one bit here, one field there, each introduced at the moment
-it was needed. This chapter is the rest of those registers: every field, every
-reset value, every offset, ordered by block rather than by task, because that
-is how you look a number up. Nothing here is required to get a blink; most of
-it is required to write a driver that other code can trust.
+GP25 driven high and low through `SIO.GPIO_OUT_SET` and `SIO.GPIO_OUT_CLR`,
+and it did that with the minimum number of register fields — one bit here, one
+field there, each introduced at the moment it was needed. This chapter is the
+rest of those registers: every field, every reset value, every offset, ordered
+by block rather than by task, because that is how you look a number up.
+Nothing here is required to get a blink; most of it is required to write a
+driver that other code can trust.
 
 Each section names the chapter 08 step it expands, so you can arrive here from
 a forward pointer and leave again:
@@ -31,19 +33,19 @@ a forward pointer and leave again:
 | Section | Expands | Block |
 |---|---|---|
 | §9.1 | chapter 08's block table | banks and naming |
-| §9.2 | chapter 08 §8.5 | `RESETS` `0x40020000` |
-| §9.3 | chapter 08 §8.7 | `PADS_BANK0` `0x40038000` — the pad |
-| §9.4 | chapter 08 §8.8 | `IO_BANK0` `0x40028000` — the mux |
-| §9.5 | chapter 08 §8.6 | `SIO` `0xd0000000` — the value |
+| §9.2 | chapter 08 §8.5-§8.6 | `RESETS` `0x40020000` |
+| §9.3 | chapter 08 §8.8 | `PADS_BANK0` `0x40038000` — the pad |
+| §9.4 | chapter 08 §8.9 | `IO_BANK0` `0x40028000` — the mux |
+| §9.5 | chapter 08 §8.7, §8.11 | `SIO` `0xd0000000` — the value |
 | §9.6 | nothing — proposed | releasing a pin |
 | §9.7 | nothing | what the firmware does not do |
 
 The index's conventions apply, plus one this chapter needs and no other does:
 the GPIO chapter of the datasheet is unfortunately also chapter 9, so a bare
 `§9.4` means a section of *this chapter* and a datasheet section of the same
-number is always written `datasheet §9.4`. As everywhere, **the firmware** means
-`firmware/pico2` as it exists in the tree and **proposed** means code that does
-not exist and is not compiled — §9.7 lists all of it.
+number is always written `datasheet §9.4`. As everywhere, **the firmware**
+means the code in the tree — here mostly `firmware/pico2` — and **proposed**
+means code that does not exist and is not compiled; §9.7 lists all of it.
 
 For modelling any of these blocks as a `#[repr(C)]` struct — the reserved
 holes, the alignment traps, why you never form a `&mut` over MMIO — see
@@ -53,9 +55,10 @@ rules.
 ## 9.1 Banks and naming
 
 **Two banks.** Bank 0 is user IO — 30 GPIOs on the RP2350A/QFN-60 in the
-Pico 2, 48 on the QFN-80 (datasheet §9.3, PDF p586). Bank 1 is the six QSPI
-IOs plus the USB DP/DM pins, which RP2350 can use as GPIOs (datasheet §9.2,
-PDF p586).
+Pico 2, 48 on the QFN-80 (datasheet §9.3, PDF p586); the firmware records the
+30 as `MAX_GPIO_PIN` in `firmware/pico2/src/common/mod.rs` and checks every
+pin number against it (chapter 08 §8.11). Bank 1 is the six QSPI IOs plus the
+USB DP/DM pins, which RP2350 can use as GPIOs (datasheet §9.2, PDF p586).
 
 The naming is inconsistent between chapters of the datasheet:
 
@@ -96,10 +99,13 @@ and the high registers never come up.
 
 ## 9.2 RESETS in full
 
-Expands chapter 08 §8.5. Every peripheral on the chip powers up **held in
+Expands chapter 08 §8.5-§8.6. Every peripheral on the chip powers up **held in
 reset** — `RESET` resets to `0x1` in every defined bit (Table 534, PDF p504).
 Before `IO_BANK0` or `PADS_BANK0` acknowledges a single write, you deassert its
-bit.
+bit. In the tree this lives in two places: the three helpers
+`clr_reset_reg` / `set_reset_reg` / `wait_for_reset_done` in
+`firmware/pico2/src/common/reset.rs`, and the `Block` implementation in
+`gpio/gpio.rs` that calls them with the GPIO mask.
 
 ### 9.2.1 The register table and the polarity flip
 
@@ -159,10 +165,12 @@ untouched, in one store, with no read. The four aliases occupy 16 kB in total,
 so the window `0x40020000`-`0x40023fff` belongs to `RESETS` and is free:
 `IO_BANK0` does not begin until `0x40028000` (PDF p33).
 
-**The firmware does not use the alias.** `reset_gpio` does a plain
-read-modify-write at offset `0x0`, then polls `RESET_DONE` at `0x8`; the
-function is quoted in full and walked line by line in chapter 08 §8.5.
-`IO_PAD_BITMASK` there is `(1 << 6) | (1 << 9)` = `0x240`.
+**The firmware does not use the alias.** `clr_reset_reg` does a plain
+read-modify-write at offset `0x0`, and `Block::start` then polls `RESET_DONE`
+at `0x8` through `wait_for_reset_done`; both are quoted and walked in
+chapter 08 §8.5. `IO_PAD_BITMASK` there is `(1 << 6) | (1 << 9)` = `0x240`,
+and `start` passes its **complement** — `clr_reset_reg(!IO_PAD_BITMASK)` —
+because the helper computes `RESET &= mask`.
 
 The alias version below is an **improvement over what is in the tree**, not a
 description of it. It is one store instead of a load, an AND and a store, and it
@@ -185,12 +193,14 @@ unsafe fn unreset(mask: u32) {
 }
 ```
 
-Two details carry weight, and the firmware gets both of them right:
+(Note the mask polarity difference from the shipping code: the `+0x3000` alias
+takes the bits to clear directly, so no complement.) Two details carry weight,
+and the firmware gets both of them right:
 
 - **`read_volatile` in the loop condition.** A plain read is loop-invariant, so
   LLVM hoists it out and you spin on a stale value forever. The firmware's
-  `reset_done.read_volatile()` is inside the `while` condition, which is where
-  it has to be.
+  `reset_done.read_volatile()` in `wait_for_reset_done` is inside the `while`
+  condition, which is where it has to be.
 - **`& mask != mask` waits for both bits.** `!= 0` falls through as soon as
   either one is ready, which on a good day means you configure the pad block
   while it is still in reset and every store is discarded.
@@ -211,12 +221,24 @@ Two details carry weight, and the firmware gets both of them right:
 > mid-instruction-fetch, with no recoverable fault — fetching the fault
 > handler also goes through flash. `0x240` is correct; `0x480` is a power
 > cycle. They are one nibble apart, which is reason enough to name the masks
-> rather than write a literal at the call site.
+> rather than write a literal at the call site — which the firmware does:
+> `IO_PAD_BITMASK` is built from two named bit positions, and the doc comment
+> on `set_reset_reg` carries exactly this warning.
 
-### 9.2.4 Assert-then-deassert is an init idiom, not teardown
+### 9.2.4 The two directions the firmware does implement
 
-The SDK's `reset_block()` / `unreset_block_wait()` pair (§7.5.2, PDF p503) is
-used back-to-back at startup, not at shutdown:
+The reset helpers come in a symmetric pair, and `Block` uses both directions
+(chapter 08 §8.6):
+
+- **`start`** releases: `clr_reset_reg(!IO_PAD_BITMASK)` then
+  `wait_for_reset_done(IO_PAD_BITMASK)`.
+- **`stop`** re-asserts: `set_reset_reg(IO_PAD_BITMASK)` puts both GPIO blocks
+  back into reset. There is no `wait` counterpart on this path — `RESET_DONE`
+  reports readiness, and a block held in reset simply never reports ready.
+
+What the firmware does **not** do is the SDK's assert-then-deassert *init*
+idiom — `reset_block()` / `unreset_block_wait()` used back-to-back at startup
+(§7.5.2, PDF p503):
 
 ```rust
 // PROPOSED — not in the tree today
@@ -228,9 +250,14 @@ unsafe fn reinit(mask: u32) {
 
 That is not cleanup. It forces a peripheral to known defaults *before* you
 configure it, so you do not inherit whatever the bootrom or a previous run left
-behind — which matters after a soft reset that did not clear the block. The
-firmware does not do this: `reset_gpio` only clears, on the assumption that the
-image runs from a cold boot where the bits are already `1`.
+behind — which matters after a soft reset that did not clear the block.
+`Block::start` only clears, on the assumption that the image runs from a cold
+boot where the bits are already `1`.
+
+`stop` has a caveat the tree's own doc comment states: any pin handle handed
+out earlier keeps compiling after `stop`, but the block behind it is in reset,
+so writes through it are accepted by the bus and discarded. Nothing in the
+type system connects a `Rp2350GpioPin` to the `Block` that made it usable.
 
 ### 9.2.5 Reset is the wrong granularity for a resource allocator
 
@@ -239,9 +266,9 @@ the reset bit on release looks like hygiene. It does not work: **bit 6 is one
 bit for all 30 pins of Bank 0.** Releasing GP25 that way yanks GP2 out from
 under another task, and bit 9 takes every pad in the bank with it.
 
-The per-pin park primitive is `ISO` (§9.3.1) — freeze the pad, hold its
-state, re-engage it later. That is what a per-pin release should drive;
-see §9.6.
+The per-pin park primitive is `ISO` (§9.3.1) — set it and the pad's control
+inputs are latched at their current values, holding the pin's state until the
+latch is cleared again. That is what a per-pin release should drive; see §9.6.
 
 Block reset would not restore the pin anyway. Datasheet §9.7 (PDF p595):
 
@@ -262,7 +289,7 @@ dead code.)
 
 ## 9.3 PADS_BANK0 in full
 
-Expands chapter 08 §8.7. Base `0x40038000` (PDF p33). This is **the pad**:
+Expands chapter 08 §8.8. Base `0x40038000` (PDF p33). This is **the pad**:
 drive strength, slew, pulls, input enable, isolation.
 
 | Offset | Name | Info |
@@ -310,7 +337,7 @@ The pad word itself, identical for every pin:
 | 0 | `SLEWFAST`: Slew rate control. 1 = Fast, 0 = Slow | RW | `0x0` |
 
 (Table 852, `GPIO0`, PDF p785. The datasheet prints one identical table per
-pin; GP25's own copy is Table 877, PDF p798, which is the one chapter 08 §8.7
+pin; GP25's own copy is Table 877, PDF p798, which is the one chapter 08 §8.8
 cites.) The full reset word is therefore `0x116`:
 `ISO` `0x100` | `DRIVE=0x1` `0x010` | `PDE` `0x004` | `SCHMITT` `0x002`. That
 number comes back in §9.6.
@@ -328,14 +355,17 @@ read-modify-write and the compiler folds them into a single `bfi`.
 
 One field pair the datasheet flags separately: setting `PUE` and `PDE`
 together does not enable both resistors, it enables **bus keeper mode**, where
-the pad is pulled toward whatever level it currently reads (datasheet §9.6.1,
-PDF p594). In a `set_pull()` helper, `Up | Down` is therefore not a nonsense
-argument — it is a third mode with its own name, and it stops working when the
-core is powered down.
+the pad is pulled toward whatever level it currently reads — a weak latch that
+holds the last driven level (datasheet §9.6.1, PDF p594). In a `set_pull()`
+helper, `Up | Down` is therefore not a nonsense argument — it is a third mode
+with its own name, and it stops working when the core is powered down. This is
+why the firmware's `configure_gpio_pin_in` writes **both** `PUE` and `PDE` on
+every path (chapter 08 §8.11): setting one without clearing the other leaves
+the pad in bus-keeper mode, which is legal and almost never intended.
 
 ### 9.3.1 The isolation latch
 
-Datasheet §9.7 (PDF p594) — the latch is a **configuration shield**:
+Datasheet §9.7 (PDF p594):
 
 > To ensure that pad states are well-defined at all times, all signals passing
 > from the switched core power domain to the pads pass through isolation
@@ -346,19 +376,23 @@ Datasheet §9.7 (PDF p594) — the latch is a **configuration shield**:
 > state, output high/low level, and pull-up/pull-down resistor enable.** The
 > input signal from the pad back into the switched core domain is not isolated.
 
-The purpose is power cycling. RP2350 can power down the entire switched core
-domain — everything except POWMAN and some CoreSight logic — and without the
-latches every pad would glitch on the way in and out. Pads hold their
-pre-power-down state, and on power-up *"all the GPIO ISO bits reset to 1, so the
-pre-power down state continues to be maintained until user software starts up
-and clears the ISO bit to indicate it is ready to use the pad again"*
-(datasheet §9.7, PDF p594).
+So the mechanism is a latch on every control signal crossing from the core
+domain to the pad: while `ISO` is `1`, the pad keeps acting on the *latched*
+values, and nothing you write to the mux, to SIO, or to the other pad fields
+propagates through. The purpose is power cycling. RP2350 can power down the
+entire switched core domain — everything except POWMAN and some CoreSight
+logic — and without the latches every pad would glitch on the way in and out.
+Pads hold their pre-power-down state, and on power-up *"all the GPIO ISO bits
+reset to 1, so the pre-power down state continues to be maintained until user
+software starts up and clears the ISO bit to indicate it is ready to use the
+pad again"* (datasheet §9.7, PDF p594).
 
-The lifecycle: `ISO` resets to `1` → software configures the mux and the pad →
-software clears `ISO` to let signals reach the pad. Configure behind the
-shield, then open it once, so the pin never glitches through intermediate
-states. That is why `ISO` is the last store in `configure_gpio_pin_out`
-(chapter 08 §8.9), not the first.
+The lifecycle: `ISO` resets to `1` → software configures the mux and the pad —
+none of it visible at the pin, because the latch is holding the old control
+values → software clears `ISO`, and the pad switches once, from its held state
+directly to the fully configured one. No intermediate state ever reaches the
+pin. That is why clearing `ISO` is the last store in both configuration
+functions (chapter 08 §8.10), not the first.
 
 > **Silent-failure trap — three of them, all producing a dark pin.**
 >
@@ -382,7 +416,7 @@ states. That is why `ISO` is the last store in `configure_gpio_pin_out`
 
 ## 9.4 IO_BANK0 in full
 
-Expands chapter 08 §8.8. Base `0x40028000` (PDF p33). This is **the mux**:
+Expands chapter 08 §8.9. Base `0x40028000` (PDF p33). This is **the mux**:
 which peripheral is connected to the pin.
 
 | Offset | Name | Info |
@@ -525,8 +559,8 @@ no UART and no logging of any kind (§9.7).
 
 ## 9.5 SIO in full
 
-Expands chapter 08 §8.6. Base `0xd0000000` (PDF p35). This is **the value**:
-output level, direction, input.
+Expands chapter 08 §8.7 and §8.11. Base `0xd0000000` (PDF p35). This is **the
+value**: output level, direction, input.
 
 SIO is not in the `0x4xxxxxxx` peripheral range because it does not hang off
 the APB at all — it is attached directly to each core, which is what makes it
@@ -573,15 +607,19 @@ the first register in the block and an RTOS wants it from its first line, so do
 not model it as reserved. The firmware names it even though it never reads it.
 
 `0x00c` is the only hole in this range. Nothing in the datasheet flags it
-beyond the jump in the offset column, and it is the reason the block is *not* a
-clean
-sequence of LO/HI pairs. Chapter 07 §7.6 shows what a `u64` field does to the
-offsets on either side of it.
+beyond the jump in the offset column, and it is the reason the block is *not*
+a clean sequence of LO/HI pairs. Chapter 07 §7.6 shows what a `u64` field does
+to the offsets on either side of it.
 
 The SET/CLR/XOR registers exist as real registers here precisely because SIO
 is on the exclusion list for the `+0x1000`/`+0x2000`/`+0x3000` atomic aliases
-(§2.1.3, PDF p27). `GPIO_OUT_XOR` toggles an LED in one write with no
-read-modify-write and no race, which is the whole of `toggle_gpio_pin`.
+(§2.1.3, PDF p27). The firmware's `Write<bool>` implementation is built on two
+of them: `write(true)` stores `1 << pin` to `GPIO_OUT_SET`, `write(false)`
+stores the same mask to `GPIO_OUT_CLR` — one store either way, no
+read-modify-write, no race with the other core (chapter 08 §8.11).
+`GPIO_OUT_XOR` would invert a pin in one store the same way; the tree does not
+use it today — the blink is written as explicit set and clear, not as a
+toggle.
 
 One naming note, because it will bite you when you grep. The datasheet writes
 `GPIO_HI_IN`, `GPIO_HI_OUT_SET`, `GPIO_HI_OE`; the firmware's `Sio` struct
@@ -651,19 +689,29 @@ per-core `GPIO_OUT`.
 > `0x030` on RP2350 (Table 16, PDF p55). The RP2040 offset — `0x020`, which on
 > RP2350 is `GPIO_OUT_CLR` — is **not cited**: it belongs to the RP2040
 > datasheet, which this tutorial has not consulted. Check it there before
-> relying on it; the point below stands whatever the old number was. Port an RP2040 driver verbatim and your "enable the output"
-> store clears an output level instead: the pin stays an input, the LED stays
-> dark, and every register address in your code is a valid, writable, silently
-> wrong one. The interleaved LO/HI layout is what moved them — RP2040 had no
-> high registers to interleave.
+> relying on it; the point below stands whatever the old number was. Port an
+> RP2040 driver verbatim and your "enable the output" store clears an output
+> level instead: the pin stays an input, the LED stays dark, and every register
+> address in your code is a valid, writable, silently wrong one. The
+> interleaved LO/HI layout is what moved them — RP2040 had no high registers to
+> interleave.
 
 ## 9.6 Releasing a pin
 
-**Nothing in this section exists in the firmware.** There is no `Pin` type, no
-`release_pin`, no `Drop` implementation and no claim mask; `gpio_demo` takes
-GP25 at boot and never gives it back. This is the design sketch for the release
-path, kept here because §9.2.5 and §9.3.1 between them determine most of it
-and those constraints are easy to lose.
+The firmware has half of this story. What exists (chapter 08 §8.11): an owned
+pin type, `Rp2350GpioPin`, whose private field and private constructors mean
+the only way to obtain one is through the `Gpio` factory, and whose
+construction is where the pin number is validated and the hardware configured.
+What does **not** exist: any way to give a pin back. There is no
+`release_pin`, no `Drop` implementation, and no claim mask — and nothing stops
+you calling `init_output(25)` twice, either: the driver keeps no per-pin
+bookkeeping, so a second call happily reconfigures the same pad and returns a
+second owning handle. `demo` takes GP25 at boot and never gives it back, so
+none of this bites today.
+
+This section is the design sketch for the release path, kept here because
+§9.2.5 and §9.3.1 between them determine most of it and those constraints are
+easy to lose.
 
 Release is the reverse of bring-up, and the order is load-bearing:
 
@@ -701,27 +749,28 @@ Steps 2 and 4 are split rather than folded into a single `0x116` store so that
 either way; the split costs one APB write and removes the question, which on a
 release path that runs once per pin is a good trade.
 
-In Rust this is what belongs in `Drop`:
+In Rust this is what belongs in `Drop`, on the pin type the tree already has:
 
 ```rust
 // PROPOSED — not in the tree today
-pub struct Pin { n: u32 }
-
-impl Drop for Pin {
+impl Drop for Rp2350GpioPin {
     fn drop(&mut self) {
-        unsafe { release_pin(self.n) }
-        CLAIMED.fetch_and(!(1 << self.n), Ordering::Release);
+        unsafe { release_pin(self.pin_no as u32) }
+        CLAIMED.fetch_and(!(1 << self.pin_no), Ordering::Release);
     }
 }
 ```
 
-A move-only `Pin` makes handing it to a task an ownership transfer, so two
-tasks cannot hold GP25 at once without someone writing `unsafe`. The
-`CLAIMED: AtomicU32` claim mask needs real atomics rather than a plain
-`static mut`: the M33 is dual-core and both cores share one SIO block
-(datasheet §9.8, PDF p595), so a read-modify-write on a plain static loses
-claims. `compare_exchange` lowers to `ldrex`/`strex` on ARMv8-M and works
-across cores without a spinlock.
+A move-only pin makes handing it to a task an ownership transfer — that much
+the tree's `Rp2350GpioPin` already provides. What the `CLAIMED: AtomicU32`
+claim mask adds is uniqueness at *construction*: `init_output` would
+`compare_exchange` the pin's bit before configuring, so two calls for pin 25
+cannot both succeed. It needs real atomics rather than a plain `static mut`:
+the M33 is dual-core and both cores share one SIO block (datasheet §9.8,
+PDF p595), so a read-modify-write on a plain static loses claims.
+`compare_exchange` lowers to `ldrex`/`strex` on ARMv8-M and works across cores
+without a spinlock — the same primitive `api`'s `BOARD_CREATED` flag already
+uses for `Board::take` (chapter 08 §8.12).
 
 Note what this design does *not* do: it never touches `RESETS`. That is
 §9.2.5 — bit 9 is one bit for the whole bank, and `ISO` is the only per-pin
@@ -730,37 +779,41 @@ park the hardware offers.
 ## 9.7 What is not implemented yet
 
 An honest inventory, so you do not go looking through the tree for code that
-was never written. Everything below is absent from `firmware/pico2` as of this
+was never written. Everything below is absent from the workspace as of this
 revision:
 
 | Missing | Where it would go | Discussed in |
 |---|---|---|
 | Named `FUNCSEL` / pad-bit constants | a `gpio::regs` module | §9.3, §9.4.2 |
 | Offset helper functions (`pads_bank0(n)`, `io_bank0_ctrl(n)`) | same | §9.6 |
-| A `Pin` type | `gpio` | §9.6 |
-| `release_pin` | `gpio::gpio` | §9.6 |
-| `Drop` for a pin, and a `CLAIMED: AtomicU32` claim mask | `gpio` | §9.6 |
-| An atomic-alias helper (`unreset()` via `+0x3000`) | `gpio::gpio` | §9.2.2 |
+| `release_pin`, `Drop` for `Rp2350GpioPin` | `gpio::gpio` | §9.6 |
+| A `CLAIMED` mask — per-pin uniqueness at construction | `gpio::gpio` | §9.6 |
+| An atomic-alias helper (`unreset()` via `+0x3000`) | `common::reset` | §9.2.2 |
+| Assert-then-deassert re-init (`reinit()`) | `common::reset` | §9.2.4 |
 | Interrupts of any kind — the NVIC, `INTR`, `PROC0_INTE0` | — | §9.4 |
 | Clock setup — XOSC, the PLLs | — | chapter 08 §8.12.1 |
+| Unit tests in `api` | `api` | chapter 07 §7.7 |
 
-The only constants the firmware has are function-local: `IOBANK_RESET_BIT`,
-`PADBANK_RESET_BIT` and `IO_PAD_BITMASK` inside `reset_gpio`, and `IE`, `OD`,
-`SIO`, `ISO` inside `configure_gpio_pin_out`. The only `pub` item in the whole
-`gpio` module is `gpio_demo`. The five register structs — `GpioRegs`,
-`IoBank`, `PadsBank`, `Reset`, `Sio` — are private to the module.
+The module-level constants in `gpio.rs` are exactly three, all for `RESETS`:
+`IOBANK_RESET_BIT`, `PADBANK_RESET_BIT` and `IO_PAD_BITMASK`. Every other
+magic number — `IE`, `OD`, `ISO`, `PUE`, `PDE`, `SIO` — is a function-local
+`const` inside the two configuration functions. The `pub` items in the `gpio`
+module are `Rp2350Gpio`, `Rp2350GpioPin` and `GpioError`, plus the trait
+implementations on them; the register structs — `GpioRegs`, `IoBank`,
+`PadsBank`, `Sio` in `gpio/mod.rs` and `Reset` in `common/reset.rs` — are
+private to their modules.
 
-Two more absences worth naming because they change what "reference" means here.
-There is no UART, no USB and no logging, so `GPIOn_STATUS` (§9.4.3) is the only
-way to observe the hardware from inside the running image. And the workspace's
-`api` crate — which does define `GpioPin: Write<bool> + Read<bool>` — is
-declared as a dependency of `firmware/pico2` and never referenced by it; no
-`use api::` appears anywhere in `firmware/pico2/src`. The trait exists; nothing
-implements it yet.
+Two more absences worth naming because they change what "reference" means
+here. There is no UART, no USB and no logging, so `GPIOn_STATUS` (§9.4.3) is
+the only way to observe the hardware from inside the running image. And while
+the `api` crate's traits are now implemented and consumed — `gpio.rs` imports
+`api::common` and `api::gpio`, and `demo` drives the pin through them — the
+crate still carries **no tests**, so the host-testability that justifies the
+boundary is a capability, not yet a practice (chapter 07 §7.7).
 
 ---
 
 That is the end of the tutorial. Chapters 01 to 08 are the path from an empty
-directory to a blinking LED; this chapter is the drawer you open afterwards.
-The [index](index.md) lists both, along with the conventions every chapter
-holds to and the date on which each number here was checked.
+directory to a blinking LED; this chapter is the reference you return to for
+the numbers. The [index](index.md) lists both, along with the conventions every
+chapter holds to and the date on which each number here was checked.

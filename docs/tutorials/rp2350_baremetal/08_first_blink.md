@@ -2,28 +2,32 @@
 document_type: "Tutorial Chapter — First Blink"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 8 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-07
 sources: RP2350 datasheet §2.2.4 (Table 12, PDF p33), §2.2.6 (Table 14, PDF p35),
   §3.1.11 (Table 16, PDF p55-56), §7.5.2 (PDF p503), §7.5.3 (Tables 533/534/536,
   PDF p504-506), §8.1.2.1 (Table 540, PDF p516), §8.3.1 (PDF p560), §8.5
-  (Table 623, PDF p571), §9.3 (PDF p586-587), §9.10.1 (PDF p596-601),
-  §9.11.1 (Tables 699/700, PDF p604, p649-651), §9.11.3 (Tables 850/877,
-  PDF p783-785, p798); errata RP2350-E9 (PDF p1358-1359); Pico 2 datasheet p9, p10
+  (Table 623, PDF p571), §9.3 (PDF p586-587), §9.6.1 (PDF p594), §9.10.1
+  (PDF p596-601), §9.11.1 (Tables 699/700, PDF p604, p649-651), §9.11.3
+  (Tables 850/877, PDF p783-785, p798); errata RP2350-E9 (PDF p1358-1359);
+  Pico 2 datasheet p9, p10
 creates: firmware/pico2/src/common/mod.rs, firmware/pico2/src/common/reg.rs,
-  firmware/pico2/src/gpio/mod.rs, firmware/pico2/src/gpio/gpio.rs; finishes
-  firmware/pico2/src/main.rs
+  firmware/pico2/src/common/reset.rs, firmware/pico2/src/gpio/mod.rs,
+  firmware/pico2/src/gpio/gpio.rs; adds two lines to firmware/pico2/src/lib.rs;
+  finishes demo/src/main.rs
 ---
 
 # Chapter 08 — First Blink
 
 Everything so far has been infrastructure: a linker script, a boot block, a
-vector table, a reset handler that reaches `main` with a stack under it. None of
-it is observable from outside the chip. This chapter makes one pin move, in six
-steps, in the order the firmware performs them. You perform the first one about
-sixty lines from here. Citation and callout conventions are the index's.
+vector table, a reset handler that reaches the application with a stack under
+it. None of it is observable from outside the chip. This chapter makes one pin
+move — six register-level steps, wrapped in the driver and trait layer the
+tree actually ships, ending with the application that blinks. Citation and
+callout conventions are the index's; so is the rule that listings from the
+tree elide its `///` doc comments and quote code lines byte-for-byte.
 
 ## 8.1 The goal — GP25, the on-board user LED
 
@@ -62,58 +66,88 @@ Six steps. Nothing else is required to light the LED.
 
 | # | Block | Action | Section |
 |---|---|---|---|
-| 1 | `RESETS.RESET` | deassert bits 6 and 9, then poll `RESET_DONE` for both | §8.5 |
-| 2 | `SIO.GPIO_OUT_CLR` | write `1 << 25` — start the pin low | §8.6 |
-| 3 | `SIO.GPIO_OE_SET` | write `1 << 25` — make it an output | §8.6 |
-| 4 | `PADS_BANK0.GPIO25` | `IE = 1`, `OD = 0` — wake the pad | §8.7 |
-| 5 | `IO_BANK0.GPIO25_CTRL` | `FUNCSEL = 5` — hand the pin to SIO | §8.8 |
-| 6 | `PADS_BANK0.GPIO25` | clear `ISO` — connect the pad to the outside | §8.9 |
+| 1 | `RESETS.RESET` | deassert bits 6 and 9, then poll `RESET_DONE` for both | §8.5, §8.6 |
+| 2 | `SIO.GPIO_OUT_CLR` | write `1 << 25` — start the pin low | §8.7 |
+| 3 | `SIO.GPIO_OE_SET` | write `1 << 25` — make it an output | §8.7 |
+| 4 | `PADS_BANK0.GPIO25` | `IE = 1`, `OD = 0` — wake the pad | §8.8 |
+| 5 | `IO_BANK0.GPIO25_CTRL` | `FUNCSEL = 5` — hand the pin to SIO | §8.9 |
+| 6 | `PADS_BANK0.GPIO25` | clear `ISO` — connect the pad to the outside | §8.10 |
 
-Then toggle `SIO.GPIO_OUT_XOR` forever (§8.11).
+Then drive the pin high and low forever through `SIO.GPIO_OUT_SET` and
+`SIO.GPIO_OUT_CLR` (§8.11, §8.12).
 
-One rule orders the list: **nothing responds until its reset is deasserted, and
-nothing reaches the pin until `ISO` is cleared, so configuration happens in
-between.** Step 1 opens the door, step 6 opens the shutter, and steps 2 through
-5 run in the dark on purpose, where no half-configured state can appear on the
-wire. That is the order `configure_gpio_pin_out` writes them in; §8.10.1 is
-honest about why it is worth a second look.
+One rule orders the list. A block whose reset is asserted discards every bus
+write, so nothing before step 1 can have any effect; and while `ISO` is set,
+the pad's control inputs are latched at their old values, so nothing between
+steps 2 and 5 reaches the physical pin. Steps 2 through 5 therefore configure
+the pin while it is provably disconnected, and step 6 — the `ISO` clear — is
+the single moment the finished configuration propagates to the pad. No
+half-configured state can ever appear on the wire. That is the order
+`configure_gpio_pin_out` writes them in; §8.10.1 is honest about one subtlety
+inside it.
 
-## 8.3 The address constants
+In the tree, step 1 belongs to the *port* — it runs once, in `Block::start`,
+for the whole GPIO bank — and steps 2 through 6 belong to the *pin*, running
+once per configured pin. The chapter follows that split.
 
-This chapter creates four files under `firmware/pico2/src/`, and two of them are
-one line long. Make all four now, so nothing below has to stop and explain a
-missing module:
+## 8.3 The files, and the address constants
+
+This chapter creates five files under `firmware/pico2/src/` and finishes
+`demo/src/main.rs`:
 
 ```text
-src/main.rs                  exists — chapters 05 and 06
-src/common/mod.rs            new — §8.3
-src/common/reg.rs            new — §8.3
-src/gpio/mod.rs              new — §8.4
-src/gpio/gpio.rs             new — §8.5 onward
+firmware/pico2/src/lib.rs        exists — chapters 05, 06; gains two lines below
+firmware/pico2/src/common/mod.rs new — §8.3
+firmware/pico2/src/common/reg.rs new — §8.3
+firmware/pico2/src/common/reset.rs new — §8.5
+firmware/pico2/src/gpio/mod.rs   new — §8.4
+firmware/pico2/src/gpio/gpio.rs  new — §8.6 onward
+demo/src/main.rs                 exists — chapter 06; finished in §8.12
 ```
 
 Rust does not find a file because it is on disk; a parent module has to declare
-it. `src/common/mod.rs` is exactly one line, and it is the whole file:
+it. The two declarations that pull `common` and `gpio` into the `pico2` crate
+go into `lib.rs`, directly under its `use` line — the last edit `lib.rs` ever
+gets:
+
+```rust
+pub mod common;
+pub mod gpio;
+```
+
+`src/common/mod.rs` declares its two children and holds one constant — code
+lines verbatim (the tree documents the constant at length):
 
 ```rust
 pub mod reg;
+pub mod reset;
+
+pub const MAX_GPIO_PIN: usize = 30;
 ```
 
-`src/gpio/mod.rs` opens the same way — `pub mod gpio;` — and §8.4 shows it in
-place. The two `mod` declarations that pull `common` and `gpio` into the crate
-go in `main.rs`, and §8.12.2 adds them there once both directories exist.
+`MAX_GPIO_PIN` is a *package* fact, not a chip fact. RP2350 comes in two
+packages: the RP2350A (QFN-60) bonds out 30 user GPIOs, the RP2350B (QFN-80)
+bonds out 48 (datasheet §9.3, PDF p586), and the Pico 2 carries the RP2350A.
+The register maps are identical either way — `IO_BANK0` and `PADS_BANK0` are
+48 entries wide in both packages — so writing to pin 40 on this board succeeds
+at the bus level, reports no error, and drives a pad connected to no leg of
+the chip. The hardware will never tell you; this constant is how the driver
+does (§8.11).
 
 The four base addresses live in one enum — `firmware/pico2/src/common/reg.rs`,
-in full:
+code lines verbatim:
 
 ```rust
 #[repr(usize)]
 #[derive(Clone, Copy)]
+// Variant names deliberately match the datasheet's block names exactly, so
+// code can be checked against the register listings without translation.
+#[allow(non_camel_case_types)]
 pub enum RegAddr {
-    RESET = 0x4002_0000 as usize,
-    IO_BANK0 = 0x4002_8000 as usize,
-    SIO = 0xd000_0000 as usize,
-    PADS_BANK0 = 0x4003_8000 as usize,
+    RESET = 0x4002_0000,
+    IO_BANK0 = 0x4002_8000,
+    PADS_BANK0 = 0x4003_8000,
+    SIO = 0xd000_0000,
 }
 ```
 
@@ -125,24 +159,26 @@ let reset_addr = RegAddr::RESET as usize as *mut Reset;
 ```
 
 Two casts, not one: `as usize` extracts the discriminant, `as *mut Reset`
-reinterprets it as a pointer. The `as usize` on each initialiser is redundant
-under `#[repr(usize)]` and is in the tree, so it is quoted. The SCREAMING_SNAKE
-names produce warnings; §8.13 says which, and why they are expected.
+reinterprets it as a pointer. The `#[allow(non_camel_case_types)]` silences
+the lint the SCREAMING_SNAKE names would otherwise trip; chapter 03 §3.4
+checks all four values against the datasheet's address map.
 
 ## 8.4 The register structs
 
-`firmware/pico2/src/gpio/mod.rs` is five `#[repr(C)]` structs and nothing else.
-They are maps: point one at a base address and index it. Chapter 07 §7.6
-explains why they are shaped this way and chapter 09 keeps the field-by-field
-reference; here they are only the thing you index.
+`firmware/pico2/src/gpio/mod.rs` is one module declaration and four
+`#[repr(C)]` structs. They are maps: point one at a base address and index it.
+Chapter 07 §7.6 explains why they are shaped this way and chapter 09 keeps the
+field-by-field reference; here they are only the thing you index. Code lines
+verbatim — in the tree, every field carries a doc comment quoting its
+datasheet table:
 
 ```rust
 pub mod gpio;
 
 #[repr(C)]
 struct GpioRegs{
-    pub status: u32,  // Status Register
-    pub ctrl: u32,    // Ctrl Register
+    pub status: u32,
+    pub ctrl: u32,
 }
 
 #[repr(C)]
@@ -155,17 +191,10 @@ struct IoBank{
 
 #[repr(C)]
 struct PadsBank{
-    pub voltage_select: u32,   // 0x00  bank-wide input threshold
+    pub voltage_select: u32,
     pub pads: [u32; 48],
-    pub swclk: u32,            // 0xc4
-    pub swd: u32,              // 0xc8
-}
-
-#[repr(C)]
-struct Reset{
-    pub reset: u32,
-    pub wdsel: u32,
-    pub reset_done: u32
+    pub swclk: u32,
+    pub swd: u32,
 }
 
 #[repr(C)]
@@ -193,16 +222,19 @@ struct Sio{
 }
 ```
 
-Every field is a `u32` or an array of them, so alignment is 4 and `#[repr(C)]`
-inserts no padding. The offsets this chapter uses:
+The fifth struct, `Reset`, lives beside the code that uses it in
+`common/reset.rs` (§8.5). Every field everywhere is a `u32` or an array of
+them, so alignment is 4 and `#[repr(C)]` inserts no padding. The offsets this
+chapter uses:
 
 | Offset | Name | Info |
 |---|---|---|
 | `RESETS + 0x0` | `RESET` | `Reset.reset` — Table 533, PDF p504 |
 | `RESETS + 0x8` | `RESET_DONE` | `Reset.reset_done` — Table 533, PDF p504 |
+| `SIO + 0x018` | `GPIO_OUT_SET` | `Sio.gpio_out_set` — Table 16, PDF p55 |
 | `SIO + 0x020` | `GPIO_OUT_CLR` | `Sio.gpio_out_clr` — Table 16, PDF p55 |
-| `SIO + 0x028` | `GPIO_OUT_XOR` | `Sio.gpio_out_xor` — Table 16, PDF p55 |
 | `SIO + 0x038` | `GPIO_OE_SET` | `Sio.gpio_oe_set` — Table 16, PDF p56 |
+| `SIO + 0x040` | `GPIO_OE_CLR` | `Sio.gpio_oe_clr` — Table 16, PDF p56 |
 | `PADS_BANK0 + 0x04 + 4n` | `GPIOn` | `PadsBank.pads[n]` — Table 850, PDF p783 |
 | `IO_BANK0 + 0x000 + 8n` | `GPIOn_STATUS` | `IoBank.gpio[n].status` — Table 648, PDF p603-604 |
 | `IO_BANK0 + 0x004 + 8n` | `GPIOn_CTRL` | `IoBank.gpio[n].ctrl` — Table 648, PDF p603-604 |
@@ -211,42 +243,26 @@ The firmware's SIO field names transpose the datasheet's — the code writes
 `gpio_out_hi` where the datasheet says `GPIO_HI_OUT`. Same layout, different
 spelling; chapter 09 §9.5 uses the datasheet's.
 
-## 8.5 Step 1 — release the two resets
+## 8.5 Step 1, part one — the reset helpers
 
-The four functions from here to §8.12 are the whole of
-`firmware/pico2/src/gpio/gpio.rs`, in the order the file has them. Start the
-file with its head — three imports, verbatim, and nothing else above them:
+Every peripheral powers up **held in reset**. Before `IO_BANK0` or
+`PADS_BANK0` acknowledge a single write, their reset bits must be deasserted
+and the hardware must confirm. The machinery for that is chip-wide, not
+GPIO-specific, so it lives in its own file: `firmware/pico2/src/common/reset.rs`
+— the `Reset` struct (§8.4) and three free functions. Code lines verbatim,
+tree comments kept:
 
 ```rust
-use core::hint::spin_loop;
-
-use crate::gpio::{IoBank, PadsBank, Reset, Sio};
 use crate::common::reg::RegAddr;
-```
 
-`spin_loop` is the delay in §8.12 and `RegAddr` is §8.3's enum. The middle line
-is the one worth a sentence, because it looks like it should not compile. Look
-back at §8.4: those five structs are declared `struct`, not `pub struct` — they
-are **private to `gpio/mod.rs`**. A private item is visible inside the module
-that declares it *and inside that module's descendants*, and `gpio::gpio` is a
-child of `gpio`, so `gpio.rs` can name `IoBank` and `PadsBank` while nothing
-outside the `gpio` module can. That is what keeps the register maps from leaking
-into the rest of the crate while still letting the driver use them. `super::` in
-place of `crate::gpio::` would resolve to the same module; the tree spells it
-out, so this does too.
+#[repr(C)]
+struct Reset{
+    pub reset: u32,
+    pub wdsel: u32,
+    pub reset_done: u32
+}
 
-Every peripheral powers up **held in reset**. Before `IO_BANK0` or `PADS_BANK0`
-acknowledge a single write, you deassert their reset bits and wait for the
-hardware to confirm.
-
-```rust
-unsafe fn reset_gpio(){
-    // Bit for IOBANK
-    const IOBANK_RESET_BIT:u8 = 6;
-    // Bit for Pad
-    const PADBANK_RESET_BIT:u8 = 9;
-    // IO Pad bitmask
-    const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
+pub unsafe fn clr_reset_reg(mask: u32){
     // Create pointer to reset addresses
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
     unsafe{
@@ -254,67 +270,174 @@ unsafe fn reset_gpio(){
         let reset = &raw mut (*reset_addr).reset;
         let current = reset.read_volatile();
         // reset IO and PAD
-        reset.write_volatile(current & !IO_PAD_BITMASK);
+        reset.write_volatile(current & mask);
+
+    }
+}
+
+pub unsafe fn set_reset_reg(mask: u32){
+    // Create pointer to reset addresses
+    let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    unsafe{
+        // read current registers
+        let reset = &raw mut (*reset_addr).reset;
+        let current = reset.read_volatile();
+        // reset IO and PAD
+        reset.write_volatile(current | mask);
+
+    }
+}
+
+pub unsafe fn wait_for_reset_done(mask: u32){
+    // Create pointer to reset addresses
+    let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    unsafe{
         let reset_done = &raw const (*reset_addr).reset_done;
         // Wait for it to be done
-        while reset_done.read_volatile() & IO_PAD_BITMASK != IO_PAD_BITMASK
+        while reset_done.read_volatile() & mask != mask
         {}
     }
 }
 ```
 
-The two bits, from `RESETS.RESET` at `0x40020000` (Table 534, PDF p504):
-
-| Bits | Field | Type | Reset |
-|---|---|---|---|
-| 9 | `PADS_BANK0` | RW | `0x1` |
-| 6 | `IO_BANK0` | RW | `0x1` |
-
-`RESET_DONE` at `0x40020008` uses the same bit numbering and is read-only
-(Table 536, PDF p506). `IO_PAD_BITMASK` is `(1 << 6) | (1 << 9)` = **`0x240`**;
-`<<` binds tighter than `|`, so the unparenthesised constant is correct.
+Read the pair as two directions on one register. `clr_reset_reg` computes
+`RESET &= mask` — it can only move bits from 1 to 0, so it can only *release*
+resets, and a caller releasing blocks passes the **complement** of the bits it
+wants freed. `set_reset_reg` computes `RESET |= mask` — the mask is passed
+uncomplemented, and it can only *assert* resets. The relevant registers, from
+`RESETS` at `0x40020000` (Table 533, PDF p504):
 
 | Register | Bit = 1 means | You |
 |---|---|---|
 | `RESET` | held **in** reset | write `0` to release |
 | `RESET_DONE` | **out of** reset, ready | wait for `1` |
 
-Same bit position, opposite sense. Both bits are already `1` at power-on, so you
-clear them — the verb is **deassert**. `current & !0x240` is a read-modify-write
-on a register holding 27 other components' reset bits — `RESET` defines bits
-28:0 (Table 534, PDF p504-505) — and the read is what keeps you from resetting
-those 27. The poll then spins until *both* bits appear:
-`& mask != mask` is false only when the masked read equals the full mask. There
-is no interrupt for this; datasheet §7.5.2 states the intent — *"This allows
-software to wait for this status bit in case the component requires
-initialisation before use."* (PDF p503).
+Same bit numbering, opposite sense. Both GPIO bits are `1` at power-on, so
+releasing them means clearing — the verb is **deassert**. The read-modify-write
+in `clr_reset_reg` is what protects the other 27 components' bits — `RESET`
+defines bits 28:0 (Table 534, PDF p504-505) — and the poll in
+`wait_for_reset_done` spins until *both* requested bits appear:
+`& mask != mask` is false only when the masked read equals the full mask
+(`!= 0` would fall through when the first block wakes). There is no interrupt
+for this; datasheet §7.5.2 states the intent — *"This allows software to wait
+for this status bit in case the component requires initialisation before
+use."* (PDF p503). The `read_volatile` inside the loop condition is mandatory:
+through a plain reference, LLVM may hoist the load out of the loop — nothing
+in the language says ordinary memory changes behind your back — and the wait
+compiles to a branch-to-self.
 
 > **Silent-failure trap.** While a block is in reset its registers do not
 > respond. Writes are discarded — no error, no bus fault, no diagnostic — and
 > reads return reset values, so a debugger shows you a plausible register block
 > that is simply not listening. Every store to `0x40028000` or `0x40038000`
-> before this function returns goes nowhere. Step 1 is not housekeeping; it is
-> the moment those two peripherals become addressable.
+> before step 1 completes goes nowhere. Step 1 is not housekeeping; it is the
+> moment those two peripherals become addressable.
 
 > **Hardware-destructive.** In the same register, bit 7 is `IO_QSPI` and bit 10
-> is `PADS_QSPI` (Table 534, PDF p504). Those are the pins your flash is on, and
-> you are executing from that flash. Assert either and the image running the
-> instruction that asserted it stops existing. The mask is `0x240` — not
-> `0x2c0`, not `0x6c0`.
-> This is the reset-controller face of the hazard chapter 03 §3.4 raised for
-> `IO_QSPI` and `PADS_QSPI` themselves; chapter 09 §9.2.3 has the bit table.
+> is `PADS_QSPI` (Table 534, PDF p504). Those are the pins your flash is on,
+> and you are executing from that flash. Assert either — one wrong bit in a
+> `set_reset_reg` mask — and the image running the instruction stops existing:
+> execution halts mid-instruction-fetch with no fault and no output. This is
+> the reset-controller face of the hazard chapter 03 §3.4 raised for `IO_QSPI`
+> and `PADS_QSPI` themselves; chapter 09 §9.2.3 has the bit table.
 
 Everything else about `RESETS` — the `+0x3000` atomic-clear alias as an
-alternative to the read-modify-write above (the alias mechanism itself is
-chapter 07 §7.5), assert-then-deassert as an init idiom, and why reset is the
-wrong granularity for a resource allocator — is chapter 09 §9.2, and none of it
-is needed to blink.
+alternative to the read-modify-write (the alias mechanism itself is chapter 07
+§7.5), assert-then-deassert as an init idiom, and why reset is the wrong
+granularity for a resource allocator — is chapter 09 §9.2, and none of it is
+needed to blink.
 
-## 8.6 Steps 2 and 3 — initial level and direction, before the mux
+## 8.6 Step 1, part two — the port and its `Block` impl
+
+Now start `firmware/pico2/src/gpio/gpio.rs`, the driver proper. Its head —
+six imports, verbatim, and nothing else above them:
+
+```rust
+use core::fmt::Debug;
+
+use crate::common::MAX_GPIO_PIN;
+use crate::common::reset::{clr_reset_reg, set_reset_reg, wait_for_reset_done};
+use crate::gpio::{IoBank, PadsBank, Sio};
+use crate::common::reg::RegAddr;
+use api::common::{Block, ErrorType, Read, Write};
+use api::gpio::{Gpio, Pull};
+```
+
+The third line is the one worth a sentence, because it looks like it should
+not compile. Look back at §8.4: those structs are declared `struct`, not
+`pub struct` — they are **private to `gpio/mod.rs`**. A private item is
+visible inside the module that declares it *and inside that module's
+descendants*, and `gpio::gpio` is a child of `gpio`, so `gpio.rs` can name
+`IoBank`, `PadsBank` and `Sio` while nothing outside the `gpio` module can.
+That is what keeps the register maps from leaking into the rest of the crate
+while still letting the driver use them. The last two lines are the `api`
+traits from chapter 07 §7.7 — this file exists to implement them.
+
+The port itself is a zero-sized type. There is no state to hold — the
+registers live at fixed addresses — so the struct exists to give the trait
+implementations somewhere to live:
+
+```rust
+pub struct Rp2350Gpio
+{
+
+}
+```
+
+Which bits the port owns are module-level constants, verbatim (the `//` lines
+are the tree's):
+
+```rust
+// Bit for IOBANK
+const IOBANK_RESET_BIT:u8 = 6;
+// Bit for Pad
+const PADBANK_RESET_BIT:u8 = 9;
+// IO Pad bitmask
+const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
+```
+
+`IO_BANK0` is bit 6 and `PADS_BANK0` is bit 9 of `RESETS.RESET` (Table 534,
+PDF p504); `IO_PAD_BITMASK` is `(1 << 6) | (1 << 9)` = **`0x240`** — `<<`
+binds tighter than `|`, so the unparenthesised constant is correct. Neither
+bit alone is sufficient: `IO_BANK0` routes the signal and `PADS_BANK0`
+connects it to a physical leg of the package.
+
+Step 1 is then the `Block` implementation — `api`'s bring-up lifecycle trait,
+with `start` releasing the blocks and `stop` putting them back:
+
+```rust
+impl Block for Rp2350Gpio
+{
+    unsafe fn start(&mut self) {
+        unsafe{
+            clr_reset_reg(!IO_PAD_BITMASK);
+            wait_for_reset_done(IO_PAD_BITMASK);
+        }
+    }
+
+    unsafe fn stop(&mut self) {
+        unsafe{
+            set_reset_reg(IO_PAD_BITMASK);
+        }
+    }
+}
+```
+
+Note the complement in `start` and its absence in `stop` — the polarity
+gymnastics of §8.5 in two lines. `clr_reset_reg` ANDs, so the zeros in
+`!IO_PAD_BITMASK` are the bits being freed; `set_reset_reg` ORs, so
+`IO_PAD_BITMASK` is passed straight. `stop` has no
+`wait_for_reset_done` counterpart because `RESET_DONE` reports readiness, and
+a block held in reset simply never reports ready. Who calls `start`? The
+application does, exactly once, through `Board::take` — §8.12. Nothing in this
+crate calls it.
+
+## 8.7 Steps 2 and 3 — initial level and direction, before the mux
 
 Two stores to SIO, from `configure_gpio_pin_out` (whole function in §8.10):
 
 ```rust
+        // Drive low first, then enable the driver: no glitch high.
         let gpio_out_clr = &raw mut (*sio_addr).gpio_out_clr;
         gpio_out_clr.write_volatile(1 << pin);
         let gpio_oe_set = &raw mut (*sio_addr).gpio_oe_set;
@@ -325,23 +448,27 @@ Two stores to SIO, from `configure_gpio_pin_out` (whole function in §8.10):
 §3.1.11, PDF p55-56); for pin 25 both take `1 << 25` = `0x02000000`. These are
 write-one-to-act registers — the bits you write are the bits that change — so
 neither store needs a read first and the other 31 GPIOs are untouched. The pin
-is now an output driving low, decided before anything connects it to the world.
+is now an output driving low, decided before anything connects it to the world:
+level first, then enable, so the pin's first driven state is a known low
+rather than whatever `GPIO_OUT` happened to hold.
 
 Why `0xd0000000` and not the APB range? Because SIO is not on APB: §2.2.6 calls
 it core-local, *"accessible to processor load/store only… Access is always
 zero-wait-state"* (PDF p34), while an APB write costs *"a minimum of four
 cycles"* (§2.2.4, PDF p33). The value and the direction, written on every
-toggle, live off the peripheral bus; the mux and the pad, written once, stay on
+blink, live off the peripheral bus; the mux and the pad, written once, stay on
 it. The full SIO tour is chapter 09 §9.5.
 
-## 8.7 Step 4 — the pad: `IE = 1`, `OD = 0`
+## 8.8 Step 4 — the pad: `IE = 1`, `OD = 0`
 
 ```rust
         let pad= &raw mut (*pads_addr).pads[pin];
         let mut current_pad = pad.read_volatile();
         const IE: u8 = 6;
         const OD: u8 = 7;
+        // OD must be clear or the pad refuses to drive regardless of SIO.
         current_pad &= !(1 << OD);
+        // IE on so the pin can also be read back; see the doc comment.
         current_pad |= 1 << IE;
         pad.write_volatile( current_pad);
 ```
@@ -350,8 +477,8 @@ it. The full SIO tour is chapter 09 §9.5.
 PADS_BANK0 + 0x04 + 4*25 = 0x40038000 + 0x04 + 0x64 = 0x40038068
 ```
 
-Table 850 lists `GPIO25` at offset `0x68` (datasheet §9.11.3, PDF p784), so the arithmetic
-and the table agree. The `+0x04` is not decoration: offset `0x00` is
+Table 850 lists `GPIO25` at offset `0x68` (datasheet §9.11.3, PDF p784), so the
+arithmetic and the table agree. The `+0x04` is not decoration: offset `0x00` is
 `VOLTAGE_SELECT`, a bank-wide control, so a pad array indexed from the block
 base lands on it — changing the input threshold for the whole bank and
 configuring no pin at all. `PadsBank` encodes the `+0x04` structurally by
@@ -376,15 +503,18 @@ not a preference, from datasheet §9.3, Reset State:
 > (datasheet §9.3, PDF p587)
 
 An output-only pin still wants `IE = 1`: the input buffer feeds `GPIO_IN` and
-`GPIOn_STATUS.INFROMPAD`, which is how §8.15 reads back what the pin is doing.
-The read-modify-write earns its keep — this register resets to `0x116` (`ISO=1`,
-`DRIVE=0x1`, `PDE=1`, `SCHMITT=1`), so a plain write of `0x40` would silently
-drop the pull-down and the Schmitt trigger. After this step it holds `0x156`.
-The remaining pad fields are chapter 09 §9.3.
+`GPIOn_STATUS.INFROMPAD`, which is how `Read::read` (§8.11) and §8.15's
+debugging read back what the pin is actually doing. The read-modify-write
+earns its keep — this register resets to `0x116` (`ISO=1`, `DRIVE=0x1`,
+`PDE=1`, `SCHMITT=1`), so a plain write of `0x40` would silently drop the
+pull-down and the Schmitt trigger. After this step it holds `0x156`. The
+remaining pad fields are chapter 09 §9.3.
 
-## 8.8 Step 5 — the mux: `FUNCSEL = 5`
+## 8.9 Step 5 — the mux: `FUNCSEL = 5`
 
 ```rust
+        // FUNCSEL = 5 connects the pin to SIO. Writing the whole register also
+        // clears IRQOVER/INOVER/OEOVER/OUTOVER to "normal", which is wanted.
         let io_ctrl = &raw mut (*io_addr).gpio[pin].ctrl;
         const SIO: u32 = 5;
         io_ctrl.write_volatile(SIO);
@@ -401,7 +531,7 @@ as Tables 699 and 700 on PDF p649-650).
 **The stride is 8, not 4.** `IO_BANK0` gives every pin *two* registers, `STATUS`
 then `CTRL`, so a pin's control register is at `0x004 + 8n` while its pad
 register is at `0x04 + 4n` — two arrays, two strides, two leading offsets,
-indexed by the same `pin` three lines apart. This is the most error-prone
+indexed by the same `pin` a few lines apart. This is the most error-prone
 arithmetic in the chapter: get it wrong and you configure a different pin, or
 land on a `STATUS` register and write read-only bits, which succeeds and does
 nothing. In the firmware both are structural, `gpio[pin].ctrl` and `pads[pin]`,
@@ -411,18 +541,19 @@ and `#[repr(C)]` does the multiply.
 `0x05 → SIO_25`, and the field resets to `0x1f` (NULL) (PDF p650-651).
 
 The write is a **plain write of `5`**, not a read-modify-write, and that is
-correct here. `GPIO25_CTRL` also carries `OUTOVER` (bits 13:12), `OEOVER`
-(15:14), `INOVER` (17:16) and `IRQOVER` (29:28); all four reset to `0x0`, and
-`0x0` in each means "take the peripheral's signal unmodified". Writing bare `5`
-sets `FUNCSEL` and forces every override to pass-through in one store — which is
-also how you recover a known state on a pin other code has touched. The SDK does
-the same: *"Zero all fields apart from fsel; we want this IO to do what the
-peripheral tells it."* (datasheet §9.10.1, PDF p600). Full field table is
-chapter 09 §9.4.
+correct here — the tree's comment says why. `GPIO25_CTRL` also carries
+`OUTOVER` (bits 13:12), `OEOVER` (15:14), `INOVER` (17:16) and `IRQOVER`
+(29:28); all four reset to `0x0`, and `0x0` in each means "take the
+peripheral's signal unmodified". Writing bare `5` sets `FUNCSEL` and forces
+every override to pass-through in one store — which is also how you recover a
+known state on a pin other code has touched. The SDK does the same: *"Zero all
+fields apart from fsel; we want this IO to do what the peripheral tells it."*
+(datasheet §9.10.1, PDF p600). Full field table is chapter 09 §9.4.
 
-## 8.9 Step 6 — clear `ISO`
+## 8.10 Step 6 — clear `ISO`, and the finished function
 
 ```rust
+        // Release the isolation latch now that mux and pad are both set.
         let mut current_pad = pad.read_volatile();
         const ISO: u8 = 8;
         current_pad &= !(1 << ISO);
@@ -432,11 +563,15 @@ chapter 09 §9.4.
 Bit 8, cleared with a read-modify-write so the `IE` you just set and the pad's
 reset-value fields survive. The register goes from `0x156` to `0x056`.
 
-This is last because it is the shutter. While `ISO` is set the pad is
-disconnected from everything upstream of it, so steps 2 through 5 configured a
-pin that could not affect the outside world whatever order they ran in. Clearing
-it once, at the end, connects a pin that is already fully configured: the LED
-sees one transition into driven-low, never a glitch from a half-set-up pin.
+This is last because of what the latch does. While `ISO` is set, every control
+signal crossing from the core domain to the pad — output enable, output level,
+pull enables — is held at its latched value, and nothing written upstream
+propagates through (datasheet §9.3, PDF p587; the full mechanism is chapter 09
+§9.3.1). So steps 2 through 5 configured a pin whose pad was still acting on
+its power-on state, whatever order they ran in; clearing `ISO` once, at the
+end, lets the pad switch directly from that held state to the complete
+configuration. The LED sees one transition into driven-low, never an
+intermediate state.
 
 > **Silent-failure trap.** Leave `ISO` set and every register reads back exactly
 > as written — `FUNCSEL` says 5, `GPIO_OE` says output — and the pin does
@@ -449,9 +584,8 @@ sees one transition into driven-low, never a glitch from a half-set-up pin.
 The power-domain rationale, what the latches capture, the three ways they trap
 you, and the correct teardown order are chapter 09 §9.3.1.
 
-## 8.10 The finished function
-
-All 26 lines, verbatim from `firmware/pico2/src/gpio/gpio.rs`:
+Here is the whole function — verbatim from `firmware/pico2/src/gpio/gpio.rs`,
+comments and all; §8.7 through §8.10 quoted pieces of exactly this:
 
 ```rust
 unsafe fn configure_gpio_pin_out(pin: usize)
@@ -460,6 +594,7 @@ unsafe fn configure_gpio_pin_out(pin: usize)
     let pads_addr = RegAddr::PADS_BANK0 as usize as *mut PadsBank;
     let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
     unsafe{
+        // Drive low first, then enable the driver: no glitch high.
         let gpio_out_clr = &raw mut (*sio_addr).gpio_out_clr;
         gpio_out_clr.write_volatile(1 << pin);
         let gpio_oe_set = &raw mut (*sio_addr).gpio_oe_set;
@@ -468,12 +603,15 @@ unsafe fn configure_gpio_pin_out(pin: usize)
         let mut current_pad = pad.read_volatile();
         const IE: u8 = 6;
         const OD: u8 = 7;
+        // OD must be clear or the pad refuses to drive regardless of SIO.
         current_pad &= !(1 << OD);
+        // IE on so the pin can also be read back; see the doc comment.
         current_pad |= 1 << IE;
         pad.write_volatile( current_pad);
         let io_ctrl = &raw mut (*io_addr).gpio[pin].ctrl;
         const SIO: u32 = 5;
         io_ctrl.write_volatile(SIO);
+        // Release the isolation latch last.
         let mut current_pad = pad.read_volatile();
         const ISO: u8 = 8;
         current_pad &= !(1 << ISO);
@@ -492,7 +630,37 @@ Statement by statement, with the address each hits for `pin = 25`:
 | `io_ctrl.write_volatile(SIO)` | 5 | `0x400280cc` | `FUNCSEL = 5`, overrides zeroed |
 | `current_pad &= !(1 << ISO)` / `pad.write_volatile` | 6 | `0x40038068` | `ISO=0` (`0x156` → `0x056`) |
 
-Step 1 is not in this function; `gpio_demo` calls `reset_gpio()` first (§8.12).
+Step 1 is not in this function; it ran once for the whole bank in
+`Block::start` (§8.6).
+
+The tree also carries the input twin, `configure_gpio_pin_in` — the same
+four-phase shape (stop driving via `GPIO_OE_CLR`, set up the pad, `FUNCSEL`,
+`ISO` last) with the pad phase configuring the pull resistors instead of the
+driver. Its pull logic writes **both** `PUE` (bit 3) and `PDE` (bit 2) on
+every arm, verbatim:
+
+```rust
+        // Pull resistors, Table 852 p785. PDE resets to 1 and PUE to 0, so a
+        // fresh pad already has a pull-down. Every arm therefore writes BOTH
+        // bits: setting one without clearing the other leaves both enabled,
+        // which is a legal bus-keeper configuration and almost never intended.
+        const PUE: u8 = 3;
+        const PDE: u8 = 2;
+        match pull {
+            Pull::Up   => { current_pad |=  1 << PUE; current_pad &= !(1 << PDE); }
+            Pull::Down => { current_pad &= !(1 << PUE); current_pad |=  1 << PDE; }
+            Pull::None => { current_pad &= !(1 << PUE); current_pad &= !(1 << PDE); }
+        }
+```
+
+"Bus keeper" is a hardware mode, not a mistake the chip rejects: with both
+pull enables set, the pad applies a weak pull *toward whatever logic level the
+pin currently reads*, so the pin holds its last driven level instead of
+sitting at a defined high or low (datasheet §9.6.1, PDF p594; chapter 09 §9.3
+has more). Setting one pull without clearing the other therefore does not
+produce an error — it produces that mode, silently, which is why every arm
+writes both bits. The blink never calls this function; it is quoted so the
+input path does not remain a mystery, and chapter 09 §9.3 holds the rest.
 
 ### 8.10.1 The window this order opens, and why it is closed
 
@@ -524,96 +692,292 @@ net, so condition 1 is doubtful too; and the SDK's `gpio_set_function` writes
 the same three registers in the same order (datasheet §9.10.1, PDF p600-601).
 
 **Type it as printed in §8.10.** That is what is in the tree, it is what the
-disassembly in §8.13 and the register dumps in §8.15 are taken from, and it
-works on the board. Do not reorder it while following this chapter.
+build in §8.13 is measured from, and it works on the board. Do not reorder it
+while following this chapter.
 
-The recommendation below is for code you write later, and it is deliberately not
-applied here: moving `io_ctrl.write_volatile(SIO)` above the pad `IE`/`OD`
+The recommendation below is for code you write later, and it is deliberately
+not applied here: moving `io_ctrl.write_volatile(SIO)` above the pad `IE`/`OD`
 read-modify-write costs nothing and closes the overlap of conditions 2 and 3
 outright rather than relying on `ISO` to cover it. It is the shape to reach for
 in a driver of your own. **The firmware has not been changed** — the tutorial
 documents the tree as it is, and marks the improvement rather than quietly
 shipping a listing that no build in this chapter matches.
 
-## 8.11 Toggling
+## 8.11 Owning the pin: the error, the handle, and the traits
+
+The two configuration functions are `unsafe fn` taking a bare `pin: usize` —
+nothing about them stops a caller passing 40. The rest of `gpio.rs` is the
+layer that makes that impossible to reach, and it is where the `api` traits
+earn their place.
+
+**The error.** Validating a pin number is the one thing here that can
+genuinely fail, so the port's error type has one variant (doc comments
+elided):
 
 ```rust
-unsafe fn toggle_gpio_pin(pin: usize)
+pub enum GpioError
 {
-    let sio_addr = RegAddr::SIO as usize as *mut Sio;
-    unsafe{
-        let toggle = &raw mut (*sio_addr).gpio_out_xor;
-        toggle.write_volatile(1 << pin);
-    }
+    PinOOB {
+        pin: usize,
+        count: usize,
+    },
 }
 ```
 
-`GPIO_OUT_XOR` is `SIO + 0x028` = `0xd0000028`, *"GPIO0…31 output value XOR"*
-(Table 16, PDF p55). Writing `1 << 25` inverts bit 25 of `GPIO_OUT` and leaves
-the other 31 alone. One store: no read, no compare, no branch, and no window in
-which a second core's update to `GPIO_OUT` could be lost, because the XOR
-happens in the SIO hardware.
+`PinOOB` — pin out of bounds — exists because the hardware will not produce an
+error itself: the register arrays are 48 wide in every package (§8.3), so a
+write for pin 40 succeeds at the bus level and drives a pad bonded to nothing.
+Worse, `1 << pin` in the SIO path is a shift, and for `pin >= 32` a shift
+overflow: in a release build the shift amount is silently masked to 5 bits, so
+pin 33 would toggle pin 1. The tree implements `Debug` for `GpioError` by hand
+(a `debug_struct` over the two fields) so `unwrap()` can print it — a decision
+with a visible price in §8.13.
 
-## 8.12 The demo loop
+**The handle.** A configured pin is a value (doc comments elided):
 
 ```rust
-pub unsafe fn gpio_demo(){
-    unsafe{
-        reset_gpio();
-        configure_gpio_pin_out(25);
-    }
-    loop{
-        unsafe{
-            toggle_gpio_pin(25);
+pub struct Rp2350GpioPin
+{
+    pin_no: usize,
+}
+```
+
+The field is private and both constructors are private to the module, so the
+only way to obtain one is through the port's `Gpio` implementation below —
+which means holding a `Rp2350GpioPin` is proof that the pin number was
+validated and the hardware configured, because construction is the only place
+either happens. The constructors check first, configure second — `new_output`
+verbatim:
+
+```rust
+    fn new_output(pin_no: usize) -> Result<Self, GpioError>
+    {
+        if pin_no >= MAX_GPIO_PIN
+        {
+            return Err(GpioError::PinOOB { pin: pin_no, count: MAX_GPIO_PIN })
         }
-        for _ in 0..500_000 {spin_loop();}
+        unsafe{
+            configure_gpio_pin_out(pin_no);
+        }
+        return Ok(Self{pin_no: pin_no})
+    }
+```
+
+The bounds check happens *before* any register write, so a bad pin number
+leaves the hardware untouched. (`new_input` is identical in shape, with a
+`Pull` argument passed through to `configure_gpio_pin_in`.) One honest limit:
+the driver keeps no per-pin bookkeeping, so nothing stops two calls to
+`init_output(25)` from each returning a handle to the same pin — the handle
+proves configuration happened, not that it happened once. Chapter 09 §9.6
+sketches the claim mask that would close that.
+
+**The traits.** Everything else is wiring the types into `api`'s vocabulary:
+
+```rust
+impl ErrorType for Rp2350Gpio
+{
+    type Error = GpioError;
+}
+
+impl Gpio<Rp2350GpioPin> for Rp2350Gpio
+{
+    fn init_input(&mut self, pin_no: usize, pull: Pull) -> Result<Rp2350GpioPin, Self::Error> {
+        return Rp2350GpioPin::new_input(pin_no, pull);
+    }
+
+    fn init_output(&mut self, pin_no: usize) -> Result<Rp2350GpioPin, Self::Error>
+    {
+        return Rp2350GpioPin::new_output(pin_no);
+    }
+}
+
+impl ErrorType for Rp2350GpioPin
+{
+    type Error = core::convert::Infallible;
+}
+```
+
+The two `ErrorType` impls differ on purpose. Port-level operations can fail —
+a pin number is caller input — so the port's error is `GpioError`. Driving a
+pin that already exists cannot: every failure mode was handled at
+construction. `Infallible` is an empty enum, so it has no values,
+`Result<(), Infallible>` is the same size as `()`, and the error branch is
+eliminated at compile time.
+
+**Writing the pin** is the chapter-07 opener, now in context:
+
+```rust
+impl Write<bool> for Rp2350GpioPin
+{
+    fn write(&mut self, value: bool) -> Result<(), Self::Error> {
+        let sio_addr = RegAddr::SIO as usize as *mut Sio;
+        unsafe
+        {
+            let set_reg = match value{
+                true => &raw mut (*sio_addr).gpio_out_set,
+                false => &raw mut (*sio_addr).gpio_out_clr
+            };
+            set_reg.write_volatile(1 << self.pin_no);
+        }
+        return  Ok(());
     }
 }
 ```
 
-Step 1, then steps 2 through 6, then forever. Pin `25` is hard-coded at both
-call sites. `gpio_demo` is the only `pub` item in the module, and that closes
-`gpio.rs`: the four functions of §8.5 through §8.12, under the three imports of
-§8.5, are the complete file. §8.12.3 prints all 75 lines of it in one block, to
-check yours against.
+Note what varies with `value`: the **register**, not the data. `GPIO_OUT_SET`
+(`0xd0000018`) and `GPIO_OUT_CLR` (`0xd0000020`) both act on the bits written
+as `1` and ignore zeros, so the tempting
+`gpio_out_set.write_volatile((value as u32) << pin)` writes `0` for `false` —
+a no-op, leaving the pin stuck high forever. Selecting the register makes both
+directions a single store: no read, no modify, no window in which an interrupt
+or the other core could lose an update to a neighbouring pin. (SIO provides
+these dedicated set/clear registers precisely because it is excluded from the
+`+0x2000`/`+0x3000` atomic aliases — chapter 07 §7.5. There is also a
+`GPIO_OUT_XOR` that would invert the pin in one store; the tree does not use
+it — the blink is an explicit set and clear, not a toggle.)
+
+**Reading it back** completes the `GpioPin` bounds:
+
+```rust
+impl Read<bool> for Rp2350GpioPin
+{
+    fn read(&self) -> Result<bool, Self::Error> {
+        let sio_addr = RegAddr::SIO as usize as *mut Sio;
+        unsafe{
+            let in_reg = &raw const (*sio_addr).gpio_in;
+            return Ok(((in_reg.read_volatile() & (1 << self.pin_no))) == 1 << self.pin_no)
+        }
+    }
+}
+```
+
+It reads `GPIO_IN`, not `GPIO_OUT` — the level actually present on the pad,
+not the last value written. On an output pin those differ whenever the outside
+world wins (a short to ground, a load beyond the pad's drive strength), which
+makes this the cheapest fault detection available, and it is why step 4 set
+`IE` even on an output: with the input buffer off, `GPIO_IN` reads `0`
+regardless of the voltage on the leg.
+
+With `Write<bool>` and `Read<bool>` both implemented, `api`'s blanket impl
+makes `Rp2350GpioPin` a `GpioPin` automatically — no `impl GpioPin for ...`
+line exists or is needed (chapter 07 §7.7).
+
+## 8.12 The application
+
+One piece remains between `OnReset` and a blinking LED: somebody has to call
+`Block::start`, and the `api` crate's one concrete type exists to be that
+somebody. `Board` (in `api/src/common/board.rs`) is a take-once holder for
+the application's peripherals — the essential lines:
+
+```rust
+static BOARD_CREATED: AtomicBool = AtomicBool::new(false);
+
+pub struct Board<'a, const N:usize>
+{
+    blocks: [&'a mut dyn Block; N]
+}
+```
+
+`Board::take(blocks)` performs a `compare_exchange` on `BOARD_CREATED` —
+`false` to `true`, atomically — and only the caller that wins proceeds to call
+`unsafe { block.start(); }` on each entry, returning `Some(Board)`. Every
+later call finds the flag already `true` and gets `None`. That once-only latch
+is the justification for the `unsafe` bring-up call: each driver touches only
+its own reset bits, and it happens exactly once, from one place.
+`BOARD_CREATED` is also the finished image's entire `.bss` — the 4 bytes
+chapter 04 §4.11.2 accounts for — so its "starts at `false`" guarantee is
+provided by `reset_bss` in chapter 06. The atomicity matters even on one core
+the moment interrupts or the second core exist; `compare_exchange` lowers to
+`ldaexb`/`stlexb`, and you can see that pair at the very top of `main`'s
+disassembly.
+
+Now finish `demo/src/main.rs`. Replace chapter 06's placeholder `main` and add
+the imports and the delay — the whole file, code lines verbatim, comments
+elided:
+
+```rust
+#![no_std]
+#![no_main]
+
+use core::hint::spin_loop;
+
+use api::{common::{Write, board::Board}, gpio::Gpio};
+use pico2::gpio::gpio::Rp2350Gpio;
+
+
+pico2::entry!(main);
+
+fn main() -> ! {
+    let mut gpio: Rp2350Gpio = Rp2350Gpio{};
+    let _board = Board::take([&mut gpio]).unwrap();
+    let mut pin25_o = gpio.init_output(25).unwrap();
+    loop {
+        pin25_o.write(true);
+        delay();
+        pin25_o.write(false);
+        delay();
+    }
+}
+
+fn delay()
+{
+    for _ in 0 .. 5_000_000
+    {
+        spin_loop();
+    }
+}
+```
+
+Read `main` against the six steps. `Board::take([&mut gpio]).unwrap()` is
+step 1 — it starts the one registered `Block`, and the `unwrap` converts "the
+board was already taken" into a panic instead of a silently dead bank.
+`gpio.init_output(25).unwrap()` is steps 2 through 6 — bounds check, then
+`configure_gpio_pin_out(25)`, returning the owning `pin25_o` handle. The loop
+is then two single-store writes separated by delays. Everything hardware
+touches goes through the `api` traits (`Gpio::init_output`, `Write::write`);
+what stays chip-specific in this file is the driver type it names —
+`Rp2350Gpio` — and the hard-coded pin 25, which are precisely the lines that
+would change on different hardware.
 
 ### 8.12.1 The delay loop survives, and here is the proof
 
-`for _ in 0..500_000 {spin_loop();}` looks exactly like the kind of loop an
-optimiser deletes. It is not, because `core::hint::spin_loop()` is inline
-assembly — it emits a `yield` on ARM — and LLVM does not delete instructions it
-cannot see through. Disassemble `main` out of the release build:
+`for _ in 0 .. 5_000_000 { spin_loop(); }` looks exactly like the kind of loop
+an optimiser deletes. It is not, because `core::hint::spin_loop()` emits a
+real instruction — `yield` on ARM — and LLVM does not delete instructions with
+architectural effects. Disassemble `main` out of the release build:
 
 ```
-llvm-objdump -d -C --no-show-raw-insn --disassemble-symbols=pico2::main \
-  target/thumbv8m.main-none-eabihf/release/pico2
+llvm-objdump -d -C --no-show-raw-insn --disassemble-symbols=demo::main \
+  target/thumbv8m.main-none-eabihf/release/demo
 ```
 
-`pico2::main`, not `main`. `main` here is an ordinary private Rust function with
+`demo::main`, not `main`. `main` here is an ordinary private Rust function with
 a mangled symbol, so `--disassemble-symbols=main` fails with
-`failed to disassemble missing symbol main` — which sounds like the function was
-optimised away and is not. Chapter 01 §1.7.1 has the `-C` rule. Real output,
-abridged:
+`failed to disassemble missing symbol main` — which sounds like the function
+was optimised away and is not. Chapter 01 §1.7.1 has the `-C` rule. Real
+output, abridged to one delay:
 
 ```asm
-10000216:      	mov	r3, r2         ; r3 = 500000
-10000218:      	str	r1, [r0]       ; 0xd0000028 GPIO_OUT_XOR, r1 = 1 << 25
-1000021a:      	yield
-1000021c:      	subs	r3, #0x32      ; decrement by 50
-1000021e:      	yield
-...                                    ; 48 more yields
-10000280:      	bne	0x1000021a
+100001a4:      	movw	r1, #0x4b40    ; r1 = 0x4c4b40 = 5000000
+100001a8:      	movt	r1, #0x4c
+100001ac:      	mov	r3, r1
+100001ae:      	str	r0, [r2]       ; 0xd0000018 GPIO_OUT_SET, r0 = 1 << 25
+100001b0:      	yield
+100001b2:      	subs	r3, #0x40      ; decrement by 64
+100001b4:      	yield
+...                                    ; 62 more yields
+10000232:      	bne	0x100001b0
 ```
 
-Fifty `yield` instructions per iteration, counted from the objdump, and
-`subs r3, #0x32` confirms the unroll factor of 50. LLVM unrolled the outer blink
-loop twice as well, so the compiled shape is toggle-delay-toggle-delay branching
-back to `0x10000216`. The loop is real code and it executes.
+Sixty-four `yield` instructions per iteration, counted from the objdump, and
+`subs r3, #0x40` confirms the unroll factor of 64. The compiled shape is
+set - delay - clear (a `str r0, [r2, #0x8]`, `GPIO_OUT_CLR` at `+0x8` from the
+same base) - delay, branching back. The loop is real code and it executes.
 
 > **Release-build trap.** Take `spin_loop()` out and the danger becomes real: an
-> empty `for _ in 0..500_000 {}` has no observable effect and at
+> empty `for _ in 0..5_000_000 {}` has no observable effect and at
 > `opt-level = 3` LLVM removes it entirely. The delay works in a debug build,
-> vanishes under `--release`, and the LED toggles at tens of megahertz — a dim,
+> vanishes under `--release`, and the LED toggles at megahertz rates — a dim,
 > steady glow that reads as a hardware fault. Three things keep a delay loop
 > alive: `core::hint::spin_loop()`, `core::hint::black_box`, or
 > `asm!("nop", options(nomem, nostack))`. The firmware uses the first.
@@ -633,157 +997,6 @@ process, voltage and temperature. **Inferred:** the blink period is therefore a
 consequence of that unspecified frequency and LLVM's unroll factor, not a number
 anyone chose, and it will differ between boards.
 
-### 8.12.2 Finishing `main.rs`
-
-`main.rs` still holds chapter 06 §6.5's placeholder. Two things change, and they
-are the last edits the tutorial asks for.
-
-**The head of the file.** The two modules you created in §8.3 and §8.4 now
-exist, so declare them, and import the one function they export:
-
-```rust
-#![no_std]
-#![no_main]
-
-use core::{panic::PanicInfo, ptr::copy_nonoverlapping};
-
-use crate::gpio::gpio::gpio_demo;
-mod common;
-mod gpio;
-```
-
-`gpio::gpio` is not a typo. `mod gpio;` names the directory module in
-`gpio/mod.rs`, and that module's `pub mod gpio;` names `gpio.rs` inside it — a
-module called `gpio` containing a module called `gpio`. `mod common;` earns its
-place even though nothing in `main.rs` names `common`: without it `common/reg.rs`
-is not part of the crate at all, and `gpio.rs`'s `use crate::common::reg::RegAddr`
-fails to resolve.
-
-**The body of `main`.** Replace the placeholder with the real thing:
-
-```rust
-fn main() -> !{
-    unsafe{
-        gpio_demo();
-    }
-    loop{}
-}
-```
-
-Still `-> !`, for the reason chapter 06 §6.5 gives: `OnReset` ends in `main()`
-and is itself `-> !`. `gpio_demo` never returns, so the trailing `loop{}` is
-unreachable — it is there to satisfy the type, not the hardware. `OnReset` is
-unchanged from chapter 06, and reaches `main` after the FPU, `VTOR`, `.data` and
-`.bss` work:
-
-```rust
-#[unsafe(no_mangle)] pub extern "C" fn OnReset() -> ! {
-    unsafe{
-        enable_fpu();
-        reset_vtor();
-        reset_data();
-        reset_bss();
-    }
-    main();
-}
-```
-
-That is the whole firmware. Every `PLACEHOLDER` from §5.9 and §6.5 is now gone,
-and `main.rs` is byte-for-byte the tree's — 126 lines, in the order §5.9 and
-§6.5 built them up: the head above, `BOOT_INFO`, the six `extern` symbols, the
-panic handler, `union Vector`, the PPB constants, the four `#[inline]` helpers,
-`OnReset`, `DefaultHandler`, `OnHardFault`, `VECTOR_TABLE`, and `main` last.
-
-### 8.12.3 `gpio.rs` in full
-
-`main.rs` got a whole-file listing at the end of chapter 05 and again at the end
-of chapter 06; `gpio.rs` was written a function at a time, so here it is once,
-whole. This is `firmware/pico2/src/gpio/gpio.rs` verbatim — 75 lines, nothing
-elided, no placeholders left. Check yours against it before building.
-
-The four function bodies are §8.5, §8.10, §8.11 and §8.12 in that order, under
-§8.5's three `use` lines. Note in particular that §8.6 through §8.9 add nothing:
-they are commentary on pieces of `configure_gpio_pin_out`, which appears here
-exactly once.
-
-```rust
-use core::hint::spin_loop;
-
-use crate::gpio::{IoBank, PadsBank, Reset, Sio};
-use crate::common::reg::RegAddr;
-
-unsafe fn reset_gpio(){
-    // Bit for IOBANK
-    const IOBANK_RESET_BIT:u8 = 6;
-    // Bit for Pad
-    const PADBANK_RESET_BIT:u8 = 9;
-    // IO Pad bitmask
-    const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
-    // Create pointer to reset addresses
-    let reset_addr = RegAddr::RESET as usize as *mut Reset;
-    unsafe{
-        // read current registers
-        let reset = &raw mut (*reset_addr).reset;
-        let current = reset.read_volatile();
-        // reset IO and PAD
-        reset.write_volatile(current & !IO_PAD_BITMASK);
-        let reset_done = &raw const (*reset_addr).reset_done;
-        // Wait for it to be done
-        while reset_done.read_volatile() & IO_PAD_BITMASK != IO_PAD_BITMASK
-        {}
-    }
-}
-
-unsafe fn configure_gpio_pin_out(pin: usize)
-{
-    let sio_addr = RegAddr::SIO as usize as *mut Sio;
-    let pads_addr = RegAddr::PADS_BANK0 as usize as *mut PadsBank;
-    let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
-    unsafe{
-        let gpio_out_clr = &raw mut (*sio_addr).gpio_out_clr;
-        gpio_out_clr.write_volatile(1 << pin);
-        let gpio_oe_set = &raw mut (*sio_addr).gpio_oe_set;
-        gpio_oe_set.write_volatile(1 << pin);
-        let pad= &raw mut (*pads_addr).pads[pin];
-        let mut current_pad = pad.read_volatile();
-        const IE: u8 = 6;
-        const OD: u8 = 7;
-        current_pad &= !(1 << OD);
-        current_pad |= 1 << IE;
-        pad.write_volatile( current_pad);
-        let io_ctrl = &raw mut (*io_addr).gpio[pin].ctrl;
-        const SIO: u32 = 5;
-        io_ctrl.write_volatile(SIO);
-        let mut current_pad = pad.read_volatile();
-        const ISO: u8 = 8;
-        current_pad &= !(1 << ISO);
-        pad.write_volatile(current_pad);
-    }
-}
-
-unsafe fn toggle_gpio_pin(pin: usize)
-{
-    let sio_addr = RegAddr::SIO as usize as *mut Sio;
-    unsafe{
-        let toggle = &raw mut (*sio_addr).gpio_out_xor;
-        toggle.write_volatile(1 << pin);
-    }
-}
-
-pub unsafe fn gpio_demo(){
-    unsafe{
-        reset_gpio();
-        configure_gpio_pin_out(25);
-    }
-    loop{
-        unsafe{
-            toggle_gpio_pin(25);
-        }
-        for _ in 0..500_000 {spin_loop();}
-    }
-}
-```
-
 ## 8.13 Build it
 
 ```
@@ -795,28 +1008,30 @@ link-arg in `.cargo/config.toml`:
 
 ```
 Memory region         Used Size  Region Size  %age Used
-           FLASH:        1744 B         4 MB      0.04%
-             RAM:          8 KB       520 KB      1.54%
+           FLASH:        7044 B         4 MB      0.17%
+             RAM:        8200 B       520 KB      1.54%
 ```
 
-1744 bytes is `.vector_table` (272) + `.boot_info` (20) + `.text` (1452). The
-8 kB of RAM is the `.stack` reservation; `.data` and `.bss` are both zero-length
-in this build.
+7044 bytes is `.vector_table` (272) + `.boot_info` (20) + `.text` (`0x1888` =
+6280) + `.rodata` (`0x1d8` = 472). The RAM line is the `.stack` reservation
+plus the 4-byte `.bss` holding `BOARD_CREATED` and 4 bytes of alignment
+padding (chapter 04 §4.11.2 decomposes it). The build emits exactly **one**
+warning — the `linker_messages` warning carrying the table above; rustc
+routes linker stdout through the warning channel (chapter 01 §1.7).
 
-The build is not silent, and none of the noise means you broke something.
-Verified on 2026-08-28: `warning: pico2 (bin "pico2") generated 3 warnings` and
-`warning: api (lib) generated 4 warnings`.
-
-- **Two `non_camel_case_types` warnings**, on `RegAddr::IO_BANK0` and
-  `RegAddr::PADS_BANK0` in `firmware/pico2/src/common/reg.rs`. The lint wants
-  `IoBank0` and `PadsBank0`; the names are deliberately the datasheet's.
-  `RESET` and `SIO` do not trip it — they are single words.
-- **One `linker_messages` warning**, which is how the memory table above reaches
-  your terminal: `rustc` treats anything the linker prints on stdout as a
-  warning. Two plus one is the three.
-- **Four dead-code warnings from the `api` crate** — `ErrorType`, `Write`,
-  `Read` and `GpioPin` are never used. `firmware/pico2` depends on `api` and
-  never calls into it.
+Where did five kilobytes over chapter 06's 1400 B go? Not into the driver —
+the configuration and write paths are a few hundred bytes. `llvm-nm -C` on the
+image shows the bulk: `core::fmt::Formatter::pad`, `pad_integral`,
+`core::fmt::write`, the `Debug` impls for integers, `core::str::count`,
+`core::option::unwrap_failed`, `core::result::unwrap_failed`,
+`core::panicking::panic_fmt`. That is the price of the two `unwrap()` calls in
+`main` plus `GpioError`'s `Debug` impl: unwrap must be able to *format* the
+error into a panic message, so the formatting machinery rides along, and
+`.rodata` gains the panic strings. It is dead weight on a board with no
+console — nothing can ever display the message — and replacing the `unwrap`s
+with `loop {}` matches or a custom trap would drop most of it. The tree keeps
+the `unwrap`s because they are the ordinary Rust idiom and the budget is
+0.17% of flash; know what they cost, and that the choice is reversible.
 
 ## 8.14 Flash it
 
@@ -824,29 +1039,31 @@ Verified on 2026-08-28: `warning: pico2 (bin "pico2") generated 3 warnings` and
 first:
 
 ```
-cp target/thumbv8m.main-none-eabihf/release/pico2 pico2.elf
-picotool uf2 convert pico2.elf pico2.uf2 --family rp2350-arm-s
+cp target/thumbv8m.main-none-eabihf/release/demo demo.elf
+picotool uf2 convert demo.elf demo.uf2 --family rp2350-arm-s
 ```
 
 `rp2350-arm-s` is the Arm Secure family — the image type the boot block
-declares, and the one `picotool info -a pico2.elf` reports back about the
+declares, and the one `picotool info -a demo.elf` reports back about the
 **file**, with no board attached. Chapter 05 §5.5 prints that output and reads
 it word by word; run it now as a check that the boot block is well-formed
-before you go near hardware.
+before you go near hardware. (The names are yours to choose — the repository
+root's `blinky.elf` and `blinky.uf2` are exactly this pair of commands run
+with a different name.)
 
 To get it onto the board, hold **BOOTSEL** while plugging in the USB cable, wait
-for the mass-storage volume, then either drag `pico2.uf2` onto it or run
-`picotool load pico2.uf2`. The hold is not a one-time thing: this firmware never
+for the mass-storage volume, then either drag `demo.uf2` onto it or run
+`picotool load demo.uf2`. The hold is not a one-time thing: this firmware never
 enumerates USB, so `picotool` cannot ask the running image to reboot into the
 bootloader. **Every reflash needs a physical BOOTSEL hold.**
 
 There is no brick risk, and the argument is worth stating rather than taking on
-faith: this image writes two CPU registers (`CPACR`, `VTOR`), some RAM, and five
-peripheral registers across `RESETS`, `SIO`, `IO_BANK0` and `PADS_BANK0`. It
-touches no OTP, no QMI flash-interface configuration, no partition table and no
-boot key, so the bootrom's BOOTSEL path depends on nothing it changes. Holding
-BOOTSEL always returns you to a mass-storage device you can drop a working UF2
-onto.
+faith: this image writes two CPU registers (`CPACR`, `VTOR`), some RAM, and a
+handful of peripheral registers across `RESETS`, `SIO`, `IO_BANK0` and
+`PADS_BANK0`. It touches no OTP, no QMI flash-interface configuration, no
+partition table and no boot key, so the bootrom's BOOTSEL path depends on
+nothing it changes. Holding BOOTSEL always returns you to a mass-storage device
+you can drop a working UF2 onto.
 
 ## 8.15 Did it work?
 
@@ -861,7 +1078,8 @@ not enumerate = the image was accepted and is running.** A dark board that does
 completely different investigation. Establish which one you have before changing
 a line.
 
-If the image is accepted and the LED is dark, work down this ladder in order.
+If the image is accepted and the LED is dark, run these checks in order — each
+one halves the remaining possibilities.
 
 **1. Read `GPIO25_STATUS` at `0x400280c8`.** It is the mux's own account of what
 it is sending to the pad, and it is read-only (Table 699, PDF p649):

@@ -1,8 +1,8 @@
 //! RP2350 GPIO driver.
 //!
 //! Implements the portable [`api::gpio`] traits on top of the register layouts
-//! in [`crate::gpio`]. Three peripherals cooperate to make one pin work, and
-//! all three must be configured or the pin does nothing:
+//! in [`crate::gpio`]. Four hardware blocks cooperate to make one pin work,
+//! and the first three must be configured or the pin does nothing:
 //!
 //! | Peripheral | Question it answers |
 //! |------------|---------------------|
@@ -33,8 +33,9 @@ pub enum GpioError
     ///
     /// This error exists because the hardware will not produce one. The
     /// `IO_BANK0` and `PADS_BANK0` register arrays are 48 entries wide in
-    /// every RP2350 package, so configuring pin 40 on a 30-pin RP2350A
-    /// succeeds at the bus level and drives a pad connected to nothing.
+    /// every RP2350 package, so configuring pin 40 on an RP2350A — whose
+    /// package bonds out only 30 user GPIOs — succeeds at the bus level and
+    /// drives a pad connected to nothing.
     /// Worse, `1 << pin` in the SIO path silently masks the shift to 5 bits in
     /// release builds, so pin 33 would end up toggling pin 1.
     PinOOB {
@@ -69,15 +70,29 @@ pub struct Rp2350Gpio
 
 }
 
+impl Rp2350Gpio
+{
+    pub fn new() -> Self
+    {
+        let mut gpio = Self{};
+        unsafe {gpio.start();}
+        return gpio;
+    }
+}
+
+impl Drop for Rp2350Gpio
+{
+    fn drop(&mut self) {
+        unsafe {self.stop();}
+    }
+}
+
 /// `IO_BANK0` — bit 6 of `RESETS.RESET` (Table 534, p504).
-// Bit for IOBANK
 const IOBANK_RESET_BIT:u8 = 6;
 /// `PADS_BANK0` — bit 9 of `RESETS.RESET`.
-// Bit for Pad
 const PADBANK_RESET_BIT:u8 = 9;
 /// Both GPIO blocks. Neither alone is sufficient: `IO_BANK0` routes the signal
 /// and `PADS_BANK0` connects it to a physical leg of the package.
-// IO Pad bitmask
 const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
 
 impl Block for Rp2350Gpio
@@ -147,9 +162,14 @@ impl Gpio<Rp2350GpioPin> for Rp2350Gpio
 /// The field is private and both constructors are private to this module, so
 /// the only way to obtain one is through [`Rp2350Gpio`]'s [`Gpio`] impl.
 ///
-/// Because it is an owning handle, moving it moves control of the pin. Two
-/// parts of an application cannot both drive it, since [`Write::write`] needs
-/// `&mut self` and there is only ever one value.
+/// Because it is an owning handle, moving it moves control of the pin, and
+/// [`Write::write`] on a given handle needs `&mut self`. But note the limit
+/// of that guarantee: nothing records which pin numbers have already been
+/// handed out, so calling [`Gpio::init_output`] or [`Gpio::init_input`] again
+/// with the same number reconfigures the pin and returns a second,
+/// independent handle to it. One-handle-per-pin is a convention the caller
+/// maintains by constructing each pin once, not an invariant this type
+/// enforces.
 pub struct Rp2350GpioPin
 {
     /// Validated to be `< MAX_GPIO_PIN`. Every `1 << pin_no` in this module
@@ -285,8 +305,11 @@ unsafe fn configure_gpio_pin_in(pin: usize, pull: Pull)
         let mut current_pad = pad.read_volatile();
         const IE: u8 = 6;
         const OD: u8 = 7;
-        // OD disables the output driver and "has priority over output enable
-        // from peripherals" (Table 852) — belt to the gpio_oe_clr suspenders.
+        // OD disables the pad's output driver and "has priority over output
+        // enable from peripherals" (Table 852). The gpio_oe_clr write above
+        // already stopped SIO asserting output enable; OD additionally cuts
+        // the driver at the pad itself, so the pin stays undriven even if
+        // some later code sets the SIO output enable again.
         current_pad |= 1 << OD;
         // IE enables the input buffer. Without it GPIO_IN reads 0 forever, no
         // matter what voltage is on the pin. IE resets to 0, so this is the

@@ -1,5 +1,10 @@
 # Juno FSW Test Cases
 
+> **Status (2026-08-29):** This is a planning baseline. The modules under test
+> are not implemented in this repository's code, and no test below has been
+> executed; the Coverage column measures requirements-to-test-case mapping,
+> not test results. See the root `README.md` for what exists today.
+
 Test cases are structured JSON files validated against `schema.json`, with
 human-readable Markdown summaries (`test_cases.md`) per module. Demonstration
 procedures live alongside the JSON as separate Markdown files.

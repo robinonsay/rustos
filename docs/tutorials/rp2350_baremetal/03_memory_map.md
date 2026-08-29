@@ -2,8 +2,8 @@
 document_type: "Tutorial Chapter — The RP2350 Memory Map"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 3 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-02
 sources: RP2350 datasheet §2.2 (Tables 7, 9, 10, 11, 12, 14, 15), §3.1 (PDF p39),
@@ -28,8 +28,8 @@ arrives in the build log:
 
 ```
 warning: linker stdout: Memory region         Used Size  Region Size  %age Used
-                    FLASH:        1744 B         4 MB      0.04%
-                      RAM:          8 KB       520 KB      1.54%
+                    FLASH:        7044 B         4 MB      0.17%
+                      RAM:        8200 B       520 KB      1.54%
 ```
 
 That table appears because `.cargo/config.toml` passes `--print-memory-usage`
@@ -47,18 +47,27 @@ MEMORY
 
 Four literals. Chapter 04 uses all four and defends none of them; this chapter
 is where they come from — along with the firmware's other magic numbers, the
-peripheral bases in `firmware/pico2/src/common/reg.rs`:
+peripheral bases in `firmware/pico2/src/common/reg.rs`. The tree carries a
+`///` doc comment on the enum and on every variant; those are elided here and
+the code lines are quoted as they stand:
 
 ```rust
 #[repr(usize)]
 #[derive(Clone, Copy)]
+// Variant names deliberately match the datasheet's block names exactly, so
+// code can be checked against the register listings without translation.
+#[allow(non_camel_case_types)]
 pub enum RegAddr {
-    RESET = 0x4002_0000 as usize,
-    IO_BANK0 = 0x4002_8000 as usize,
-    SIO = 0xd000_0000 as usize,
-    PADS_BANK0 = 0x4003_8000 as usize,
+    RESET = 0x4002_0000,
+    IO_BANK0 = 0x4002_8000,
+    PADS_BANK0 = 0x4003_8000,
+    SIO = 0xd000_0000,
 }
 ```
+
+The `#[allow(non_camel_case_types)]` is there because the SCREAMING_SNAKE
+variant names would otherwise trip a lint; the comment above it is the tree's
+own statement of why the names are worth keeping anyway.
 
 By the end you should be able to say where each of those eight numbers is
 written down, and why the two `0x4002_…` values differ by exactly `0x8000` while
@@ -329,10 +338,11 @@ _stack_top = ORIGIN(RAM) + LENGTH(RAM);
 ```
 
 `0x20000000 + 0x82000 = 0x20082000`, and the linker agrees — `llvm-nm -n` on
-the release build, filtered to the two absolute symbols:
+the release build, filtered to the three absolute symbols:
 
 ```
-100006d0 A __sidata
+00002000 A _min_stack_size
+10001b84 A __sidata
 20082000 A _stack_top
 ```
 

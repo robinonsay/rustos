@@ -81,9 +81,13 @@ impl<T: Write<bool> + Read<bool>> GpioPin for T {}
 /// out-of-range pin number is rejected before any register is touched rather
 /// than silently aliasing onto a different pin.
 ///
-/// The methods are associated functions rather than taking `&self`: on most
-/// microcontrollers the port is a fixed set of registers at a fixed address,
-/// not a value, so there is nothing meaningful for `self` to be.
+/// Both methods take `&mut self`: configuring a pin changes hardware state,
+/// and routing every configuration through a borrow of the port value gives
+/// the application one place where that authority lives. The port type
+/// itself may well be zero-sized — on most microcontrollers the port is a
+/// fixed set of registers at a fixed address, so there is no data for the
+/// value to carry — and the RP2350 implementation's `Rp2350Gpio` is exactly
+/// that.
 pub trait Gpio<T: GpioPin>: ErrorType {
     /// Configure `pin_no` as an input with the given [`Pull`].
     ///

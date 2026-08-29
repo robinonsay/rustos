@@ -10,6 +10,12 @@ status: Active (Revision C major amendment 2026-05-08 per PM — nav_lib + nav_a
 
 # Juno FT1 FSW — Software Development Plan (Index)
 
+> **Status (2026-08-29):** This is a planning baseline. It predates the
+> current codebase, which is written in Rust (not the C++ this plan
+> describes); none of the sprints' modules are implemented in this
+> repository's code, and the `ai/` directory it references is not present in
+> this repository. See the root `README.md` for what exists today.
+
 ## 1. Purpose
 
 This Software Development Plan (SDP) sequences every implementation sprint that converts the PDR-closed design baseline into a flight-ready FT1 Flight Software (FSW). It defines the per-sprint structure, the dependency-correct ordering of all libraries and applications, the build and test gates that every sprint must pass, the requirement traceability strategy that links code and tests back to `SW-REQ-*` IDs, and the exit criteria for FT1 FSW closure. Each sprint is bite-sized — exactly one library OR one application OR one tightly-scoped sim/integration deliverable — and includes test authoring plus test execution as a non-negotiable closure gate, in keeping with the project's TDD methodology recorded in `ai/memory/project-overview.md`.

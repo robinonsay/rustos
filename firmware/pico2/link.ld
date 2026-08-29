@@ -1,6 +1,11 @@
 /* RP2350 / Raspberry Pi Pico 2
  * FLASH: XIP cached window        — §2.2.2, Table 9
  * RAM:   SRAM0-7 + SRAM8-9        — §2.2.3, Tables 10 & 11
+ *
+ * XIP = execute-in-place: the QMI flash controller presents the external
+ * flash chip's contents as ordinary readable memory starting at 0x10000000,
+ * so the CPU fetches instructions directly from flash — nothing is copied to
+ * RAM first.
  */
 
 /* MEMORY declares the physical regions the linker may place things in.
@@ -163,7 +168,10 @@ SECTIONS
      * of RAM; this books the same number of bytes at the bottom purely so the
      * linker's region check and --print-memory-usage both account for it.
      * Without it, .bss can grow to 99% of RAM and still link clean. */
-    .stack (NOLOAD) : ALIGN(8) {   /* AAPCS wants 8-byte stack alignment */
+    /* ALIGN(8): AAPCS — the Procedure Call Standard for the Arm Architecture,
+     * Arm's rules for how compiled functions call each other — requires the
+     * stack pointer to be 8-byte aligned at every public interface. */
+    .stack (NOLOAD) : ALIGN(8) {
         . = . + _min_stack_size;
     } > RAM
     /DISCARD/ : { *(.ARM.exidx .ARM.exidx.*) }

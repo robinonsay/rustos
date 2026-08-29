@@ -22,6 +22,9 @@ pub mod reset;
 /// error, and drives a pad that is not bonded to any leg of the chip.
 ///
 /// That silence is why this constant is checked at pin construction rather
-/// than trusted. Strictly it is the *board* layer's fact rather than the
-/// chip's; it lives here because this crate is currently both.
+/// than trusted. Strictly it is a fact about the package the board carries
+/// rather than about the RP2350 die itself; it lives in this chip-support
+/// crate, rather than in the application, so the GPIO driver can validate pin
+/// numbers without trusting its caller. A build for the RP2350B would change
+/// this one constant.
 pub const MAX_GPIO_PIN: usize = 30;

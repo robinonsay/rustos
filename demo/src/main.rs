@@ -1,9 +1,13 @@
 //! Blinky — the smallest complete application on this runtime.
 //!
-//! Demonstrates the dependency-injection shape the whole system is built
-//! around: this crate contains no `unsafe`, no register addresses, no
-//! knowledge of the RP2350, and no startup code. It receives its hardware as
-//! an argument and drives it through the portable `api` traits.
+//! This crate contains no `unsafe`, no register addresses, and no startup
+//! code, but it is not hardware-agnostic: it names the RP2350 driver type
+//! (`pico2::gpio::gpio::Rp2350Gpio`) and hard-codes pin 25, the Pico 2's
+//! on-board LED. `main` constructs that driver itself, hands it to
+//! `Board::take` (which starts the GPIO blocks), and from then on touches the
+//! pin only through the portable `api` traits (`Gpio::init_output`,
+//! `Write::write`) — so only the lines that name the driver and the pin would
+//! change on different hardware.
 //!
 //! Build and flash:
 //!
@@ -17,23 +21,26 @@
 
 use core::hint::spin_loop;
 
-use api::{common::{Write, board::Board}, gpio::Gpio};
+use api::{common::Write, gpio::Gpio};
 use pico2::gpio::gpio::Rp2350Gpio;
 
 
-// Declares this crate's entry point to the runtime. Expands to a shim that
-// calls `main`, and — critically — type-checks `main`'s signature against `fn(Board) -> !` at compile time. See the
+// Declares this crate's entry point to the runtime. Expands to a
+// `__rustos_main` shim that calls `main`, and — critically — type-checks
+// `main`'s signature against `fn() -> !` at compile time. See the
 // `pico2::entry` docs for why a plain `extern` declaration would not.
 pico2::entry!(main);
 
 /// Application entry point.
 ///
-/// Called once from `OnReset` after the FPU is enabled, `VTOR` is set, `.data`
-/// is copied and `.bss` is zeroed. Diverges: on bare metal there is nothing to
-/// return to, and the `-> !` makes that a type error rather than a convention.
+/// Runs once per boot: the runtime's `OnReset` — after enabling the FPU,
+/// setting `VTOR`, copying `.data` and zeroing `.bss` — tail-calls the
+/// `__rustos_main` shim that `entry!` above expanded to, and that shim calls
+/// `main` through a checked `fn() -> !` pointer. Diverges: on bare metal
+/// there is nothing to return to, and the `-> !` makes that a type error
+/// rather than a convention.
 fn main() -> ! {
-    let mut gpio: Rp2350Gpio = Rp2350Gpio{};
-    let _board = Board::take([&mut gpio]).unwrap();
+    let mut gpio = Rp2350Gpio::new();
     let mut pin25_o = gpio.init_output(25).unwrap();
     loop {
         pin25_o.write(true);

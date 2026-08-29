@@ -1,5 +1,11 @@
 # Juno FSW Interface Control Documents (ICDs)
 
+> **Status (2026-08-29):** Only the `rp2350/` and `pico2_pinout/` ICDs relate
+> to implemented code (the GPIO driver in `firmware/pico2` and the bare-metal
+> tutorial cite them). The device ICDs (GPS, IMU, baro, LoRa, SD) and the
+> avionics wiring ICD describe planned integrations; no driver for any of
+> those devices exists in this repository's code yet.
+
 This directory contains the Interface Control Documents for the FT1 avionics:
 the top-level wiring document plus per-device ICDs converted from the source
 PDFs in `docs/`.

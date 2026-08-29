@@ -1,15 +1,11 @@
-//! Traits shared by every peripheral: error reporting, and the generic
-//! read/write pair that most drivers are ultimately expressed in terms of.
-//! 
-//! 
-
-pub mod board;
-
-/// A peripheral that owns one or more bits in the `RESETS` register.
+/// A peripheral that must be brought up before use and can be shut back down.
 ///
-/// Implemented by drivers rather than by the reset controller, so each driver
-/// keeps the knowledge of which bits it needs next to the code that needs
-/// them. A driver that reaches pins generally owns more than one bit: `UART0`
+/// Implemented by drivers rather than by a central reset controller, so each
+/// driver keeps the knowledge of which reset lines it needs next to the code
+/// that needs them. This trait names only the lifecycle; which registers are
+/// involved is the implementing crate's business. On the RP2350, for example,
+/// each driver owns one or more bits in the chip-wide `RESETS` register, and
+/// a driver that reaches pins generally owns more than one bit: `UART0`
 /// alone does not produce a working UART, because the signal still has to get
 /// through `IO_BANK0`'s function mux and a `PADS_BANK0` pad.
 pub trait Block
@@ -17,10 +13,10 @@ pub trait Block
     /// Release this peripheral's blocks from reset and block until the
     /// hardware reports them ready.
     ///
-    /// Must be called before touching any of the peripheral's registers.
-    /// Accesses to a block still in reset do not fault — they are accepted by
-    /// the bus and discarded — so skipping this produces a peripheral that
-    /// silently ignores every write.
+    /// Must be called before touching any of the peripheral's registers. On
+    /// the RP2350, accesses to a block still in reset do not fault — they are
+    /// accepted by the bus and discarded — so skipping this produces a
+    /// peripheral that silently ignores every write.
     ///
     /// # Safety
     ///
@@ -34,9 +30,11 @@ pub trait Block
     ///
     /// Any handle to this peripheral becomes non-functional. As with
     /// [`start`](Block::start), implementations must confine themselves to
-    /// their own bits: asserting reset on `IO_QSPI` or `PADS_QSPI` cuts the
-    /// pins that XIP fetches instructions from, and execution stops mid-fetch
-    /// with no fault and no output.
+    /// their own reset lines. The stakes can be fatal to the program: on the
+    /// RP2350, asserting reset on `IO_QSPI` or `PADS_QSPI` cuts the pins that
+    /// XIP (execute-in-place, code running directly from flash) fetches
+    /// instructions from, and execution stops mid-fetch with no fault and no
+    /// output.
     unsafe fn stop(&mut self);
 }
 
@@ -118,10 +116,13 @@ pub trait Write<T>: ErrorType {
 pub trait Read<T>: ErrorType {
     /// Read the peripheral's current value.
     ///
-    /// Takes `&mut self` rather than `&self`, which is worth being deliberate
-    /// about: many reads have side effects. Reading a UART data register pops
-    /// a FIFO; reading an interrupt status register may clear it. Requiring a
-    /// mutable borrow means those cases need no special-casing, and it keeps
-    /// the exclusivity guarantee uniform across the whole API.
+    /// Takes `&self`: this trait models reads that only observe, so several
+    /// borrowers can sample the same peripheral concurrently. That choice has
+    /// a cost worth knowing about — some hardware reads have side effects
+    /// (reading a UART data register pops a FIFO; reading an interrupt status
+    /// register may clear it), and an implementation of *this* trait for such
+    /// a register would mutate peripheral state behind a shared borrow. Those
+    /// operations belong behind `&mut self` methods instead. The RP2350 GPIO
+    /// implementation samples `GPIO_IN`, which changes nothing.
     fn read(&self) -> Result<T, Self::Error>;
 }

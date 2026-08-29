@@ -2,8 +2,8 @@
 document_type: "Tutorial Chapter — The Linker Script"
 program: rustos (Raspberry Pi Pico 2 / RP2350)
 chapter: 4 of 9
-revision: B
-effective_date: 2026-08-28
+revision: C
+effective_date: 2026-08-29
 parent_index: docs/tutorials/rp2350_baremetal/index.md
 prerequisites: chapters 01-03
 sources: RP2350 datasheet §2.2.2 Table 9 and §2.2.3 Tables 10 & 11 (PDF p32); §3.2 (PDF p83-84); §3.7 Cortex-M33 configuration (PDF p125); §3.7 M33 VTOR, Table 201 (PDF p183); §5.9.1 (PDF p417); §5.9.3.3 (PDF p423); §5.9.5 and §5.9.5.1 (PDF p427); RP2350-E25 (PDF p1356). Armv8-M Architecture Reference Manual for the vector-table alignment rule, which the RP2350 datasheet does not restate.
@@ -20,11 +20,13 @@ Write `firmware/pico2/link.ld` from §4.1, then keep it open beside the chapter:
 §4.2 through §4.10 take it one line at a time and say what breaks when that line
 is missing.
 
-**Do not expect an image at the end of this chapter.** `main.rs` is still
-chapter 01 §1.9's six-line stub, so the script is correct and has nothing to
-place. §4.11.1 gives the build you can actually run once §4.1 is typed — an
-empty one, and the emptiness is informative. §4.11.2 gives the finished
-firmware's layout, which you reach at the end of chapter 08.
+**Do not expect an image at the end of this chapter.** The two crates are
+still chapter 01 §1.9's stubs — a `pico2` library that is only a panic
+handler, a `demo` binary that is only two attributes and an import — so the
+script is correct and has nothing to place. §4.11.1 gives the build you can
+actually run once §4.1 is typed — an empty one, and the emptiness is
+informative. §4.11.2 gives the finished firmware's layout, which you reach at
+the end of chapter 08.
 
 ## 4.1 The script
 
@@ -366,7 +368,7 @@ little-endian for `0x20082000`:
 
 ```
 Contents of section .vector_table:
- 10000000 00200820 2b010010 25010010 25010010  . . +...%...%...
+ 10000000 00200820 07030010 01030010 01030010  . . ............
 ```
 
 ## 4.10 The assertions
@@ -392,8 +394,8 @@ final yet.
 
 ### 4.11.1 What this chapter's build actually produces
 
-Type §4.1 into `firmware/pico2/link.ld` and build, with `main.rs` still chapter
-01 §1.9's six-line stub. This is the whole of it, staged — real output, and not
+Type §4.1 into `firmware/pico2/link.ld` and build, with both crates still
+chapter 01 §1.9's stubs. This is the whole of it, staged — real output, and not
 what §4.11.2 shows:
 
 ```
@@ -406,8 +408,8 @@ warning: linker stdout: Memory region         Used Size  Region Size  %age Used
                     FLASH:          0 GB         4 MB      0.00%
                       RAM:          8 KB       520 KB      1.54%
 
-warning: `pico2` (bin "pico2") generated 2 warnings
-    Finished `release` profile [optimized] target(s) in 0.47s
+warning: `demo` (bin "demo") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 0.23s
 ```
 
 `FLASH: 0 GB` is not a typo and not a mistyped script. It is the correct answer,
@@ -416,12 +418,13 @@ rustc passes `--gc-sections`; `ENTRY` is what names the root that collection
 keeps things from. `OnReset` does not exist yet, so there is no root, nothing is
 reachable, and nothing is kept — §2.5's mechanism with its input set to empty.
 Measured: add `#[unsafe(no_mangle)] pub extern "C" fn Foo() { loop{} }`
-to the stub and flash stays at `0 GB`; add `-C link-arg=--no-gc-sections` on top
-of that and it becomes `12 B` with `10000000 T Foo` in `llvm-nm`. Every flash
-section is empty and collapses onto `ORIGIN(FLASH)`:
+to the `pico2` stub and flash stays at `0 GB`; add
+`-C link-arg=--no-gc-sections` on top of that and it becomes `12 B` with
+`10000000 T Foo` in `llvm-nm`. Every flash section is empty and collapses onto
+`ORIGIN(FLASH)`:
 
 ```
-$ llvm-objdump --section-headers target/thumbv8m.main-none-eabihf/release/pico2
+$ llvm-objdump --section-headers target/thumbv8m.main-none-eabihf/release/demo
 Idx Name            Size     VMA      Type
   1 .vector_table   00000000 10000000 DATA
   2 .boot_info      00000000 10000000 DATA
@@ -430,7 +433,7 @@ Idx Name            Size     VMA      Type
   5 .data           00000000 20000000 DATA
   6 .bss            00000000 20000000 BSS
   7 .stack          00002000 20000000 BSS
-$ llvm-readobj --file-headers target/thumbv8m.main-none-eabihf/release/pico2 | grep Entry
+$ llvm-readobj --file-headers target/thumbv8m.main-none-eabihf/release/demo | grep Entry
   Entry: 0x0
 ```
 
@@ -446,35 +449,35 @@ Three things should be true of your staged build, and none of them mention
 build fails with `cannot find linker script link.ld`, `build.rs` or
 `.cargo/config.toml` is the problem, not the script — chapter 01 §1.6 and §1.9.
 Chapter 05 §5.9 is the first build in this tutorial with bytes in it: 300 B,
-once `main.rs` defines `OnReset` and the two `static`s.
+once `firmware/pico2/src/lib.rs` defines `OnReset` and the two `static`s.
 
 ### 4.11.2 The finished firmware
 
 Everything below is the **finished** image, at the end of chapter 08. It is the
 target, not this chapter's output. From `cargo build --release`,
 `llvm-objdump --section-headers` on
-`target/thumbv8m.main-none-eabihf/release/pico2`:
+`target/thumbv8m.main-none-eabihf/release/demo`:
 
 ```
 Idx Name            Size     VMA      Type
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           000005ac 10000124 TEXT
-  4 .rodata         00000000 100006d0 DATA
+  3 .text           00001888 10000124 TEXT
+  4 .rodata         000001d8 100019ac DATA
   5 .data           00000000 20000000 DATA
-  6 .bss            00000000 20000000 BSS
-  7 .stack          00002000 20000000 BSS
+  6 .bss            00000004 20000000 BSS
+  7 .stack          00002000 20000008 BSS
 ```
 
 `llvm-nm -n`, filtered to the linker symbols:
 
 ```
 00002000 A _min_stack_size
-100006d0 A __sidata
-20000000 B __ebss
+10001b84 A __sidata
 20000000 R __edata
 20000000 B __sbss
 20000000 R __sdata
+20000004 B __ebss
 20082000 A _stack_top
 ```
 
@@ -483,56 +486,61 @@ warning because of `--print-memory-usage`:
 
 ```
 Memory region         Used Size  Region Size  %age Used
-           FLASH:        1744 B         4 MB      0.04%
-             RAM:          8 KB       520 KB      1.54%
+           FLASH:        7044 B         4 MB      0.17%
+             RAM:        8200 B       520 KB      1.54%
 ```
 
 Read three things off that. `.vector_table` is `0x110` = 272 bytes = 68 × 4 and
-`.boot_info` is `0x14` = 20 bytes, the minimum `IMAGE_DEF` of §5.9.5.1. The
-whole 8 kB of RAM in use is the `.stack` reservation. And — the point chapter 06
-§6.7 makes from the other side — **`.data` and `.bss` are both zero-length**:
-`__sdata`, `__edata`, `__sbss` and `__ebss` are all `0x20000000`, so both loops
-in the reset handler run zero iterations. The release codegen computes the
-count, gets zero, and calls `__aeabi_memcpy4` with it anyway.
+`.boot_info` is `0x14` = 20 bytes, the minimum `IMAGE_DEF` of §5.9.5.1. `.data`
+is zero-length — `__sdata == __edata == 0x20000000`, so the copy loop in the
+reset handler runs zero iterations; the release codegen computes the count,
+gets zero, and calls `__aeabi_memcpy4` with it anyway. But `.bss` is **not**
+empty: it is exactly one word, `__ebss - __sbss = 4` bytes. That word is
+`BOARD_CREATED`, a zero-initialised `AtomicBool` inside the `api` crate
+(chapter 08 §8.12), and it means the reset handler's zero loop is live in the
+shipping image — it moves one word, and skipping it would hand `Board::take` a
+flag holding power-on garbage. The `RAM: 8200 B` line decomposes as 4 bytes of
+`.bss`, 4 bytes of padding (the `.stack` section's `ALIGN(8)` rounds
+`0x20000004` up to `0x20000008`), and the 8192-byte `.stack` reservation.
 
 Note there is no LMA column at all. `.data` is empty, so no section has an LMA
 that differs from its VMA and `llvm-objdump` drops the column; the only
-surviving evidence of `AT > FLASH` is `__sidata = 0x100006d0`, one past the end
-of `.rodata` in flash, exactly where the first byte of `.data` would ship.
+surviving evidence of `AT > FLASH` is `__sidata = 0x10001b84`, one past the end
+of `.rodata` in flash (`0x100019ac + 0x1d8`), exactly where the first byte of
+`.data` would ship.
 
 > **Silent-failure trap.** Do not read these values out of `firmware.map`. lld's
 > map prints, for a symbol-assignment line, the *location counter* at that point
 > rather than the symbol's value. The shipping map file contains
-> `20002000 20002000 0 1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)` and
+> `20002008 20002008 0 1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)` and
 > `20000000 20000000 0 1 __sidata = LOADADDR(.data)` — neither number is the
-> symbol's value (`0x20082000` and `0x100006d0` respectively, per `llvm-nm`).
+> symbol's value (`0x20082000` and `0x10001b84` respectively, per `llvm-nm`).
 > The map is right about sections and misleading about assignments. Use
 > `llvm-nm` for symbols.
 
-The same layout with the chapter-06 §6.7 test statics added — the same build,
-same date, one `u32` in `.data` and a `[u32; 4]` in `.bss`:
+The same layout with the chapter-06 §6.7 test statics added — the same tree,
+same date, one extra `u32` in `.data` and a `[u32; 4]` in `.bss`:
 
 ```
 Idx Name            Size     VMA       LMA       Type
   1 .vector_table   00000110  10000000  10000000  DATA
   2 .boot_info      00000014  10000110  10000110  DATA
-  3 .text           000005ac  10000124  10000124  TEXT
-  4 .rodata         00000000  100006d0  100006d0  DATA
-  5 .data           00000004  20000000  100006d0  DATA    <- VMA != LMA
-  6 .bss            00000010  20000004  20000004  BSS
+  3 .text           00001888  10000124  10000124  TEXT
+  4 .rodata         000001d8  100019ac  100019ac  DATA
+  5 .data           00000004  20000000  10001b84  DATA    <- VMA != LMA
+  6 .bss            00000014  20000004  20000004  BSS
   7 .stack          00002000  20000018  20000018  BSS
 
-  __sidata = 100006d0  == .data's LMA
+  __sidata = 10001b84  == .data's LMA
   __sdata  = 20000000  ---+-- 4 bytes  = 1 word to copy
   __edata  = 20000004  ---+
-  __sbss   = 20000004  ---+-- 16 bytes = 4 words to zero
-  __ebss   = 20000014  ---+
+  __sbss   = 20000004  ---+-- 20 bytes = 5 words to zero
+  __ebss   = 20000018  ---+     (the 16-byte test array + BOARD_CREATED)
   _stack_top = 20082000
 ```
 
-That is the arrangement the script is designed for and the only one in which
-the reset handler's loops do any work. The LMA column reappears the moment
-`.data` is non-empty.
+That is the arrangement the script is designed for. The LMA column reappears
+the moment `.data` is non-empty.
 
 Checks to run after any change to `link.ld`:
 
@@ -543,10 +551,11 @@ Checks to run after any change to `link.ld`:
 4. `.bss` immediately follows `.data`; `.stack` follows `.bss`
 5. `.ARM.exidx` is absent
 6. `_stack_top` is `0x20082000`, read from `llvm-nm` and not from the map
-7. in the shipping firmware specifically, `.data` and `.bss` are both
-   zero-length and `__sdata == __edata == __sbss == __ebss == 0x20000000`. If
-   either grows, something acquired a mutable static, the reset handler's loops
-   stop being no-ops, and both are now on the critical path to boot
+7. in the shipping firmware specifically, `.data` is zero-length and `.bss` is
+   exactly 4 bytes (`__sbss = 0x20000000`, `__ebss = 0x20000004`). If either
+   grows, something acquired another mutable static — worth knowing, since
+   both reset-handler loops are on the critical path to boot and a new static
+   is a new thing that must be initialised before `main`
 
 ## 4.12 Known deviations
 

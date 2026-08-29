@@ -8,22 +8,32 @@
 //!
 //! ## Writing an application
 //!
+//! This mirrors the `demo` crate in this workspace:
+//!
 //! ```ignore
 //! #![no_std]
 //! #![no_main]
 //!
+//! use api::{common::{Write, board::Board}, gpio::Gpio};
+//! use pico2::gpio::gpio::Rp2350Gpio;
+//!
 //! pico2::entry!(main);
 //!
 //! fn main() -> ! {
+//!     let mut gpio = Rp2350Gpio {};
+//!     let _board = Board::take([&mut gpio]).unwrap(); // starts the GPIO blocks
+//!     let mut led = gpio.init_output(25).unwrap();
 //!     loop {
-//!         board.led.write(true).ok();
-//!         board.led.write(false).ok();
+//!         led.write(true).ok();
+//!         led.write(false).ok();
 //!     }
 //! }
 //! ```
 //!
-//! Three lines of ceremony, and `main` is an ordinary unattributed function
-//! that receives its hardware as an argument. See [`entry`] for why the macro
+//! `main` is an ordinary unattributed function taking no arguments: it
+//! constructs its hardware drivers itself, registers them with the `Board`
+//! singleton from the `api` crate (whose `take` starts each one and succeeds
+//! at most once per boot), and never returns. See [`entry`] for why the macro
 //! is needed and what it protects you from.
 //!
 //! ## Boot sequence
@@ -39,12 +49,15 @@
 //!    linker script pins to the flash base.
 //! 3. [`OnReset`] runs with flash mapped read-only over XIP and **RAM
 //!    uninitialised**: enable the FPU, point `VTOR` at the table, copy
-//!    `.data` from flash to RAM, zero `.bss`.
+//!    `.data` from flash to RAM, zero `.bss`. (XIP is *execute-in-place*: the
+//!    QMI flash controller presents the flash contents as ordinary readable
+//!    memory starting at `0x1000_0000`, so the CPU fetches instructions
+//!    directly from flash with nothing copied to RAM first.)
 //! 4. `OnReset` tail-calls the application entry point, which never returns.
 //!
 //! ## Layering note
 //!
-//! This crate currently holds three logically distinct layers, which is fine
+//! This crate currently holds two logically distinct layers, which is fine
 //! at this size but worth naming, since only the first is genuinely tied to
 //! Arm:
 //!
@@ -54,8 +67,12 @@
 //!   [`common::reset`], [`gpio`]. Portable to any RP2350 board, and notably
 //!   *not* Arm-specific: RP2350 can boot RISC-V Hazard3 cores instead, driving
 //!   these same registers (p14).
-//! Board-level facts — which pin the LED is on, what is wired where — are not
-//! in this crate at all; they belong to the application.
+//!
+//! Board-level facts — which pin the LED is on, what is wired where — mostly
+//! do not live in this crate; the application states them (the `demo` crate
+//! hard-codes pin 25), and the `Board` singleton type lives in the `api`
+//! crate. The one exception is [`common::MAX_GPIO_PIN`], a package fact this
+//! crate keeps so pin numbers can be validated; see its doc for why.
 
 #![no_std]
 
@@ -253,10 +270,13 @@ unsafe fn reset_vtor() {
 /// Copy initialised statics from flash to RAM.
 ///
 /// `.data` is the one section with two addresses. Its initial values must
-/// survive power-off so they ship in flash (the LMA, `__sidata`), but the
-/// variables must be writable so they live in RAM (the VMA, `__sdata`).
-/// Nothing moves them for you — this function is that step, and until it runs
-/// every non-zero `static mut` holds garbage.
+/// survive power-off, so they ship in flash at the section's *load address*
+/// (LMA, "load memory address" — where the bytes are stored in the image;
+/// here `__sidata`). But the variables must be writable, so compiled code
+/// refers to them at the section's *runtime address* in RAM (VMA, "virtual
+/// memory address"; here `__sdata`). `link.ld` sets the two apart with
+/// `> RAM AT > FLASH`. Nothing moves the bytes for you — this function is
+/// that step, and until it runs every non-zero `static mut` holds garbage.
 ///
 /// # Safety
 ///

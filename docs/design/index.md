@@ -1,5 +1,11 @@
 # Design Documents Index — Juno FSW
 
+> **Status (2026-08-29):** This is a planning baseline. None of the modules
+> designed below are implemented in this repository's code — the implemented
+> code is the `api`/`firmware/pico2`/`demo` workspace at the repository root
+> (see the root `README.md`). The `tools/traceability.py` script referenced
+> under Coverage Summary is not present in this repository.
+
 Design documents follow IEEE 1016. Each module has its own directory under `docs/design/`. Cross-cutting documents (`conventions.md`, `system/system_design.md`) anchor the per-module designs.
 
 ## Cross-Cutting Documents

@@ -75,9 +75,9 @@ pub mod gpio;
 struct GpioRegs{
     /// `GPIOn_STATUS` — offset `0x0` within the pair. **Read-only.**
     ///
-    /// A window onto the live signal values at the four corners of the pin's
-    /// routing, *after* the override fields in [`ctrl`](Self::ctrl) have been
-    /// applied. Purely diagnostic; writing it does nothing.
+    /// Reports the live signal values at four observation points along the
+    /// pin's signal path, *after* the override fields in [`ctrl`](Self::ctrl)
+    /// have been applied. Purely diagnostic; writing it does nothing.
     ///
     /// | Bit | Name         | Meaning |
     /// |-----|--------------|---------|
@@ -130,7 +130,8 @@ struct GpioRegs{
 
 /// `IO_BANK0` — the user-GPIO function-select block. Base `0x4002_8000`.
 ///
-/// Held in reset until you clear bit 6 of [`Reset::reset`].
+/// Held in reset until you clear bit 6 of `RESETS.RESET`; see
+/// [`crate::common::reset`].
 ///
 /// The QSPI pins have their own separate `IO_QSPI` block at a different base;
 /// this struct covers only the 48 general-purpose pins.
@@ -192,7 +193,8 @@ struct IoBank{
 /// `PADS_BANK0` — the electrical properties of each user GPIO pad.
 /// Base `0x4003_8000`.
 ///
-/// Held in reset until you clear bit 9 of [`Reset::reset`].
+/// Held in reset until you clear bit 9 of `RESETS.RESET`; see
+/// [`crate::common::reset`].
 ///
 /// Where [`IoBank`] decides *which signal* reaches the pin, this block decides
 /// *how the pin behaves electrically*: whether the input buffer is powered,
@@ -274,7 +276,7 @@ struct PadsBank{
 /// four registers for output and four for output-enable.
 ///
 /// SIO does not need to be released from reset — it is part of the core
-/// complex, not a resettable subsystem, and has no bit in [`Reset`].
+/// complex, not a resettable subsystem, and has no bit in `RESETS.RESET`.
 ///
 /// Each `*_hi` register is the datasheet's `GPIO_HI_*`, covering GPIO32–47
 /// plus the QSPI and USB pins. On a Pico 2, which only bonds out GPIO0–29,

@@ -1,5 +1,10 @@
 # Juno FSW Requirements
 
+> **Status (2026-08-29):** This is a planning baseline. None of the modules
+> specified below are implemented in this repository's code (see the root
+> `README.md` for what exists today), and the `tools/*.py` scripts referenced
+> in this document are not present in this repository.
+
 Structured IEEE 29148 requirements for the Juno flight software, organized
 by module. Each module has its own directory with a `requirements.json`
 (authoritative source) and a `requirements.md` (human-readable rendering).

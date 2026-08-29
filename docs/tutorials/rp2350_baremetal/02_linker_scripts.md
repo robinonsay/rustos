@@ -31,7 +31,7 @@ a loader, virtual memory, a stack set up for you — through a built-in default
 script encoding "put it anywhere, the MMU will sort it out." On a Cortex-M33
 there is no loader. Nothing sets up a stack. Nothing copies initialised
 variables anywhere. If you do not state where things go, nobody does.
-**The linker script is you filling that vacuum.**
+**The linker script is the file in which you state it.**
 
 Everything in this chapter is generic linker behaviour. No RP2350 number
 appears here except the two `MEMORY` lines quoted in §2.4.3, and those are
