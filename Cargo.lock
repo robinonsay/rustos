@@ -7,6 +7,14 @@ name = "api"
 version = "0.1.0"
 
 [[package]]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+ "api",
+ "pico2",
+]
+
+[[package]]
 name = "pico2"
 version = "0.1.0"
 dependencies = [
