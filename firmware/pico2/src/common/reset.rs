@@ -128,11 +128,12 @@ struct Reset{
 /// releasing a block pass the complement:
 ///
 /// ```ignore
-/// set_reset_reg(!IO_PAD_BITMASK);   // release IO_BANK0 and PADS_BANK0
+/// clr_reset_reg(!IO_PAD_BITMASK);   // release IO_BANK0 and PADS_BANK0
 /// ```
 ///
 /// Because the operation is an `AND`, this function can only ever move bits
-/// from 1 to 0. It cannot assert a reset; that would require `current | mask`.
+/// from 1 to 0, so it cannot assert a reset. Use [`set_reset_reg`] for the
+/// other direction.
 ///
 /// Releasing is not instantaneous — follow with [`wait_for_reset_done`].
 ///
@@ -141,9 +142,9 @@ struct Reset{
 /// The read and write are separate bus transactions, so an interrupt or the
 /// other core can land in between and lose an update. `RESETS` is an APB
 /// peripheral and is *not* on the exclusion list in §2.1.3, so it has the
-/// atomic aliases: a single store to `RESET_CLR` at `0x4002_3000` would do the
-/// same job with no window and no risk of writing the wrong value to the other
-/// 27 bits.
+/// atomic aliases: a single store of `!mask` to `RESET_CLR` at `0x4002_3000`
+/// would do the same job with no window and no risk of writing the wrong value
+/// to the other 27 bits.
 ///
 /// # Safety
 ///
@@ -162,6 +163,34 @@ pub unsafe fn clr_reset_reg(mask: u32){
     }
 }
 
+/// Read-modify-write `RESETS.RESET` with `RESET |= mask`.
+///
+/// **Sets** every bit that is `1` in `mask`, leaving the rest untouched. Since
+/// `1` means asserted (§7.5: "When set to 1, the reset is asserted"), this
+/// puts the named blocks *into* reset — the opposite of [`clr_reset_reg`], and
+/// unlike that function the mask is not complemented:
+///
+/// ```ignore
+/// set_reset_reg(IO_PAD_BITMASK);   // hold IO_BANK0 and PADS_BANK0 in reset
+/// ```
+///
+/// A block in reset does not fault when accessed; reads and writes are
+/// accepted by the bus and discarded. Any driver handle still pointing at it
+/// therefore keeps working syntactically while doing nothing at all.
+///
+/// # Danger
+///
+/// Two bits must never be set on a flash-executing image: `IO_QSPI` (7) and
+/// `PADS_QSPI` (10). Those are the pins XIP fetches instructions over, so
+/// asserting reset on them stops execution mid-fetch — no fault, no output,
+/// nothing to attach a debugger to. This is the asymmetry between the two
+/// helpers: releasing a block you do not own is untidy, whereas asserting
+/// reset on the wrong one can kill the program outright.
+///
+/// # Safety
+///
+/// Writes a chip-wide control register. Callers must set only their own bits;
+/// see the danger note above.
 pub unsafe fn set_reset_reg(mask: u32){
     // Create pointer to reset addresses
     let reset_addr = RegAddr::RESET as usize as *mut Reset;

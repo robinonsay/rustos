@@ -85,7 +85,7 @@ impl Block for Rp2350Gpio
     /// Release `IO_BANK0` and `PADS_BANK0`, then wait for both to report
     /// ready.
     ///
-    /// The complement is passed because [`set_reset_reg`] performs
+    /// The complement is passed because [`clr_reset_reg`] performs
     /// `RESET &= mask` and `0` means released — so zeros in the mask are the
     /// bits being freed. The [`wait_for_reset_done`] call is not optional:
     /// releasing a reset takes time, and registers written before the block is
@@ -97,15 +97,23 @@ impl Block for Rp2350Gpio
         }
     }
 
-    /// Intended to return the GPIO blocks to reset.
+    /// Return `IO_BANK0` and `PADS_BANK0` to reset.
     ///
-    /// # Note on current behaviour
+    /// [`set_reset_reg`] performs `RESET |= mask`, so the mask is passed
+    /// uncomplemented here — the inverse of [`start`](Self::start), which
+    /// clears bits and therefore passes `!IO_PAD_BITMASK`. Only these two bits
+    /// are touched; the other 27 blocks keep whatever state they were in.
     ///
-    /// [`set_reset_reg`] performs `RESET &= mask`, which can only ever clear
-    /// bits. Passing `IO_PAD_BITMASK` therefore *preserves* the two GPIO bits
-    /// and clears all 27 others — releasing every other peripheral on the chip
-    /// rather than resetting GPIO. Asserting a reset requires `RESET |= mask`,
-    /// which this helper does not currently offer.
+    /// There is no `wait_for_reset_done` counterpart: `RESET_DONE` reports
+    /// readiness, and a block being held in reset simply never reports ready.
+    ///
+    /// # Caveat
+    ///
+    /// Any [`Rp2350GpioPin`] handed out earlier stays alive and keeps
+    /// compiling, but the block behind it is now in reset, so writes through
+    /// it are accepted by the bus and discarded. Nothing in the type system
+    /// catches that — it is the reason this method is `unsafe` despite writing
+    /// only one register.
     unsafe fn reset(&self) {
         unsafe{
             set_reset_reg(IO_PAD_BITMASK);
