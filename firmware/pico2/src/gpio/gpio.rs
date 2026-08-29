@@ -17,10 +17,10 @@
 use core::fmt::Debug;
 
 use crate::common::MAX_GPIO_PIN;
-use crate::common::reset::{Block, clr_reset_reg, set_reset_reg, wait_for_reset_done};
+use crate::common::reset::{clr_reset_reg, set_reset_reg, wait_for_reset_done};
 use crate::gpio::{IoBank, PadsBank, Sio};
 use crate::common::reg::RegAddr;
-use api::common::{ErrorType, Write, Read};
+use api::common::{Block, ErrorType, Read, Write};
 use api::gpio::{Gpio, Pull};
 
 /// Something went wrong configuring a GPIO pin.
@@ -90,7 +90,7 @@ impl Block for Rp2350Gpio
     /// bits being freed. The [`wait_for_reset_done`] call is not optional:
     /// releasing a reset takes time, and registers written before the block is
     /// ready are accepted by the bus and discarded.
-    unsafe fn start(&self) {
+    unsafe fn start(&mut self) {
         unsafe{
             clr_reset_reg(!IO_PAD_BITMASK);
             wait_for_reset_done(IO_PAD_BITMASK);
@@ -114,7 +114,7 @@ impl Block for Rp2350Gpio
     /// it are accepted by the bus and discarded. Nothing in the type system
     /// catches that — it is the reason this method is `unsafe` despite writing
     /// only one register.
-    unsafe fn reset(&self) {
+    unsafe fn stop(&mut self) {
         unsafe{
             set_reset_reg(IO_PAD_BITMASK);
         }
@@ -130,11 +130,11 @@ impl ErrorType for Rp2350Gpio
 
 impl Gpio<Rp2350GpioPin> for Rp2350Gpio
 {
-    fn init_input(pin_no: usize, pull: Pull) -> Result<Rp2350GpioPin, Self::Error> {
+    fn init_input(&mut self, pin_no: usize, pull: Pull) -> Result<Rp2350GpioPin, Self::Error> {
         return Rp2350GpioPin::new_input(pin_no, pull);
     }
 
-    fn init_output(pin_no: usize) -> Result<Rp2350GpioPin, Self::Error>
+    fn init_output(&mut self, pin_no: usize) -> Result<Rp2350GpioPin, Self::Error>
     {
         return Rp2350GpioPin::new_output(pin_no);
     }
@@ -241,7 +241,7 @@ impl Read<bool> for Rp2350GpioPin
     /// Requires `IE` to be set in the pad register. With the input buffer
     /// disabled this returns `false` regardless of the voltage on the leg,
     /// which is why both configuration paths set `IE`.
-    fn read(&mut self) -> Result<bool, Self::Error> {
+    fn read(&self) -> Result<bool, Self::Error> {
         let sio_addr = RegAddr::SIO as usize as *mut Sio;
         unsafe{
             let in_reg = &raw const (*sio_addr).gpio_in;

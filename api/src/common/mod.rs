@@ -1,5 +1,45 @@
 //! Traits shared by every peripheral: error reporting, and the generic
 //! read/write pair that most drivers are ultimately expressed in terms of.
+//! 
+//! 
+
+pub mod board;
+
+/// A peripheral that owns one or more bits in the `RESETS` register.
+///
+/// Implemented by drivers rather than by the reset controller, so each driver
+/// keeps the knowledge of which bits it needs next to the code that needs
+/// them. A driver that reaches pins generally owns more than one bit: `UART0`
+/// alone does not produce a working UART, because the signal still has to get
+/// through `IO_BANK0`'s function mux and a `PADS_BANK0` pad.
+pub trait Block
+{
+    /// Release this peripheral's blocks from reset and block until the
+    /// hardware reports them ready.
+    ///
+    /// Must be called before touching any of the peripheral's registers.
+    /// Accesses to a block still in reset do not fault — they are accepted by
+    /// the bus and discarded — so skipping this produces a peripheral that
+    /// silently ignores every write.
+    ///
+    /// # Safety
+    ///
+    /// Writes a chip-wide control register shared with every other driver, and
+    /// leaves hardware running. Implementations must touch only their own bits.
+    unsafe fn start(&mut self);
+
+    /// Return this peripheral's blocks to reset.
+    ///
+    /// # Safety
+    ///
+    /// Any handle to this peripheral becomes non-functional. As with
+    /// [`start`](Block::start), implementations must confine themselves to
+    /// their own bits: asserting reset on `IO_QSPI` or `PADS_QSPI` cuts the
+    /// pins that XIP fetches instructions from, and execution stops mid-fetch
+    /// with no fault and no output.
+    unsafe fn stop(&mut self);
+}
+
 
 /// Declares the single error type a peripheral reports.
 ///
@@ -83,5 +123,5 @@ pub trait Read<T>: ErrorType {
     /// a FIFO; reading an interrupt status register may clear it. Requiring a
     /// mutable borrow means those cases need no special-casing, and it keeps
     /// the exclusivity guarantee uniform across the whole API.
-    fn read(&mut self) -> Result<T, Self::Error>;
+    fn read(&self) -> Result<T, Self::Error>;
 }

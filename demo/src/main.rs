@@ -15,10 +15,11 @@
 #![no_std]
 #![no_main]
 
-mod board;
+use core::hint::spin_loop;
 
-use api::common::Write;
-use board::Board;
+use api::{common::{Write, board::Board}, gpio::Gpio};
+use pico2::gpio::gpio::Rp2350Gpio;
+
 
 // Declares this crate's entry point to the runtime. Expands to a shim that
 // calls `main`, and — critically — type-checks `main`'s signature against `fn(Board) -> !` at compile time. See the
@@ -31,29 +32,21 @@ pico2::entry!(main);
 /// is copied and `.bss` is zeroed. Diverges: on bare metal there is nothing to
 /// return to, and the `-> !` makes that a type error rather than a convention.
 fn main() -> ! {
-    // SAFETY: called once, at the top of the only entry point.
-    let mut board = unsafe { Board::take() };
-
+    let mut gpio: Rp2350Gpio = Rp2350Gpio{};
+    let _board = Board::take([&mut gpio]).unwrap();
+    let mut pin25_o = gpio.init_output(25).unwrap();
     loop {
-        // `Rp2350GpioPin`'s error type is `Infallible`, so this `Result` can
-        // only ever be `Ok`. `.ok()` discards it without dragging panic
-        // formatting into a binary that has no way to print it.
-        board.led.write(true).ok();
+        pin25_o.write(true);
         delay();
-
-        board.led.write(false).ok();
+        pin25_o.write(false);
         delay();
     }
 }
 
-/// Crude busy-wait, roughly a quarter second at the 150 MHz default clock.
-///
-/// Deliberately not a calibrated delay: there is no timer driver yet, and
-/// counting instructions is honest about that. `spin_loop` emits a `yield`
-/// hint and, more usefully here, is a side effect the optimiser is not allowed
-/// to delete — a plain empty `for` loop would be compiled away entirely.
-fn delay() {
-    for _ in 0..5_000_000 {
-        core::hint::spin_loop();
+fn delay()
+{
+    for _ in 0 .. 5_000_000
+    {
+        spin_loop();
     }
 }

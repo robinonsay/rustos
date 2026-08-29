@@ -90,7 +90,7 @@ pub trait Gpio<T: GpioPin>: ErrorType {
     /// Returns `Self::Error` if `pin_no` is not a usable pin on this device.
     /// Note that "usable" is a property of the *package*, not the chip: the
     /// same silicon in a larger package bonds out more pins.
-    fn init_input(pin_no: usize, pull: Pull) -> Result<T, Self::Error>;
+    fn init_input(&mut self, pin_no: usize, pull: Pull) -> Result<T, Self::Error>;
 
     /// Configure `pin_no` as a push-pull output, initially driven low.
     ///
@@ -101,5 +101,5 @@ pub trait Gpio<T: GpioPin>: ErrorType {
     /// There is no [`Pull`] argument because an output drives both levels
     /// itself, making a pull resistor redundant at best and a small constant
     /// current draw at worst.
-    fn init_output(pin_no: usize) -> Result<T, Self::Error>;
+    fn init_output(&mut self, pin_no: usize) -> Result<T, Self::Error>;
 }
