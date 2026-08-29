@@ -40,7 +40,7 @@ pico2::entry!(main);
 /// there is nothing to return to, and the `-> !` makes that a type error
 /// rather than a convention.
 fn main() -> ! {
-    let mut gpio = Rp2350Gpio::new();
+    let mut gpio = Rp2350Gpio::new().unwrap();
     let mut pin25_o = gpio.init_output(25).unwrap();
     loop {
         pin25_o.write(true);

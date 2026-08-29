@@ -15,6 +15,8 @@
 //! skipped, because none of them report an error when neglected.
 
 use core::fmt::Debug;
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering::{AcqRel, Acquire, Release};
 
 use crate::common::MAX_GPIO_PIN;
 use crate::common::reset::{clr_reset_reg, set_reset_reg, wait_for_reset_done};
@@ -70,13 +72,14 @@ pub struct Rp2350Gpio
 
 }
 
+static GPIO_USED: AtomicBool = AtomicBool::new(false);
 impl Rp2350Gpio
 {
-    pub fn new() -> Self
+    pub fn new() -> Option<Self>
     {
         let mut gpio = Self{};
         unsafe {gpio.start();}
-        return gpio;
+        return GPIO_USED.compare_exchange(false, true, Acquire, Acquire).ok().map(|_| gpio);
     }
 }
 
@@ -94,6 +97,7 @@ const PADBANK_RESET_BIT:u8 = 9;
 /// Both GPIO blocks. Neither alone is sufficient: `IO_BANK0` routes the signal
 /// and `PADS_BANK0` connects it to a physical leg of the package.
 const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
+
 
 impl Block for Rp2350Gpio
 {

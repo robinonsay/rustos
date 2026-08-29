@@ -408,7 +408,7 @@ the firmware, so you know what a healthy result looks like:
 
 ```
 $ llvm-readobj --file-headers target/thumbv8m.main-none-eabihf/release/demo | grep Entry
-  Entry: 0x10000307
+  Entry: 0x100002DB
 ```
 
 An odd address. That is not a mistake, and chapter 05 says why.
@@ -428,9 +428,9 @@ application — chapter 06 explains the `__rustos_main` symbol it lives in:
 
 ```
 $ llvm-objdump -d --no-show-raw-insn --disassemble-symbols=__rustos_main <elf> | tail -1
-100002fc:      	bl	0x10000124 <_RNvCsgEed0wyhMeN_4demo4main>
+100002d0:      	bl	0x10000124 <_RNvCsgEed0wyhMeN_4demo4main>
 $ llvm-objdump -d -C --no-show-raw-insn --disassemble-symbols=__rustos_main <elf> | tail -1
-100002fc:      	bl	0x10000124 <demo::main>
+100002d0:      	bl	0x10000124 <demo::main>
 ```
 
 The hash in the middle (`CsgEed…`) is the crate disambiguator; it is not stable
@@ -461,8 +461,8 @@ that prints a table of its own:
 
 ```
 Memory region         Used Size  Region Size  %age Used
-           FLASH:        7044 B         4 MB      0.17%
-             RAM:        8200 B       520 KB      1.54%
+           FLASH:        6908 B         4 MB      0.16%
+             RAM:          8 KB       520 KB      1.54%
 ```
 
 The region names and sizes come from the `MEMORY` block of `link.ld`, not from
@@ -477,21 +477,18 @@ $ llvm-objdump --section-headers target/thumbv8m.main-none-eabihf/release/demo
 Idx Name            Size     VMA      Type
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           00001888 10000124 TEXT
-  4 .rodata         000001d8 100019ac DATA
+  3 .text           0000183c 10000124 TEXT
+  4 .rodata         0000019c 10001960 DATA
   5 .data           00000000 20000000 DATA
-  6 .bss            00000004 20000000 BSS
-  7 .stack          00002000 20000008 BSS
+  6 .bss            00000000 20000000 BSS
+  7 .stack          00002000 20000000 BSS
 ```
 
-`7044 B` of flash is the four non-empty flash sections added up,
-`0x110 + 0x14 + 0x1888 + 0x1d8 = 7044`. The RAM figure needs one more step:
-`.data` is empty, `.bss` is exactly **4 bytes** — one zero-initialised static,
-a flag inside the `api` crate that chapter 08 explains — and `.stack` is the
-8 kB reservation, pushed up to `0x20000008` so it starts 8-byte aligned. RAM
-used is `0x20002008 - 0x20000000` = 8200 bytes: four of data, four of
-alignment padding, 8192 of stack. Chapters 03 to 08 explain every other
-number there.
+`6908 B` of flash is the four non-empty flash sections added up,
+`0x110 + 0x14 + 0x183c + 0x19c = 6908`. The RAM figure needs one more step:
+`.data` and `.bss` are both zero bytes here, so all 8 KB is `.stack` — a
+section that contains nothing. Chapters 03 to 08 explain every other number
+there.
 
 That is the entire reason `.stack` exists. Stack usage is invisible to a
 linker — the stack is a pointer moving down through RAM at runtime, and nothing

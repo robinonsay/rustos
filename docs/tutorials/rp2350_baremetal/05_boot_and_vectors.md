@@ -36,7 +36,7 @@ Sections:
 Idx Name            Size     VMA      Type
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           00001888 10000124 TEXT
+  3 .text           0000183c 10000124 TEXT
 ```
 
 `.vector_table` and `.boot_info` are this chapter; `.text` is chapters 06 and
@@ -403,19 +403,19 @@ Same tool, different section —
 
 ```
 Contents of section .vector_table:
- 10000000 00200820 07030010 01030010 01030010  . . ............
- 10000010 01030010 01030010 01030010 01030010  ................
- 10000020 00000000 00000000 00000000 01030010  ................
- 10000030 01030010 00000000 01030010 01030010  ................
+ 10000000 00200820 db020010 d5020010 d5020010  . . ............
+ 10000010 d5020010 d5020010 d5020010 d5020010  ................
+ 10000020 00000000 00000000 00000000 d5020010  ................
+ 10000030 d5020010 00000000 d5020010 d5020010  ................
 ```
 
 (The `file format` header line and the remaining 13 output lines — all
-`01030010` — are omitted.) Decode against §5.6.1:
+`d5020010` — are omitted.) Decode against §5.6.1:
 
 - Word 0 → `0x20082000`; `nm` reports `_stack_top` at `20082000`. Exact.
-- Word 1 → `0x10000307`; `nm` reports `OnReset` at `10000306`.
-- Words 2 and 3 → `0x10000301`; `nm` reports **both** `DefaultHandler` and
-  `OnHardFault` at `10000300`. Hold that thought until §5.8.
+- Word 1 → `0x100002db`; `nm` reports `OnReset` at `100002da`.
+- Words 2 and 3 → `0x100002d5`; `nm` reports **both** `DefaultHandler` and
+  `OnHardFault` at `100002d4`. Hold that thought until §5.8.
 - Words 8, 9, 10 (offsets `0x20`, `0x24`, `0x28`) and word 13 (offset `0x34`) →
   `0x00000000`, the four reserved slots.
 
@@ -527,25 +527,25 @@ chapter 06 and separates, but `DefaultHandler` and `OnHardFault` stay
 byte-identical forever, so the shipping `llvm-nm` reads
 
 ```
-10000300 T DefaultHandler
-10000300 T OnHardFault
-10000306 T OnReset
+100002d4 T DefaultHandler
+100002d4 T OnHardFault
+100002da T OnReset
 ```
 
 and `llvm-objdump -d` will only ever print one of the two names:
 
 ```asm
-10000300 <OnHardFault>:
-10000300: b580         	push	{r7, lr}
-10000302: 466f         	mov	r7, sp
-10000304: e7fe         	b	0x10000304 <OnHardFault+0x4>
+100002d4 <OnHardFault>:
+100002d4: b580         	push	{r7, lr}
+100002d6: 466f         	mov	r7, sp
+100002d8: e7fe         	b	0x100002d8 <OnHardFault+0x4>
 ```
 
 `DefaultHandler` is not missing from the release image; it *is* that. Run the
 `llvm-nm` commands on your own builds and you will see the same collapse — it
 follows from the source, not from anything about this machine.
 
-The practical effect: a Pico 2 stopped at `0x10000304` has told you nothing
+The practical effect: a Pico 2 stopped at `0x100002d8` has told you nothing
 about whether it took a HardFault or an unhandled interrupt, and because slot 2
 was never overridden an NMI lands there too. To tell them apart, give the
 handlers different bodies — read `IPSR` into a distinct local, spin on a

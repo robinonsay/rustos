@@ -22,8 +22,8 @@ The workspace you build is three crates, and the split is part of what the
 tutorial teaches:
 
 - **`api`** — portable hardware-abstraction traits (`Write`, `Read`, `Gpio`,
-  `Block`, …) plus the take-once `Board` type. No register addresses; compiles
-  for your laptop as well as the chip.
+  `Block`, …). No register addresses; compiles for your laptop as well as the
+  chip.
 - **`firmware/pico2`** — a **library**: the boot metadata block, the vector
   table, the reset handler, the `entry!` macro that names the application's
   entry point, and a GPIO driver implementing `api`'s traits.
@@ -32,8 +32,8 @@ tutorial teaches:
 
 ## What you end up with
 
-A single ELF at `target/thumbv8m.main-none-eabihf/release/demo`: **7044 bytes
-of flash**, 8200 bytes of RAM, and the on-board user LED on **GP25** blinking
+A single ELF at `target/thumbv8m.main-none-eabihf/release/demo`: **6908 bytes
+of flash**, 8 kB of RAM, and the on-board user LED on **GP25** blinking
 under a `spin_loop` delay. GP25 is the LED pin on this board — *"GPIO25 OP
 Connected to user LED"* (Pico 2 datasheet p9).
 
@@ -42,8 +42,8 @@ passes `--print-memory-usage`, which chapter 01 sets up:
 
 ```
 Memory region         Used Size  Region Size  %age Used
-           FLASH:        7044 B         4 MB      0.17%
-             RAM:        8200 B       520 KB      1.54%
+           FLASH:        6908 B         4 MB      0.16%
+             RAM:          8 KB       520 KB      1.54%
 ```
 
 Four sections carry the flash bytes, and nothing else does. Real output from
@@ -56,27 +56,26 @@ Idx Name            Size     VMA      Type
   0                 00000000 00000000
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           00001888 10000124 TEXT
-  4 .rodata         000001d8 100019ac DATA
+  3 .text           0000183c 10000124 TEXT
+  4 .rodata         0000019c 10001960 DATA
   5 .data           00000000 20000000 DATA
-  6 .bss            00000004 20000000 BSS
-  7 .stack          00002000 20000008 BSS
+  6 .bss            00000000 20000000 BSS
+  7 .stack          00002000 20000000 BSS
   8 .comment        00000099 00000000
   9 .ARM.attributes 0000003a 00000000
 ```
 
 Index 8 and upward is ELF bookkeeping: no address, not loaded, not part of the
-7044, and the symbol and string tables below it are cut from the listing. What
+6908, and the symbol and string tables below it are cut from the listing. What
 ships is 272 bytes of vector table (68 entries), a 20-byte `IMAGE_DEF` boot
-block, 6280 bytes of code, and 472 bytes of read-only data — most of the last
+block, 6204 bytes of code, and 412 bytes of read-only data — most of the last
 two being `core`'s formatting and panic machinery, pulled in by the
-application's `unwrap()` calls; chapter 08 §8.13 itemises that cost.
+application's `unwrap()` call; chapter 08 §8.13 itemises that cost.
 
-`.data` is empty, but `.bss` is not: it is exactly 4 bytes — `BOARD_CREATED`,
-the `AtomicBool` behind `api`'s take-once `Board` — so the reset handler's
-zero loop does real work in the shipping image, and the copy loop moves zero
-bytes. Chapter 06 shows exactly what both compile to. The 8200 B of RAM is
-that word, 4 bytes of alignment padding, and the 8 kB stack reservation.
+`.data` and `.bss` are both empty in the shipping build, so the copy loop and
+the zero loop in the reset handler move zero bytes. They are still there, and
+chapter 06 shows exactly what they compile to and how to watch them do real
+work. The 8 kB of RAM is the stack reservation, not data.
 
 The result is a valid RP2350 boot image, and `picotool` will confirm that about
 the **file**, with no board attached:

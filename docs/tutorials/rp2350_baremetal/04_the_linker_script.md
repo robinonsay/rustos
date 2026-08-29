@@ -368,7 +368,7 @@ little-endian for `0x20082000`:
 
 ```
 Contents of section .vector_table:
- 10000000 00200820 07030010 01030010 01030010  . . ............
+ 10000000 00200820 db020010 d5020010 d5020010  . . ............
 ```
 
 ## 4.10 The assertions
@@ -462,22 +462,22 @@ target, not this chapter's output. From `cargo build --release`,
 Idx Name            Size     VMA      Type
   1 .vector_table   00000110 10000000 DATA
   2 .boot_info      00000014 10000110 DATA
-  3 .text           00001888 10000124 TEXT
-  4 .rodata         000001d8 100019ac DATA
+  3 .text           0000183c 10000124 TEXT
+  4 .rodata         0000019c 10001960 DATA
   5 .data           00000000 20000000 DATA
-  6 .bss            00000004 20000000 BSS
-  7 .stack          00002000 20000008 BSS
+  6 .bss            00000000 20000000 BSS
+  7 .stack          00002000 20000000 BSS
 ```
 
 `llvm-nm -n`, filtered to the linker symbols:
 
 ```
 00002000 A _min_stack_size
-10001b84 A __sidata
+10001afc A __sidata
+20000000 B __ebss
 20000000 R __edata
 20000000 B __sbss
 20000000 R __sdata
-20000004 B __ebss
 20082000 A _stack_top
 ```
 
@@ -486,61 +486,57 @@ warning because of `--print-memory-usage`:
 
 ```
 Memory region         Used Size  Region Size  %age Used
-           FLASH:        7044 B         4 MB      0.17%
-             RAM:        8200 B       520 KB      1.54%
+           FLASH:        6908 B         4 MB      0.16%
+             RAM:          8 KB       520 KB      1.54%
 ```
 
 Read three things off that. `.vector_table` is `0x110` = 272 bytes = 68 × 4 and
-`.boot_info` is `0x14` = 20 bytes, the minimum `IMAGE_DEF` of §5.9.5.1. `.data`
-is zero-length — `__sdata == __edata == 0x20000000`, so the copy loop in the
-reset handler runs zero iterations; the release codegen computes the count,
-gets zero, and calls `__aeabi_memcpy4` with it anyway. But `.bss` is **not**
-empty: it is exactly one word, `__ebss - __sbss = 4` bytes. That word is
-`BOARD_CREATED`, a zero-initialised `AtomicBool` inside the `api` crate
-(chapter 08 §8.12), and it means the reset handler's zero loop is live in the
-shipping image — it moves one word, and skipping it would hand `Board::take` a
-flag holding power-on garbage. The `RAM: 8200 B` line decomposes as 4 bytes of
-`.bss`, 4 bytes of padding (the `.stack` section's `ALIGN(8)` rounds
-`0x20000004` up to `0x20000008`), and the 8192-byte `.stack` reservation.
+`.boot_info` is `0x14` = 20 bytes, the minimum `IMAGE_DEF` of §5.9.5.1. The
+whole 8 kB of RAM in use is the `.stack` reservation. And — the point chapter 06
+§6.7 makes from the other side — **`.data` and `.bss` are both zero-length**:
+`__sdata`, `__edata`, `__sbss` and `__ebss` are all `0x20000000`, so both loops
+in the reset handler run zero iterations. The release codegen computes the
+count, gets zero, and calls `__aeabi_memcpy4` with it anyway.
 
 Note there is no LMA column at all. `.data` is empty, so no section has an LMA
 that differs from its VMA and `llvm-objdump` drops the column; the only
-surviving evidence of `AT > FLASH` is `__sidata = 0x10001b84`, one past the end
-of `.rodata` in flash (`0x100019ac + 0x1d8`), exactly where the first byte of
+surviving evidence of `AT > FLASH` is `__sidata = 0x10001afc`, one past the end
+of `.rodata` in flash (`0x10001960 + 0x19c`), exactly where the first byte of
 `.data` would ship.
 
 > **Silent-failure trap.** Do not read these values out of `firmware.map`. lld's
 > map prints, for a symbol-assignment line, the *location counter* at that point
 > rather than the symbol's value. The shipping map file contains
-> `20002008 20002008 0 1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)` and
+> `20002000 20002000 0 1 _stack_top = ORIGIN(RAM) + LENGTH(RAM)` and
 > `20000000 20000000 0 1 __sidata = LOADADDR(.data)` — neither number is the
-> symbol's value (`0x20082000` and `0x10001b84` respectively, per `llvm-nm`).
+> symbol's value (`0x20082000` and `0x10001afc` respectively, per `llvm-nm`).
 > The map is right about sections and misleading about assignments. Use
 > `llvm-nm` for symbols.
 
 The same layout with the chapter-06 §6.7 test statics added — the same tree,
-same date, one extra `u32` in `.data` and a `[u32; 4]` in `.bss`:
+same date, one `u32` in `.data` and a `[u32; 4]` in `.bss`:
 
 ```
 Idx Name            Size     VMA       LMA       Type
   1 .vector_table   00000110  10000000  10000000  DATA
   2 .boot_info      00000014  10000110  10000110  DATA
-  3 .text           00001888  10000124  10000124  TEXT
-  4 .rodata         000001d8  100019ac  100019ac  DATA
-  5 .data           00000004  20000000  10001b84  DATA    <- VMA != LMA
-  6 .bss            00000014  20000004  20000004  BSS
+  3 .text           0000183c  10000124  10000124  TEXT
+  4 .rodata         0000019c  10001960  10001960  DATA
+  5 .data           00000004  20000000  10001afc  DATA    <- VMA != LMA
+  6 .bss            00000010  20000004  20000004  BSS
   7 .stack          00002000  20000018  20000018  BSS
 
-  __sidata = 10001b84  == .data's LMA
+  __sidata = 10001afc  == .data's LMA
   __sdata  = 20000000  ---+-- 4 bytes  = 1 word to copy
   __edata  = 20000004  ---+
-  __sbss   = 20000004  ---+-- 20 bytes = 5 words to zero
-  __ebss   = 20000018  ---+     (the 16-byte test array + BOARD_CREATED)
+  __sbss   = 20000004  ---+-- 16 bytes = 4 words to zero
+  __ebss   = 20000014  ---+
   _stack_top = 20082000
 ```
 
-That is the arrangement the script is designed for. The LMA column reappears
-the moment `.data` is non-empty.
+That is the arrangement the script is designed for and the only one in which
+the reset handler's loops do any work. The LMA column reappears the moment
+`.data` is non-empty.
 
 Checks to run after any change to `link.ld`:
 
@@ -551,11 +547,10 @@ Checks to run after any change to `link.ld`:
 4. `.bss` immediately follows `.data`; `.stack` follows `.bss`
 5. `.ARM.exidx` is absent
 6. `_stack_top` is `0x20082000`, read from `llvm-nm` and not from the map
-7. in the shipping firmware specifically, `.data` is zero-length and `.bss` is
-   exactly 4 bytes (`__sbss = 0x20000000`, `__ebss = 0x20000004`). If either
-   grows, something acquired another mutable static — worth knowing, since
-   both reset-handler loops are on the critical path to boot and a new static
-   is a new thing that must be initialised before `main`
+7. in the shipping firmware specifically, `.data` and `.bss` are both
+   zero-length and `__sdata == __edata == __sbss == __ebss == 0x20000000`. If
+   either grows, something acquired a mutable static, the reset handler's loops
+   stop being no-ops, and both are now on the critical path to boot
 
 ## 4.12 Known deviations
 

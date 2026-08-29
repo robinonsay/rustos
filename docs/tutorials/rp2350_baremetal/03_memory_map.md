@@ -28,8 +28,8 @@ arrives in the build log:
 
 ```
 warning: linker stdout: Memory region         Used Size  Region Size  %age Used
-                    FLASH:        7044 B         4 MB      0.17%
-                      RAM:        8200 B       520 KB      1.54%
+                    FLASH:        6908 B         4 MB      0.16%
+                      RAM:          8 KB       520 KB      1.54%
 ```
 
 That table appears because `.cargo/config.toml` passes `--print-memory-usage`
@@ -342,7 +342,7 @@ the release build, filtered to the three absolute symbols:
 
 ```
 00002000 A _min_stack_size
-10001b84 A __sidata
+10001afc A __sidata
 20082000 A _stack_top
 ```
 
