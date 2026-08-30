@@ -1,18 +1,22 @@
-//! Pin ownership, moved to compile time.
+//! Hardware ownership, moved to compile time.
 //!
-//! On most embedded platforms "who owns pin 25" is a convention: any code
-//! that can write a register can drive any pin, and two subsystems
-//! configuring the same pin is a bug found at runtime, if at all. This module
-//! makes that ownership a value in Rust's type system. A [`PinHandle<N>`]
-//! (`PinHandle`) exists for each physical pin at most once per boot;
-//! configuring a pin consumes the value; and the compiler's move rules — a
-//! value that has been moved out of a binding cannot be used from that
-//! binding again — turn "this pin is already in use" into a build error.
+//! On most embedded platforms "who owns pin 25" — or "who owns the GPIO
+//! block" — is a convention: any code that can write a register can drive
+//! any pin or reconfigure any peripheral, and two subsystems doing so to the
+//! same hardware is a bug found at runtime, if at all. This module makes
+//! that ownership a value in Rust's type system. A [`PinHandle<N>`] exists
+//! for each physical pin at most once per boot, and a [`DeviceHandle<T>`]
+//! exists for each peripheral type `T` at most once per boot; configuring
+//! the pin or constructing the peripheral driver consumes the value; and the
+//! compiler's move rules — a value that has been moved out of a binding
+//! cannot be used from that binding again — turn "this hardware is already
+//! in use" into a build error.
 //!
-//! Two pieces cooperate: [`PinHandle`], the per-pin ownership value, and
+//! Three pieces cooperate: [`PinHandle`], the per-pin ownership value;
+//! [`DeviceHandle`], the per-peripheral ownership value; and
 //! [`define_board!`](crate::define_board), the macro a chip-support crate
-//! invokes to declare which pins its board actually has and to generate the
-//! one place handles are created.
+//! invokes to declare which pins and peripherals its board actually has and
+//! to generate the one place handles are created.
 
 use core::marker::PhantomData;
 
@@ -94,23 +98,79 @@ impl<const N: usize> PinHandle<N>
     }
 }
 
+/// Ownership of the one peripheral of type `T`, as a zero-sized value.
+///
+/// The peripheral-level counterpart to [`PinHandle`]: where a `PinHandle<N>`
+/// is the sole claim on physical pin `N`, a `DeviceHandle<T>` is the sole
+/// claim on the peripheral that the driver type `T` controls — the RP2350's
+/// GPIO port, a UART, an SPI controller. A driver constructor takes the
+/// handle by value, so constructing the driver consumes the claim and a
+/// second construction is rejected by the compiler as use of a moved value.
+/// That replaces the runtime alternative (a `static` flag per driver checked
+/// in its constructor) with a check that costs nothing and fails at build
+/// time.
+///
+/// # Why `PhantomData`
+///
+/// The only field is a [`PhantomData<T>`](core::marker::PhantomData):
+/// a zero-sized marker that makes the type parameter `T` part of this
+/// struct's type without storing a `T`. It gives `DeviceHandle` the same two
+/// properties `PinHandle` gets from `_private: ()` and `const N` (see
+/// [`PinHandle`]'s zero-sized-type explanation): the value occupies zero
+/// bytes, and handles for different peripherals are unrelated types —
+/// `DeviceHandle<Rp2350Gpio>` cannot be passed where a
+/// `DeviceHandle<Rp2350Uart>` is required. One generic type in this crate
+/// therefore covers every peripheral on every chip; the chip-support crate
+/// never defines its own token types, it only names its driver types inside
+/// the parameter.
+///
+/// # Why possession is proof
+///
+/// The same three-part argument as [`PinHandle`]: creation is restricted
+/// (private field, `unsafe` constructor, safe code reaches handles only
+/// through a [`define_board!`](crate::define_board) board's `take()`); only
+/// peripherals the board declares get a handle; and the type is neither
+/// `Copy` nor `Clone`, so the driver constructor's by-value parameter moves
+/// the handle and ends the claim's availability.
 pub struct DeviceHandle<T>{
     _private: PhantomData<T>,
 }
 
 impl<T> DeviceHandle<T>{
+    /// Create a handle without a board.
+    ///
+    /// The peripheral-level twin of [`PinHandle::new`], with the same
+    /// contract: this is the one public constructor that bypasses the
+    /// [`define_board!`](crate::define_board) `take()` path, and the
+    /// obligations that path normally discharges fall on the caller.
+    ///
+    /// `const` for the same reason as [`PinHandle::new`]: the generated
+    /// board constructor is a `const fn`.
+    ///
+    /// # Safety
+    ///
+    /// Calling this asserts, with no compiler assistance, that no other
+    /// `DeviceHandle<T>` is live anywhere in the program. Two live handles
+    /// for one peripheral allow two independent driver values for the same
+    /// hardware, whose register writes interleave without coordination —
+    /// exactly what the handle exists to rule out. Call it directly only in
+    /// host-side tests or on hardware not (yet) described by a
+    /// `define_board!` invocation.
     pub const unsafe fn new() -> Self {
         Self{_private: PhantomData}
     }
 }
 
-/// Declares a board: which pins exist, and the singleton that owns them all.
+/// Declares a board: which pins and peripherals exist, and the singleton
+/// that owns them all.
 ///
 /// A chip-support crate invokes this once with a board type name, a pins
-/// type name, and a `name: number` list of the pins actually wired on that
-/// board. The `pico2` crate declares `gpio0`–`gpio22` plus semantic names
-/// (`led: 25`, `vbus_sense: 24`, ...) for the pins the Pico 2 commits to
-/// on-board functions.
+/// type name, a `name: number` list of the pins actually wired on that
+/// board, and an optional `devices` section listing one `name: DriverType`
+/// entry per peripheral. The `pico2` crate declares `gpio0`–`gpio22` plus
+/// semantic names (`led: 25`, `vbus_sense: 24`, ...) for the pins the
+/// Pico 2 commits to on-board functions, and `gpio: Rp2350Gpio` as its
+/// first device.
 ///
 /// # What it expands to
 ///
@@ -120,6 +180,9 @@ impl<T> DeviceHandle<T>{
 ///         Rp2350Pins {
 ///             gpio0: 0,
 ///             led: 25,
+///         }
+///         devices {
+///             gpio: Rp2350Gpio,
 ///         }
 ///     }
 /// }
@@ -133,13 +196,16 @@ impl<T> DeviceHandle<T>{
 ///
 /// pub struct Rp2350 {
 ///     pub pins: Rp2350Pins,
+///     pub gpio: DeviceHandle<Rp2350Gpio>,
 /// }
 ///
 /// impl Rp2350 {
-///     const fn new() -> Self { /* unsafe: creates every PinHandle */ }
+///     const fn new() -> Self { /* unsafe: creates every handle */ }
 ///     pub fn take() -> Option<Self> { /* first caller wins; see below */ }
 /// }
 /// ```
+///
+/// The `devices` section may be omitted; the board then holds only pins.
 ///
 /// The structs and their fields are `pub`; the constructor that performs the
 /// `unsafe` handle creation is private, so the only safe route to the
@@ -147,6 +213,12 @@ impl<T> DeviceHandle<T>{
 /// boot. `take()` returns [`Option<Self>`](Option) — an enum that is either
 /// `Some(board)` or `None` — so every caller must handle the case where the
 /// board was already claimed.
+///
+/// A device entry produces a [`DeviceHandle<T>`], not a driver value: the
+/// board records that the peripheral exists and is unclaimed, and hardware
+/// bring-up runs later, when the driver constructor consumes the handle
+/// (`Rp2350Gpio::new(board.gpio)` releases the GPIO blocks from reset, for
+/// example). Peripherals an application never claims are never brought up.
 ///
 /// # Why a macro and not a type
 ///
@@ -187,7 +259,8 @@ macro_rules! define_board {
             $(pub $pin_name: $crate::device::PinHandle<$n>,)+
         }
         /// The board singleton. Obtain it with `take()`, exactly once per
-        /// boot; the pin handles live in `pins`.
+        /// boot; the pin handles live in `pins`, and each declared device's
+        /// `DeviceHandle` is a field of its own.
         pub struct $board {
             pub pins: $pins,
             $($(pub $dev_name: $crate::device::DeviceHandle<$dev_ty>,)+)?
@@ -198,7 +271,7 @@ macro_rules! define_board {
             ///
             /// Sound only because this is private and its sole caller is
             /// `take()`, which succeeds at most once per boot — so no
-            /// `PinHandle` is ever created twice.
+            /// `PinHandle` or `DeviceHandle` is ever created twice.
             const fn new() -> Self {
                 unsafe{Self{
                     pins: $pins{$($pin_name: $crate::device::PinHandle::new(), )+},
@@ -207,8 +280,9 @@ macro_rules! define_board {
             }
             /// Claim the board, once per boot.
             ///
-            /// The pin handles inside are zero-sized proofs of ownership, so the only
-            /// invariant that needs runtime enforcement is that they are created once.
+            /// The pin and device handles inside are zero-sized proofs of
+            /// ownership, so the only invariant that needs runtime
+            /// enforcement is that they are created once.
             /// This compare-exchange is that enforcement: the first caller gets the
             /// board, every later caller gets `None`.
             ///

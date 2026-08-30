@@ -33,8 +33,6 @@
 //! method calls only through traits in scope.
 
 use core::fmt::Debug;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering::Acquire;
 
 use crate::common::MAX_GPIO_PIN;
 use crate::common::reset::{clr_reset_reg, wait_for_reset_done};
@@ -97,40 +95,40 @@ impl Debug for GpioError
 /// trait impls (an `impl Trait for Type` block: the code that provides a
 /// trait's methods for one concrete type) somewhere to live.
 ///
-/// Known hole in the singleton: this struct has no private field, so safe
-/// code in any crate can write the literal `Rp2350Gpio{}` and obtain an
-/// instance without going through [`new`](Self::new) — skipping both the
-/// once-per-boot check and the reset release. The pin types close the same
-/// hole with a `_private: ()` field; this type should too, and until it does
-/// the singleton holds only for code that goes through `new()`.
+/// The `_private: ()` field makes the struct literal `Rp2350Gpio{}`
+/// unwritable outside this module, so the only route to an instance is
+/// [`new`](Self::new) — which demands the board's
+/// [`DeviceHandle<Rp2350Gpio>`](api::device::DeviceHandle). At most one such
+/// handle exists per boot, and `new` consumes it, so at most one
+/// `Rp2350Gpio` value ever exists, with no runtime check in this module at
+/// all.
 pub struct Rp2350Gpio
 {
     _private: ()
 }
 
-/// Set to `true` by the first successful [`Rp2350Gpio::new`]; never cleared.
-/// This flag is the entire runtime content of the port singleton.
 impl Rp2350Gpio
 {
-    /// Release the GPIO blocks from reset and claim the port, once per boot.
+    /// Release the GPIO blocks from reset and construct the port driver.
     ///
     /// Clears the `IO_BANK0` and `PADS_BANK0` bits in `RESETS.RESET` and
     /// waits for both to report done. Every pin constructor in this module
     /// assumes those blocks are running, and this is the only place that
-    /// starts them. The release runs on every call, including ones that lose
-    /// the claim below — it is idempotent, since clearing already-clear bits
-    /// changes nothing. The mask is passed complemented because
+    /// starts them — and because the [`DeviceHandle`] argument can only come
+    /// from the board, the bring-up provably runs before any pin is
+    /// configured. The mask is passed complemented because
     /// [`clr_reset_reg`] ANDs the register with its argument; see
     /// [`crate::common::reset`].
     ///
-    /// Returns `None` on every call after the first, enforced by a
-    /// `compare_exchange` on [`GPIO_USED`] — see the `take()` doc generated
-    /// by [`define_board!`](api::define_board) for what `compare_exchange`
-    /// and the `Acquire` orderings guarantee; the reasoning is identical
-    /// here. A second instance would be an independent `&mut`-taking view of
-    /// the same physical registers, defeating the exclusive access the
-    /// [`Gpio`] methods otherwise guarantee. Note the caveat on
-    /// [`Rp2350Gpio`] itself: the struct literal bypasses this check.
+    /// Consuming the handle is the whole once-per-boot story. The handle is
+    /// created once, inside the board's `take()` (see
+    /// [`define_board!`](api::define_board)); taking it here by value moves
+    /// it, so a second `new(board.gpio)` is a compile error — use of a moved
+    /// value. That is why this returns `Self`, not `Option<Self>`: with the
+    /// only failure mode (a second construction) rejected by the compiler,
+    /// there is nothing left to report. A second instance would have been an
+    /// independent `&mut`-taking view of the same physical registers,
+    /// defeating the exclusive access the [`Gpio`] methods guarantee.
     pub fn new(_handle: DeviceHandle<Rp2350Gpio>) -> Self
     {
         unsafe {

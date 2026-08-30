@@ -20,11 +20,12 @@
 //! the workspace. An `unsafe fn` is one whose preconditions the compiler
 //! cannot verify: the caller must wrap the call in an `unsafe` block and is
 //! responsible for the obligations listed in the function's `# Safety`
-//! section. The only `unsafe fn` this crate exposes is
-//! [`device::PinHandle::new`], the constructor that creates a handle without
-//! a board; the crate's one `unsafe` block is the call to it in the code
-//! [`define_board!`] generates, which expands into the invoking crate and is
-//! the intended caller the Safety section describes. Everything here
+//! section. The only `unsafe fn`s this crate exposes are
+//! [`device::PinHandle::new`] and [`device::DeviceHandle::new`], the
+//! constructors that create a handle without a board; the crate's one
+//! `unsafe` block is the call to them in the code [`define_board!`]
+//! generates, which expands into the invoking crate and is the intended
+//! caller their Safety sections describe. Everything here
 //! compiles for the host as readily as it does for
 //! `thumbv8m.main-none-eabihf` — the compiler's name for the target: the
 //! Armv8-M Mainline instruction set of the RP2350's Cortex-M33 cores, no

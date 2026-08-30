@@ -41,7 +41,8 @@
 //!
 //! Each APB peripheral — APB is the Advanced Peripheral Bus, the chip's
 //! shared, slower peripheral bus: an access costs 3–4 cycles, versus 1 for
-//! the core-local SIO port described at [`Sio`] — gets 4 kB of address space,
+//! the core-local SIO port described at `Sio` below — gets 4 kB of address
+//! space,
 //! aliased four ways (§2.1.3, p26):
 //!
 //! | Address     | Effect on write        |

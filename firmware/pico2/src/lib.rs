@@ -21,8 +21,8 @@
 //! pico2::entry!(main);
 //!
 //! fn main() -> ! {
-//!     let board = Rp2350::take().unwrap();       // once per boot; constructs the pin handles
-//!     let mut gpio = Rp2350Gpio::new().unwrap(); // releases the GPIO blocks from reset
+//!     let board = Rp2350::take().unwrap();        // once per boot; constructs every handle
+//!     let mut gpio = Rp2350Gpio::new(board.gpio); // consumes the device handle; releases the GPIO blocks from reset
 //!     let mut led = gpio.output_from_handle(board.pins.led).unwrap();
 //!     loop {
 //!         led.write(true);
@@ -47,9 +47,9 @@
 //!
 //! `main` is an ordinary unattributed function taking no arguments: it claims
 //! the board singleton from [`common::board`] (whose `take` succeeds at most
-//! once per boot and returns the full set of pin-ownership handles),
-//! constructs its hardware drivers itself, converts handles into configured
-//! pins, and never returns. See [`entry`] for why the macro is needed and
+//! once per boot and returns the full set of pin- and device-ownership
+//! handles), exchanges device handles for drivers, converts pin handles into
+//! configured pins, and never returns. See [`entry`] for why the macro is needed and
 //! what it protects you from, and [`common::board`] for what a pin handle
 //! proves.
 //!

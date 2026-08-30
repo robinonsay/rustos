@@ -1,8 +1,8 @@
-//! Pico 2 board definition: every pin that exists, and what the board has
-//! already wired some of them to.
+//! Pico 2 board definition: every pin that exists, every peripheral device,
+//! and what the board has already wired some of the pins to.
 //!
 //! The `define_board!` invocation below is the only place in the system where
-//! pin-ownership handles are created. It expands to three things:
+//! pin- and device-ownership handles are created. It expands to four things:
 //!
 //! * **`Rp2350Pins`** — a struct with one `pub` field per physical pin, each
 //!   of type `api::device::PinHandle<N>` where `N` is that pin's number.
@@ -17,7 +17,15 @@
 //!   (`PinHandle::new` is the one constructor available outside a board
 //!   definition; it is `const unsafe` because the caller, not the board,
 //!   must then guarantee the pin exists and is unowned.)
-//! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins`.
+//! * **`gpio: DeviceHandle<Rp2350Gpio>`** — one field per entry in the
+//!   `devices` section, the peripheral-level counterpart of a `PinHandle`:
+//!   a zero-sized claim on the whole GPIO port. `Rp2350Gpio::new` takes it
+//!   by value, so the driver can be constructed at most once, and hardware
+//!   bring-up (releasing the GPIO blocks from reset) happens there — when
+//!   the peripheral is claimed, not at `take()`. A peripheral no code claims
+//!   is never brought up.
+//! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
+//!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
 //!   flips a `static AtomicBool` with `compare_exchange`: one indivisible
 //!   read-modify-write, so exactly one caller can observe `false` and store

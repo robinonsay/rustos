@@ -17,14 +17,16 @@
 //!    `PinHandle` per physical pin. From here on, possession of a handle is
 //!    the proof that a pin exists and is unowned — handles can be moved but
 //!    never duplicated.
-//! 2. `Rp2350Gpio::new()` performs the hardware bring-up: it releases the
-//!    `IO_BANK0` and `PADS_BANK0` blocks from reset and waits until
-//!    `RESET_DONE` reports them ready (releasing an already-released block
-//!    changes nothing, so this is safe to repeat). It then claims the driver
-//!    singleton with a compare-exchange, so at most one `Rp2350Gpio` value
-//!    ever exists and the exclusive access its `&mut` methods guarantee
-//!    cannot be defeated by a second instance; nothing in the safe API can
-//!    assert reset on the blocks again.
+//! 2. `Rp2350Gpio::new(board.gpio)` performs the hardware bring-up: it
+//!    releases the `IO_BANK0` and `PADS_BANK0` blocks from reset and waits
+//!    until `RESET_DONE` reports them ready. `board.gpio` is the board's
+//!    zero-sized `DeviceHandle<Rp2350Gpio>` — created once, inside
+//!    `take()` — and `new` consumes it, so a second construction is a
+//!    compile error (use of a moved value), not a runtime check: at most one
+//!    `Rp2350Gpio` value ever exists, the exclusive access its `&mut`
+//!    methods guarantee cannot be defeated by a second instance, and the
+//!    call is infallible — it returns `Self`, no `unwrap` needed. Nothing in
+//!    the safe API can assert reset on the blocks again.
 //! 3. `gpio.output_from_handle(board.pins.led)` consumes the handle by value
 //!    and configures the pin it names — GPIO25, which the board wires to the
 //!    on-board LED — as a push-pull output: one that actively drives the

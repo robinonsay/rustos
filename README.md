@@ -129,7 +129,11 @@ once with the pin map of a real board — so a handle can only come from a
 board's `take()`. The macro generates a `Pins` struct containing exactly one
 `PinHandle` field per pin that physically exists on that board, wrapped in a
 board struct whose `take()` hands the whole struct out at most once per
-boot. `take()` returns `Option<Self>` — `Option` is Rust's built-in type for
+boot. The same invocation can list the board's peripherals in a `devices`
+section; each entry becomes a board field of type `DeviceHandle<T>` — the
+peripheral-level analog of a pin handle, a zero-sized claim on the one
+peripheral driven by the driver type `T`, which that driver's constructor
+consumes. `take()` returns `Option<Self>` — `Option` is Rust's built-in type for
 a value that may be absent, with two variants: `Some(value)` and `None`.
 The once-only behavior rests on an `AtomicBool`, a boolean flag whose
 operations each execute as one indivisible step even with multiple CPU cores
@@ -183,9 +187,11 @@ type that all of its operations agree on.
 
 **An operation that cannot fail returns an error type with no values.**
 The RP2350 implementation, `pico2::gpio::gpio::Rp2350Gpio`, is zero-sized;
-its `new()` performs the reset bring-up of the `IO_BANK0` and `PADS_BANK0`
-blocks and is a once-per-boot singleton by the same `AtomicBool`
-compare-exchange as `take()`, returning `Option<Self>`. The pin types it
+its `new(board.gpio)` performs the reset bring-up of the `IO_BANK0` and
+`PADS_BANK0` blocks and consumes the board's `DeviceHandle<Rp2350Gpio>` —
+so a second construction is a compile error (use of a moved value), the
+once-per-boot property needs no runtime check of its own, and `new` returns
+`Self` rather than an `Option`. The pin types it
 hands out, `Rp2350GpioIn<N>` and `Rp2350GpioOut<N>`, declare
 `Error = core::convert::Infallible` — an enum with no variants. Unlike a C
 enum, whose values are just integers whether or not any enumerator names
@@ -201,7 +207,7 @@ busy-wait `delay()`, is:
 ```rust
 fn main() -> ! {
     let board = Rp2350::take().unwrap();
-    let mut gpio = Rp2350Gpio::new().unwrap();
+    let mut gpio = Rp2350Gpio::new(board.gpio);
     let mut led = gpio.output_from_handle(board.pins.led).unwrap();
     loop {
         led.write(true);
@@ -212,12 +218,14 @@ fn main() -> ! {
 }
 ```
 
-All three setup calls can report failure — the two `Option`s described
-above, and `output_from_handle` returns a `Result` — and the demo
+Two of the setup calls can report failure — `take()` returns the `Option`
+described above, and `output_from_handle` returns a `Result` — and the demo
 `.unwrap()`s each one, meaning: halt if the call failed. That is the right
-choice here: the `Option`s are `None` only on a second call to a
+choice here: the `Option` is `None` only on a second call to a
 once-per-boot constructor, which is a program bug, not a condition to
-recover from. The same
+recover from. `Rp2350Gpio::new` has no failure case at all — its
+once-per-boot property is enforced by consuming `board.gpio`, at compile
+time. The same
 listing, annotated line by line, is the crate-level doc of
 `firmware/pico2/src/lib.rs` ("Writing an application"). Run
 `cargo doc --open` to browse the API documentation; when wiring your own
