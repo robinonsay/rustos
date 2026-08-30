@@ -16,14 +16,15 @@
 
 use core::fmt::Debug;
 use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering::{AcqRel, Acquire, Release};
+use core::sync::atomic::Ordering::Acquire;
 
 use crate::common::MAX_GPIO_PIN;
-use crate::common::reset::{clr_reset_reg, set_reset_reg, wait_for_reset_done};
+use crate::common::reset::{clr_reset_reg, wait_for_reset_done};
 use crate::gpio::{IoBank, PadsBank, Sio};
 use crate::common::reg::RegAddr;
-use api::common::{Block, ErrorType, Read, Write};
-use api::gpio::{Gpio, Pull};
+use api::common::{ErrorType, Read, Write};
+use api::device::PinHandle;
+use api::gpio::{Gpio, GpioPinIn, GpioPinOut, Pull};
 
 /// Something went wrong configuring a GPIO pin.
 pub enum GpioError
@@ -61,6 +62,7 @@ impl Debug for GpioError
     }
 }
 
+
 /// The GPIO port: bring-up for the whole bank, and the factory for individual
 /// pins.
 ///
@@ -69,7 +71,6 @@ impl Debug for GpioError
 /// impls somewhere to live.
 pub struct Rp2350Gpio
 {
-
 }
 
 static GPIO_USED: AtomicBool = AtomicBool::new(false);
@@ -77,16 +78,26 @@ impl Rp2350Gpio
 {
     pub fn new() -> Option<Self>
     {
-        let mut gpio = Self{};
-        unsafe {gpio.start();}
-        return GPIO_USED.compare_exchange(false, true, Acquire, Acquire).ok().map(|_| gpio);
+        unsafe {
+            clr_reset_reg(!IO_PAD_BITMASK);
+            wait_for_reset_done(IO_PAD_BITMASK);
+        }
+        return GPIO_USED.compare_exchange(false, true, Acquire, Acquire).ok().map(|_| Self{});
     }
 }
 
-impl Drop for Rp2350Gpio
+impl Gpio for Rp2350Gpio
 {
-    fn drop(&mut self) {
-        unsafe {self.stop();}
+    type Input<const N: usize> = Rp2350GpioIn<N>;
+
+    type Output<const N: usize> = Rp2350GpioOut<N>;
+
+    fn input_from_handle<const N: usize>(&mut self, handle: PinHandle<N>, pull: Pull) -> Result<Self::Input<N>, Self::Error> {
+        return Rp2350GpioIn::new_input(handle, pull);
+    }
+
+    fn output_from_handle<const N: usize>(&mut self, handle: PinHandle<N>) -> Result<Self::Output<N>, Self::Error> {
+        return Rp2350GpioOut::new_output(handle);
     }
 }
 
@@ -98,68 +109,12 @@ const PADBANK_RESET_BIT:u8 = 9;
 /// and `PADS_BANK0` connects it to a physical leg of the package.
 const IO_PAD_BITMASK: u32 = 1 << IOBANK_RESET_BIT | 1 << PADBANK_RESET_BIT;
 
-
-impl Block for Rp2350Gpio
-{
-    /// Release `IO_BANK0` and `PADS_BANK0`, then wait for both to report
-    /// ready.
-    ///
-    /// The complement is passed because [`clr_reset_reg`] performs
-    /// `RESET &= mask` and `0` means released — so zeros in the mask are the
-    /// bits being freed. The [`wait_for_reset_done`] call is not optional:
-    /// releasing a reset takes time, and registers written before the block is
-    /// ready are accepted by the bus and discarded.
-    unsafe fn start(&mut self) {
-        unsafe{
-            clr_reset_reg(!IO_PAD_BITMASK);
-            wait_for_reset_done(IO_PAD_BITMASK);
-        }
-    }
-
-    /// Return `IO_BANK0` and `PADS_BANK0` to reset.
-    ///
-    /// [`set_reset_reg`] performs `RESET |= mask`, so the mask is passed
-    /// uncomplemented here — the inverse of [`start`](Self::start), which
-    /// clears bits and therefore passes `!IO_PAD_BITMASK`. Only these two bits
-    /// are touched; the other 27 blocks keep whatever state they were in.
-    ///
-    /// There is no `wait_for_reset_done` counterpart: `RESET_DONE` reports
-    /// readiness, and a block being held in reset simply never reports ready.
-    ///
-    /// # Caveat
-    ///
-    /// Any [`Rp2350GpioPin`] handed out earlier stays alive and keeps
-    /// compiling, but the block behind it is now in reset, so writes through
-    /// it are accepted by the bus and discarded. Nothing in the type system
-    /// catches that — it is the reason this method is `unsafe` despite writing
-    /// only one register.
-    unsafe fn stop(&mut self) {
-        unsafe{
-            set_reset_reg(IO_PAD_BITMASK);
-        }
-    }
-}
-
 /// Port-level operations report [`GpioError`], because validating a pin number
 /// is the one thing here that can genuinely fail.
 impl ErrorType for Rp2350Gpio
 {
     type Error = GpioError;
 }
-
-impl Gpio<Rp2350GpioPin> for Rp2350Gpio
-{
-    fn init_input(&mut self, pin_no: usize, pull: Pull) -> Result<Rp2350GpioPin, Self::Error> {
-        return Rp2350GpioPin::new_input(pin_no, pull);
-    }
-
-    fn init_output(&mut self, pin_no: usize) -> Result<Rp2350GpioPin, Self::Error>
-    {
-        return Rp2350GpioPin::new_output(pin_no);
-    }
-}
-
-/// An owned, already-configured GPIO pin.
 ///
 /// Holding one of these is proof that the pin number was validated and the
 /// hardware was configured — construction is the only place either happens.
@@ -174,41 +129,40 @@ impl Gpio<Rp2350GpioPin> for Rp2350Gpio
 /// independent handle to it. One-handle-per-pin is a convention the caller
 /// maintains by constructing each pin once, not an invariant this type
 /// enforces.
-pub struct Rp2350GpioPin
+pub struct Rp2350GpioOut<const N: usize>
 {
-    /// Validated to be `< MAX_GPIO_PIN`. Every `1 << pin_no` in this module
-    /// depends on that invariant holding.
-    pin_no: usize,
+    _private: ()
 }
 
-impl Rp2350GpioPin{
+pub struct Rp2350GpioIn<const N: usize>
+{
+    _private: ()
+}
+
+impl<const N: usize> Rp2350GpioOut<N>{
+    const _VALID: () = assert!(N < MAX_GPIO_PIN);
+    /// Validate and configure `pin_no` as a push-pull output, driven low.
+    fn new_output(_handle: PinHandle<N>) -> Result<Self, GpioError>
+    {
+        unsafe{
+            configure_gpio_pin_out(N);
+        }
+        return Ok(Self{_private: {}})
+    }
+}
+
+impl<const N: usize> Rp2350GpioIn<N>{
+    const _VALID: () = assert!(N < MAX_GPIO_PIN);
     /// Validate and configure `pin_no` as an input.
     ///
     /// The bounds check happens *before* any register write, so a bad pin
     /// number leaves the hardware untouched.
-    fn new_input(pin_no: usize, pull: Pull) -> Result<Self, GpioError>
+    fn new_input(_handle: PinHandle<N>, pull: Pull) -> Result<Self, GpioError>
     {
-        if pin_no >= MAX_GPIO_PIN
-        {
-            return Err(GpioError::PinOOB { pin: pin_no, count: MAX_GPIO_PIN })
-        }
         unsafe{
-            configure_gpio_pin_in(pin_no, pull);
+            configure_gpio_pin_in(N, pull);
         }
-        return Ok(Self{pin_no: pin_no})
-    }
-
-    /// Validate and configure `pin_no` as a push-pull output, driven low.
-    fn new_output(pin_no: usize) -> Result<Self, GpioError>
-    {
-        if pin_no >= MAX_GPIO_PIN
-        {
-            return Err(GpioError::PinOOB { pin: pin_no, count: MAX_GPIO_PIN })
-        }
-        unsafe{
-            configure_gpio_pin_out(pin_no);
-        }
-        return Ok(Self{pin_no: pin_no})
+        return Ok(Self{_private: {}})
     }
 }
 
@@ -219,12 +173,17 @@ impl Rp2350GpioPin{
 /// branch is eliminated at compile time. This is honest rather than
 /// optimistic — every failure mode was already handled at construction, when
 /// the pin number was checked. A pin that exists cannot fail to be written.
-impl ErrorType for Rp2350GpioPin
+impl<const N: usize> ErrorType for Rp2350GpioOut<N>
 {
     type Error = core::convert::Infallible;
 }
 
-impl Write<bool> for Rp2350GpioPin
+impl<const N: usize> ErrorType for Rp2350GpioIn<N>
+{
+    type Error = core::convert::Infallible;
+}
+
+impl<const N: usize> Write<bool> for Rp2350GpioOut<N>
 {
     /// Drive the pin high or low.
     ///
@@ -246,13 +205,13 @@ impl Write<bool> for Rp2350GpioPin
                 true => &raw mut (*sio_addr).gpio_out_set,
                 false => &raw mut (*sio_addr).gpio_out_clr
             };
-            set_reg.write_volatile(1 << self.pin_no);
+            set_reg.write_volatile(1 << N);
         }
         return  Ok(());
     }
 }
 
-impl Read<bool> for Rp2350GpioPin
+impl<const N: usize> Read<bool> for Rp2350GpioIn<N>
 {
     /// Sample the level actually present on the pad.
     ///
@@ -265,14 +224,17 @@ impl Read<bool> for Rp2350GpioPin
     /// Requires `IE` to be set in the pad register. With the input buffer
     /// disabled this returns `false` regardless of the voltage on the leg,
     /// which is why both configuration paths set `IE`.
-    fn read(&self) -> Result<bool, Self::Error> {
+    fn read(&mut self) -> Result<bool, Self::Error> {
         let sio_addr = RegAddr::SIO as usize as *mut Sio;
         unsafe{
             let in_reg = &raw const (*sio_addr).gpio_in;
-            return Ok(((in_reg.read_volatile() & (1 << self.pin_no))) == 1 << self.pin_no)
+            return Ok(((in_reg.read_volatile() & (1 << N))) == 1 << N)
         }
     }
 }
+
+impl<const N: usize>  GpioPinIn<N> for Rp2350GpioIn<N>{}
+impl<const N: usize>  GpioPinOut<N> for Rp2350GpioOut<N>{}
 
 /// Configure one pin as a SIO input with the requested pull resistor.
 ///

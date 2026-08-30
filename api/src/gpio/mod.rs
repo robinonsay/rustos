@@ -5,7 +5,7 @@
 //! knows what a register is; see the `pico2` crate for the RP2350
 //! implementation.
 
-use crate::common::{ErrorType, Read, Write};
+use crate::{common::{ErrorType, Read, Write}, device::PinHandle};
 
 /// Which internal resistor, if any, holds an input pin at a known level when
 /// nothing external is driving it.
@@ -54,56 +54,15 @@ pub enum Pull {
 /// wrote. A pin shorted to ground, or loaded beyond its drive strength, reads
 /// back the value the outside world won, which is the cheapest fault
 /// detection available without extra hardware.
-pub trait GpioPin: Write<bool> + Read<bool> {}
+pub trait GpioPinIn<const N: usize>: Read<bool> {}
 
-/// Blanket implementation: **every** type that is `Write<bool> + Read<bool>`
-/// is automatically a `GpioPin`.
-///
-/// Implementors therefore never write `impl GpioPin for MyPin {}`; they
-/// implement the two supertraits and membership follows. Two consequences are
-/// worth knowing:
-///
-/// * There is no way to *opt out*. Any type meeting the bounds is a `GpioPin`
-///   whether or not it is conceptually a pin. That is an acceptable trade for
-///   a marker this thin, but it means the trait cannot later grow a required
-///   method without breaking every implementor at once.
-/// * The orphan rule means only this crate can write this blanket impl. A
-///   downstream crate defining its own marker over foreign supertraits would
-///   be rejected.
-impl<T: Write<bool> + Read<bool>> GpioPin for T {}
+pub trait GpioPinOut<const N: usize>: Write<bool> {}
 
-/// The GPIO port: a factory that validates a pin number and hands back a
-/// configured, ready-to-use pin.
-///
-/// Configuration happens **once, at construction**, and the returned `T` is
-/// the proof that it succeeded. There is no `set_direction` on the pin itself,
-/// so a pin cannot be reconfigured out from under code holding it, and an
-/// out-of-range pin number is rejected before any register is touched rather
-/// than silently aliasing onto a different pin.
-///
-/// Both methods take `&mut self`: configuring a pin changes hardware state,
-/// and routing every configuration through a borrow of the port value gives
-/// the application one place where that authority lives. The port type
-/// itself may well be zero-sized — on most microcontrollers the port is a
-/// fixed set of registers at a fixed address, so there is no data for the
-/// value to carry — and the RP2350 implementation's `Rp2350Gpio` is exactly
-/// that.
-pub trait Gpio<T: GpioPin>: ErrorType {
-    /// Configure `pin_no` as an input with the given [`Pull`].
-    ///
-    /// Returns `Self::Error` if `pin_no` is not a usable pin on this device.
-    /// Note that "usable" is a property of the *package*, not the chip: the
-    /// same silicon in a larger package bonds out more pins.
-    fn init_input(&mut self, pin_no: usize, pull: Pull) -> Result<T, Self::Error>;
+pub trait Gpio: ErrorType
+{
+    type Input<const N: usize>: GpioPinIn<N>;
+    type Output<const N: usize>: GpioPinOut<N>;
 
-    /// Configure `pin_no` as a push-pull output, initially driven low.
-    ///
-    /// Starting low rather than high is deliberate: it is the state least
-    /// likely to do something visible or damaging on a pin whose external
-    /// wiring this layer knows nothing about.
-    ///
-    /// There is no [`Pull`] argument because an output drives both levels
-    /// itself, making a pull resistor redundant at best and a small constant
-    /// current draw at worst.
-    fn init_output(&mut self, pin_no: usize) -> Result<T, Self::Error>;
+    fn input_from_handle<const N: usize>(&mut self, handle: PinHandle<N>, pull: Pull) -> Result<Self::Input<N>, Self::Error>;
+    fn output_from_handle<const N: usize>(&mut self, handle: PinHandle<N>) -> Result<Self::Output<N>, Self::Error>;
 }

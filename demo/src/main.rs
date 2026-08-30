@@ -21,7 +21,9 @@
 
 use core::hint::spin_loop;
 
-use api::{common::Write, gpio::Gpio};
+use api::gpio::Gpio;
+use api::{common::Write};
+use pico2::common::board::Rp2350;
 use pico2::gpio::gpio::Rp2350Gpio;
 
 
@@ -40,12 +42,13 @@ pico2::entry!(main);
 /// there is nothing to return to, and the `-> !` makes that a type error
 /// rather than a convention.
 fn main() -> ! {
+    let board = Rp2350::take().unwrap();
     let mut gpio = Rp2350Gpio::new().unwrap();
-    let mut pin25_o = gpio.init_output(25).unwrap();
+    let mut led = gpio.output_from_handle(board.pins.led).unwrap();
     loop {
-        pin25_o.write(true);
+        led.write(true);
         delay();
-        pin25_o.write(false);
+        led.write(false);
         delay();
     }
 }

@@ -4,6 +4,7 @@
 
 pub mod reg;
 pub mod reset;
+pub mod board;
 
 /// Number of GPIO pins usable on this board: **30**.
 ///

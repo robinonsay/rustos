@@ -1,44 +1,3 @@
-/// A peripheral that must be brought up before use and can be shut back down.
-///
-/// Implemented by drivers rather than by a central reset controller, so each
-/// driver keeps the knowledge of which reset lines it needs next to the code
-/// that needs them. This trait names only the lifecycle; which registers are
-/// involved is the implementing crate's business. On the RP2350, for example,
-/// each driver owns one or more bits in the chip-wide `RESETS` register, and
-/// a driver that reaches pins generally owns more than one bit: `UART0`
-/// alone does not produce a working UART, because the signal still has to get
-/// through `IO_BANK0`'s function mux and a `PADS_BANK0` pad.
-pub trait Block
-{
-    /// Release this peripheral's blocks from reset and block until the
-    /// hardware reports them ready.
-    ///
-    /// Must be called before touching any of the peripheral's registers. On
-    /// the RP2350, accesses to a block still in reset do not fault — they are
-    /// accepted by the bus and discarded — so skipping this produces a
-    /// peripheral that silently ignores every write.
-    ///
-    /// # Safety
-    ///
-    /// Writes a chip-wide control register shared with every other driver, and
-    /// leaves hardware running. Implementations must touch only their own bits.
-    unsafe fn start(&mut self);
-
-    /// Return this peripheral's blocks to reset.
-    ///
-    /// # Safety
-    ///
-    /// Any handle to this peripheral becomes non-functional. As with
-    /// [`start`](Block::start), implementations must confine themselves to
-    /// their own reset lines. The stakes can be fatal to the program: on the
-    /// RP2350, asserting reset on `IO_QSPI` or `PADS_QSPI` cuts the pins that
-    /// XIP (execute-in-place, code running directly from flash) fetches
-    /// instructions from, and execution stops mid-fetch with no fault and no
-    /// output.
-    unsafe fn stop(&mut self);
-}
-
-
 /// Declares the single error type a peripheral reports.
 ///
 /// Every fallible trait in this crate ([`Write`], [`Read`], and the factory
@@ -124,5 +83,5 @@ pub trait Read<T>: ErrorType {
     /// a register would mutate peripheral state behind a shared borrow. Those
     /// operations belong behind `&mut self` methods instead. The RP2350 GPIO
     /// implementation samples `GPIO_IN`, which changes nothing.
-    fn read(&self) -> Result<T, Self::Error>;
+    fn read(&mut self) -> Result<T, Self::Error>;
 }
