@@ -8,33 +8,50 @@
 //!
 //! ## Writing an application
 //!
-//! This mirrors the `demo` crate in this workspace:
+//! This mirrors the `demo` crate in this workspace (delays elided):
 //!
 //! ```ignore
 //! #![no_std]
 //! #![no_main]
 //!
-//! use api::{common::{Write, board::Board}, gpio::Gpio};
+//! use api::{common::Write, gpio::Gpio};
+//! use pico2::common::board::Rp2350;
 //! use pico2::gpio::gpio::Rp2350Gpio;
 //!
 //! pico2::entry!(main);
 //!
 //! fn main() -> ! {
-//!     let mut gpio = Rp2350Gpio {};
-//!     let _board = Board::take([&mut gpio]).unwrap(); // starts the GPIO blocks
-//!     let mut led = gpio.init_output(25).unwrap();
+//!     let board = Rp2350::take().unwrap();       // once per boot; constructs the pin handles
+//!     let mut gpio = Rp2350Gpio::new().unwrap(); // releases the GPIO blocks from reset
+//!     let mut led = gpio.output_from_handle(board.pins.led).unwrap();
 //!     loop {
-//!         led.write(true).ok();
-//!         led.write(false).ok();
+//!         led.write(true);
+//!         led.write(false);
 //!     }
 //! }
 //! ```
 //!
-//! `main` is an ordinary unattributed function taking no arguments: it
-//! constructs its hardware drivers itself, registers them with the `Board`
-//! singleton from the `api` crate (whose `take` starts each one and succeeds
-//! at most once per boot), and never returns. See [`entry`] for why the macro
-//! is needed and what it protects you from.
+//! The two crate attributes are required, not style. `#![no_std]`
+//! links only Rust's `core` library — the language items, with no operating
+//! system services — which is why there is no `println!`, no heap, and why
+//! this crate must supply the `#[panic_handler]`. `#![no_main]` is explained
+//! at [`entry!`].
+//!
+//! Building an application needs configuration as well as source: the
+//! `thumbv8m.main-none-eabihf` target and the `-Tlink.ld` linker flag. In
+//! this workspace `.cargo/config.toml` supplies both, and `pico2`'s
+//! `build.rs` puts `link.ld` on the linker search path — a crate outside the
+//! workspace must replicate that configuration (and first run
+//! `rustup target add thumbv8m.main-none-eabihf`), or the build links for
+//! the host, or fails to link at all.
+//!
+//! `main` is an ordinary unattributed function taking no arguments: it claims
+//! the board singleton from [`common::board`] (whose `take` succeeds at most
+//! once per boot and returns the full set of pin-ownership handles),
+//! constructs its hardware drivers itself, converts handles into configured
+//! pins, and never returns. See [`entry`] for why the macro is needed and
+//! what it protects you from, and [`common::board`] for what a pin handle
+//! proves.
 //!
 //! ## Boot sequence
 //!
@@ -45,11 +62,14 @@
 //!    through to USB mass-storage mode.
 //! 2. Since that block declares no explicit entry point, the bootrom assumes
 //!    the image begins with a Cortex-M vector table (§5.9.5.1, p427). It loads
-//!    word 0 into `SP` and word 1 into `PC` — see `VECTOR_TABLE`, which the
-//!    linker script pins to the flash base.
+//!    word 0 into `SP` (the stack pointer register) and word 1 into `PC` (the
+//!    program counter) — see `VECTOR_TABLE`, which the linker script pins to
+//!    the flash base.
 //! 3. [`OnReset`] runs with flash mapped read-only over XIP and **RAM
-//!    uninitialised**: enable the FPU, point `VTOR` at the table, copy
-//!    `.data` from flash to RAM, zero `.bss`. (XIP is *execute-in-place*: the
+//!    uninitialised**: enable the FPU (the floating-point unit; see
+//!    `enable_fpu`), point `VTOR` at the table, copy `.data` from flash to
+//!    RAM (`reset_data`), zero `.bss` (`reset_bss` — both explained on those
+//!    functions below). (XIP is *execute-in-place*: the
 //!    QMI flash controller presents the flash contents as ordinary readable
 //!    memory starting at `0x1000_0000`, so the CPU fetches instructions
 //!    directly from flash with nothing copied to RAM first.)
@@ -57,7 +77,7 @@
 //!
 //! ## Layering note
 //!
-//! This crate currently holds two logically distinct layers, which is fine
+//! This crate currently holds three logically distinct layers, which is fine
 //! at this size but worth naming, since only the first is genuinely tied to
 //! Arm:
 //!
@@ -67,12 +87,18 @@
 //!   [`common::reset`], [`gpio`]. Portable to any RP2350 board, and notably
 //!   *not* Arm-specific: RP2350 can boot RISC-V Hazard3 cores instead, driving
 //!   these same registers (p14).
+//! * **Pico 2 board support** — [`common::board`], which declares exactly the
+//!   pins this board has and names the ones its circuitry has already
+//!   claimed, and [`common::MAX_GPIO_PIN`], which records the package pin
+//!   count — the constant a pin-number validation would check against,
+//!   though today the only enforcement is that the board definition declares
+//!   handles solely for pins 0–29 (see the constant's doc). See each item's
+//!   doc for why these live here.
 //!
-//! Board-level facts — which pin the LED is on, what is wired where — mostly
-//! do not live in this crate; the application states them (the `demo` crate
-//! hard-codes pin 25), and the `Board` singleton type lives in the `api`
-//! crate. The one exception is [`common::MAX_GPIO_PIN`], a package fact this
-//! crate keeps so pin numbers can be validated; see its doc for why.
+//! The `Board` type itself is generated in [`common::board`] by the `api`
+//! crate's `define_board!` macro; the application does not state board facts
+//! any more — the `demo` crate reaches the on-board LED as `board.pins.led`
+//! rather than by hard-coding pin 25.
 
 #![no_std]
 
@@ -224,6 +250,11 @@ const CPACR_FPU_FULL: u32 = (0b11 << 20) | (0b11 << 22); // == 0x00F0_0000
 ///
 /// Read-modify-write rather than a plain store, to preserve the other
 /// coprocessor fields (CP0/CP4/CP5/CP7) that share this register. The
+/// accesses are *volatile*: `read_volatile`/`write_volatile` tell the
+/// compiler the access has an effect it cannot see, so it must perform each
+/// one exactly as written — neither merged, reordered, nor deleted. (See the
+/// `RESET_DONE` doc in [`common::reset`] for the failure mode when volatile
+/// is omitted.) The
 /// `dsb`/`isb` pair afterwards is architecturally required: `dsb` ensures the
 /// write has reached the register, `isb` flushes the pipeline so instructions
 /// already fetched are re-fetched under the new configuration. Without it the
@@ -251,8 +282,9 @@ unsafe fn enable_fpu() {
 /// Setting it explicitly makes the two agree.
 ///
 /// Alignment matters: Armv8-M requires the table to be aligned to the next
-/// power of two at least as large as its byte size. 68 entries round up to
-/// 128, so 512 bytes. `link.ld` enforces this and asserts it. (RP2350's `VTOR`
+/// power of two at least as large as its byte size. 68 entries × 4 bytes =
+/// 272 bytes; the next power of two at or above 272 is 512, so the table
+/// must be 512-byte aligned. `link.ld` enforces this and asserts it. (RP2350's `VTOR`
 /// only implements bits 31:7, a 128-byte granularity — the stricter 512 comes
 /// from the architecture, so keep it.)
 ///
@@ -319,7 +351,7 @@ unsafe extern "Rust" {
     fn __rustos_main() -> !;
 }
 
-/// Declare the application entry point.
+/// Declare the application entry point: a function of type `fn() -> !`.
 ///
 /// ```ignore
 /// pico2::entry!(main);
@@ -338,10 +370,10 @@ unsafe extern "Rust" {
 /// The naive way to do that is a bare `extern` block, which is what C does and
 /// carries C's defect: **extern declarations are not type-checked across the
 /// link.** Declare `fn __rustos_main()`, define it as `fn __rustos_main(x: u32)
-/// -> u32`, and the linker happily matches them on name; at runtime the callee
+/// -> u32`, and the linker matches them on name alone; at runtime the callee
 /// reads an argument nobody passed.
 ///
-/// This macro closes that hole with one line:
+/// This macro removes that unchecked case with one line:
 ///
 /// ```ignore
 /// let f: fn() -> ! = $f;
@@ -444,9 +476,10 @@ pub extern "C" fn OnHardFault() {
 /// [`DefaultHandler`], then overwrite the ones that are known.
 ///
 /// `#[link_section = ".vector_table"]` puts it in the section `link.ld` pins to
-/// `ORIGIN(FLASH)` and wraps in `KEEP()`. Both halves are load-bearing —
-/// nothing in Rust *calls* a vector table, so `--gc-sections` would otherwise
-/// delete it, and the bootrom requires it at offset 0.
+/// `ORIGIN(FLASH)` and wraps in `KEEP()`. Both halves are required: without
+/// the `KEEP()`, `--gc-sections` deletes the table, since nothing in Rust
+/// *calls* a vector table; without the placement, the bootrom cannot find it
+/// at offset 0.
 #[used]
 #[unsafe(link_section = ".vector_table")]
 static VECTOR_TABLE: [Vector; 68] = {

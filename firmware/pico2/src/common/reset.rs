@@ -1,10 +1,20 @@
+//! Driving the `RESETS` subsystem reset controller.
+//!
+//! The public surface is three functions over one register: [`clr_reset_reg`]
+//! releases peripheral blocks from reset, [`set_reset_reg`] asserts it, and
+//! [`wait_for_reset_done`] spins until released blocks report ready. The
+//! register-level detail — polarities, bit assignments, and the ways this
+//! block can silently kill a program — lives on the private `Reset` layout
+//! struct below.
+
 use crate::common::reg::RegAddr;
 /// `RESETS` — the subsystem reset controller. Base `0x4002_0000`.
 ///
 /// Almost every peripheral on the chip comes out of power-on reset **held in
 /// reset**, and stays there until software releases it. Reads and writes to a
 /// held peripheral do not fault; they just do nothing useful, which is why a
-/// forgotten unreset presents as a peripheral that silently ignores you.
+/// forgotten unreset presents as a peripheral whose registers accept reads
+/// and writes but have no effect.
 ///
 /// Bit assignments are the same in all three registers (Table 534, p504):
 ///
@@ -39,7 +49,8 @@ struct Reset{
     /// ```
     ///
     /// Writing `!MASK` directly instead of `cur & !MASK` writes 1s to all 27
-    /// other bits and slams those peripherals *into* reset. On this chip that
+    /// other bits, asserting reset on all of those peripherals in the same
+    /// store. On this chip that
     /// includes bits 7 and 10, `IO_QSPI` and `PADS_QSPI` — the pins the flash
     /// chip is attached to. Code runs from that flash over XIP
     /// (execute-in-place: the flash contents are mapped as readable memory at
@@ -178,7 +189,7 @@ pub unsafe fn set_reset_reg(mask: u32){
 ///
 /// The `read_volatile` inside the loop is mandatory, not stylistic. Read
 /// through a plain `&u32` and LLVM is entitled to hoist the load out — nothing
-/// in the language says a `&u32` can change behind your back — and the wait
+/// in the language says the value behind a `&u32` can change — and the wait
 /// compiles down to an unconditional branch to itself. A hang here is
 /// therefore a very plausible symptom of dropping the `volatile`.
 ///

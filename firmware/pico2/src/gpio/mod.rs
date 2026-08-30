@@ -1,7 +1,8 @@
 //! Memory-mapped register layouts for RP2350 GPIO bring-up.
 //!
-//! Every struct in this module is a *layout template*, not a value. None of
-//! them are ever constructed. You take the peripheral's base address from
+//! Every struct in this module exists only to give names and offsets to
+//! hardware registers; no value of any of them is ever constructed. You take
+//! the peripheral's base address from
 //! [`crate::common::reg::RegAddr`], cast it to a pointer to one of these
 //! types, project to a field with `&raw mut` / `&raw const`, and access that
 //! field with [`core::ptr::read_volatile`] / [`core::ptr::write_volatile`].
@@ -16,13 +17,20 @@
 //!
 //! 1. **Never form a `&` or `&mut` to these fields.** A reference asserts to
 //!    the compiler that nothing else can change the memory, which is exactly
-//!    false for hardware. `as_mut().unwrap()` looks harmless and lets LLVM
-//!    hoist a load out of a poll loop, turning the wait into `b .`.
+//!    false for hardware. `as_mut().unwrap()` looks harmless, but once a
+//!    reference exists the optimizer may move a load out of a poll loop
+//!    (nothing tells it that memory behind a reference can change), so the
+//!    loop body no longer reads the register at all and the wait compiles to
+//!    a single branch-to-self instruction — an unconditional hang. This is
+//!    why the example above uses `&raw mut`: `&raw mut place` computes the
+//!    address of the place as a raw pointer (`*mut T`) without ever creating
+//!    a reference (`&raw const` likewise yields `*const T`), which is exactly
+//!    what makes it possible to follow this rule while still naming fields.
 //! 2. **Volatility lives on the access, not the pointer.** `read_volatile` and
 //!    `write_volatile` are the only things that guarantee the load or store
 //!    actually happens, once, in program order.
 //!
-//! `#[repr(C)]` is load-bearing on every struct here. It is what pins field
+//! `#[repr(C)]` is mandatory on every struct here. It is what fixes field
 //! order and offsets to the declaration order; without it the compiler is free
 //! to reorder fields and the addresses stop matching the hardware. Explicit
 //! `_reserved` padding is likewise mandatory — the holes in a peripheral's
@@ -31,8 +39,10 @@
 //!
 //! ## Atomic register aliases
 //!
-//! Each APB peripheral gets 4 kB of address space, aliased four ways
-//! (§2.1.3, p26):
+//! Each APB peripheral — APB is the Advanced Peripheral Bus, the chip's
+//! shared, slower peripheral bus: an access costs 3–4 cycles, versus 1 for
+//! the core-local SIO port described at [`Sio`] — gets 4 kB of address space,
+//! aliased four ways (§2.1.3, p26):
 //!
 //! | Address     | Effect on write        |
 //! |-------------|------------------------|
@@ -64,8 +74,8 @@ pub mod gpio;
 
 /// One GPIO's pair of control registers in `IO_BANK0`.
 ///
-/// The bank is an array of 48 of these, one per GPIO, so `GPIO*n*_STATUS*`
-/// lives at `IO_BANK0 + n * 8` and `GPIO*n*_CTRL` at `IO_BANK0 + n * 8 + 4`.
+/// The bank is an array of 48 of these, one per GPIO, so `GPIOn_STATUS`
+/// lives at `IO_BANK0 + n * 8` and `GPIOn_CTRL` at `IO_BANK0 + n * 8 + 4`.
 /// For the on-board LED on GPIO25 that puts `CTRL` at offset `0x0cc`.
 ///
 /// This block routes *signals*: it decides which peripheral inside the chip is
@@ -90,9 +100,10 @@ struct GpioRegs{
     ///
     /// This is the register to read when a pin is not doing what you expect
     /// and you need to know *where* the signal stops. If `OETOPAD` is 0 after
-    /// you set the pin as an output, the problem is upstream in SIO or in
-    /// `OEOVER`; if it is 1 but the pin measures low, the problem is
-    /// downstream in the pad — `OD` or `ISO`.
+    /// you set the pin as an output, the problem is earlier in the signal
+    /// path — SIO's `GPIO_OE` or the `OEOVER` override; if it is 1 but the
+    /// pin measures low, the problem is at the pad itself — the `OD` or `ISO`
+    /// bit, see [`PadsBank::pads`].
     ///
     /// Table 649, p607.
     pub status: u32,
@@ -114,10 +125,10 @@ struct GpioRegs{
     /// 1 SPI, 2 UART, 3 I2C, 4 PWM, **5 SIO**, 6/7/8 PIO0/1/2, 9 XIP,
     /// 10 USB, `0x1f` NULL. Function 5 for GPIO25 is `SIO_25` (p609).
     ///
-    /// Writing `5` here is what hands the pin to `Sio`, and it is the only
-    /// reason `gpio_out_set` and friends have any effect on it. The reset
-    /// value `0x1f` (NULL) means every pin comes out of reset connected to
-    /// nothing.
+    /// Writing `5` here connects the pin's input, output, and output-enable
+    /// paths to the [`Sio`] registers; until then `gpio_out_set` and friends
+    /// have no effect on it. The reset value `0x1f` (NULL) means every pin
+    /// comes out of reset connected to nothing.
     ///
     /// A whole-register write of `5` is safe during bring-up because it also
     /// zeroes all four override fields, which is what you want. Once the pin
@@ -144,8 +155,11 @@ struct IoBank{
     /// The array is 48 entries even on packages that bond out fewer pins. The
     /// Pico 2 exposes GPIO0–29; 30–47 exist in the register map but have no
     /// package pin. Indexing past 47 is out-of-bounds on the struct and will
-    /// silently walk into the reserved region below, so bounds-check the pin
-    /// number at the API boundary rather than trusting the caller.
+    /// silently walk into the reserved region below, so pin-number validity
+    /// must be established in software before indexing. This crate does it by
+    /// construction rather than with a runtime check: safe code can only name
+    /// a pin via a `PinHandle<N>`, which `define_board!` creates only for
+    /// pins 0–29 (see [`gpio`](crate::gpio::gpio)).
     pub gpio: [GpioRegs; 48],
     /// Reserved, `0x180`–`0x1ff`. 32 words of address hole.
     ///
@@ -233,7 +247,9 @@ struct PadsBank{
     /// | 0    | `SLEWFAST` | `0`   | 1 = fast slew, 0 = slow |
     ///
     /// Reset value is therefore `0x116`: isolated, pulled down, hysteresis on,
-    /// 4 mA, input buffer off.
+    /// 4 mA, input buffer off. (`SCHMITT`/hysteresis: the input uses
+    /// different voltage thresholds for rising and falling edges, so a slow
+    /// or noisy edge produces one clean transition instead of several.)
     ///
     /// Two of these bits are the classic reasons a freshly configured pin does
     /// nothing:
@@ -272,7 +288,7 @@ struct PadsBank{
 /// four an APB access takes. That is the entire reason GPIO bit-banging on
 /// this chip is fast, and it is also why the atomic `+0x1000`/`+0x2000`/
 /// `+0x3000` aliases described in §2.1.3 **do not exist here**. SIO instead
-/// bakes set/clear/XOR in as separate registers, which is why this struct has
+/// provides set/clear/XOR as separate registers, which is why this struct has
 /// four registers for output and four for output-enable.
 ///
 /// SIO does not need to be released from reset — it is part of the core
@@ -283,7 +299,11 @@ struct PadsBank{
 /// they are unused.
 ///
 /// SIO only reaches a pin whose `GPIOn_CTRL.FUNCSEL` is 5. Until then, writes
-/// here are accepted and have no visible effect.
+/// here are accepted and latched in SIO's registers but have no effect on the
+/// pin; the moment `FUNCSEL` selects SIO, the stored `OUT`/`OE` values apply.
+/// That latching is why drivers set the level and output enable *before*
+/// switching `FUNCSEL` — the pin then appears in a known state with no
+/// glitch.
 ///
 /// Table 16, p55–56.
 #[repr(C)]
@@ -301,8 +321,8 @@ struct Sio{
     /// pad input buffer. This is the truth about the pin, as opposed to
     /// [`gpio_out`](Self::gpio_out), which only reports what you last asked
     /// for. On an output pin the two agree unless something external is
-    /// fighting your driver — a short, or a load too heavy for the configured
-    /// `DRIVE` strength. Comparing them is a real diagnostic.
+    /// overriding your driver — a short, or a load too heavy for the
+    /// configured `DRIVE` strength. Comparing them is a real diagnostic.
     ///
     /// Reads `0` for any pin whose `IE` bit is clear in [`PadsBank::pads`],
     /// because the input buffer is unpowered. Also reads `0` from Non-secure
@@ -398,18 +418,21 @@ struct Sio{
     pub gpio_oe_set_hi:  u32,  // 0x03c
     /// `GPIO_OE_CLR` — `0x040`. Atomic bit-clear: `gpio_oe &= ~wdata`.
     ///
-    /// Writing `1 << n` releases pin *n* back to a high-impedance input. This
-    /// is how you stop driving a pin without disturbing any other.
+    /// Writing `1 << n` releases pin *n* back to a high-impedance input —
+    /// not driven; its level is set by whatever external circuit or pull
+    /// resistor is attached. This is how you stop driving a pin without
+    /// disturbing any other.
     pub gpio_oe_clr:     u32,  // 0x040
     /// `GPIO_HI_OE_CLR` — `0x044`. Atomic bit-clear on
     /// [`gpio_oe_hi`](Self::gpio_oe_hi).
     pub gpio_oe_clr_hi:  u32,  // 0x044
     /// `GPIO_OE_XOR` — `0x048`. Atomic XOR: `gpio_oe ^= wdata`.
     ///
-    /// Writing `1 << n` flips pin *n* between driving and high-impedance.
-    /// Useful for open-drain-style signalling done in software: hold
-    /// `gpio_out` low permanently and toggle the enable, so the pin
-    /// alternates between actively pulling low and floating to a pull-up.
+    /// Writing `1 << n` flips pin *n* between driving and high-impedance
+    /// (see [`gpio_oe_clr`](Self::gpio_oe_clr)). Useful for open-drain-style
+    /// signalling done in software: hold `gpio_out` low permanently and
+    /// toggle the enable, so the pin alternates between actively pulling low
+    /// and being pulled high by an external pull-up resistor.
     pub gpio_oe_xor:     u32,  // 0x048
     /// `GPIO_HI_OE_XOR` — `0x04c`. Atomic XOR on
     /// [`gpio_oe_hi`](Self::gpio_oe_hi).

@@ -20,9 +20,10 @@
 /// p31), which is worth noticing because the difference is architectural, not
 /// cosmetic:
 ///
-/// * `0x4000_0000` — **APB peripherals**, behind a bridge. A read costs at
-///   least three cycles and a write four.
-/// * `0x5000_0000` — AHB peripherals (DMA, USB), zero-wait-state.
+/// * `0x4000_0000` — **APB peripherals** (Advanced Peripheral Bus), behind a
+///   bridge. A read costs at least three cycles and a write four.
+/// * `0x5000_0000` — AHB peripherals (Advanced High-performance Bus; DMA,
+///   USB), zero-wait-state: reads and writes complete in one bus cycle.
 /// * `0xd000_0000` — **core-local** peripherals, i.e. [`SIO`](RegAddr::SIO).
 ///
 /// # Atomic aliases
@@ -39,8 +40,10 @@
 ///
 /// These let you change one field without a read-modify-write, which matters
 /// whenever an interrupt handler or the other core might touch the same
-/// register in between. Because the layout structs are `#[repr(C)]`, you get
-/// an alias view for free by re-basing the same type — for example
+/// register in between. Because the layout structs are `#[repr(C)]` — fields
+/// are laid out in declaration order at the offsets a C compiler would use,
+/// so a struct field's address equals block base plus register offset — you
+/// get an alias view for free by re-basing the same type — for example
 /// `(RegAddr::RESET as usize + 0x3000) as *mut Reset` is a clear-alias view of
 /// the whole reset controller.
 ///
