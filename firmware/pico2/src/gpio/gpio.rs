@@ -41,7 +41,7 @@ use crate::common::reset::{clr_reset_reg, wait_for_reset_done};
 use crate::gpio::{IoBank, PadsBank, Sio};
 use crate::common::reg::RegAddr;
 use api::common::{ErrorType, Read, Write};
-use api::device::PinHandle;
+use api::device::{DeviceHandle, PinHandle};
 use api::gpio::{Gpio, GpioPinIn, GpioPinOut, Pull};
 
 /// Something went wrong configuring a GPIO pin.
@@ -105,11 +105,11 @@ impl Debug for GpioError
 /// the singleton holds only for code that goes through `new()`.
 pub struct Rp2350Gpio
 {
+    _private: ()
 }
 
 /// Set to `true` by the first successful [`Rp2350Gpio::new`]; never cleared.
 /// This flag is the entire runtime content of the port singleton.
-static GPIO_USED: AtomicBool = AtomicBool::new(false);
 impl Rp2350Gpio
 {
     /// Release the GPIO blocks from reset and claim the port, once per boot.
@@ -131,13 +131,13 @@ impl Rp2350Gpio
     /// the same physical registers, defeating the exclusive access the
     /// [`Gpio`] methods otherwise guarantee. Note the caveat on
     /// [`Rp2350Gpio`] itself: the struct literal bypasses this check.
-    pub fn new() -> Option<Self>
+    pub fn new(_handle: DeviceHandle<Rp2350Gpio>) -> Self
     {
         unsafe {
             clr_reset_reg(!IO_PAD_BITMASK);
             wait_for_reset_done(IO_PAD_BITMASK);
         }
-        return GPIO_USED.compare_exchange(false, true, Acquire, Acquire).ok().map(|_| Self{});
+        return Self{_private: ()};
     }
 }
 

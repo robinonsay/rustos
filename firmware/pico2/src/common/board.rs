@@ -68,6 +68,8 @@ use core::sync::atomic::Ordering::Acquire;
 
 use api::define_board;
 
+use crate::gpio::gpio::Rp2350Gpio;
+
 
 define_board!{
     Rp2350{
@@ -105,6 +107,9 @@ define_board!{
             gpio27: 27,      // header, also ADC1
             gpio28: 28,      // header, also ADC2
             vsys_adc: 29,    // ADC3 reads VSYS/3; not on header
+        }
+        devices {
+            gpio: Rp2350Gpio,
         }
     }
 }

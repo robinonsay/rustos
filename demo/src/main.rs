@@ -84,7 +84,7 @@ pico2::entry!(main);
 /// rather than a convention.
 fn main() -> ! {
     let board = Rp2350::take().unwrap();
-    let mut gpio = Rp2350Gpio::new().unwrap();
+    let mut gpio = Rp2350Gpio::new(board.gpio);
     let mut led = gpio.output_from_handle(board.pins.led).unwrap();
     loop {
         led.write(true);

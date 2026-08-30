@@ -14,6 +14,8 @@
 //! invokes to declare which pins its board actually has and to generate the
 //! one place handles are created.
 
+use core::marker::PhantomData;
+
 /// Ownership of physical pin `N`, as a zero-sized value.
 ///
 /// # What a zero-sized type is
@@ -91,6 +93,17 @@ impl<const N: usize> PinHandle<N>
         Self { _private: () }
     }
 }
+
+pub struct DeviceHandle<T>{
+    _private: PhantomData<T>,
+}
+
+impl<T> DeviceHandle<T>{
+    pub const unsafe fn new() -> Self {
+        Self{_private: PhantomData}
+    }
+}
+
 /// Declares a board: which pins exist, and the singleton that owns them all.
 ///
 /// A chip-support crate invokes this once with a board type name, a pins
@@ -158,6 +171,9 @@ macro_rules! define_board {
             $pins:ident {
                 $($pin_name:ident: $n:literal),+ $(,)?
             }
+            $(devices {
+                $($dev_name:ident: $dev_ty:ty),+ $(,)?
+            })?
         }
     ) =>
     {
@@ -173,7 +189,8 @@ macro_rules! define_board {
         /// The board singleton. Obtain it with `take()`, exactly once per
         /// boot; the pin handles live in `pins`.
         pub struct $board {
-            pub pins: $pins
+            pub pins: $pins,
+            $($(pub $dev_name: $crate::device::DeviceHandle<$dev_ty>,)+)?
         }
 
         impl $board {
@@ -184,7 +201,8 @@ macro_rules! define_board {
             /// `PinHandle` is ever created twice.
             const fn new() -> Self {
                 unsafe{Self{
-                    pins: $pins{$($pin_name: $crate::device::PinHandle::new(), )+}
+                    pins: $pins{$($pin_name: $crate::device::PinHandle::new(), )+},
+                    $($($dev_name: $crate::device::DeviceHandle::new(),)+)?
                 }}
             }
             /// Claim the board, once per boot.
