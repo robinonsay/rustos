@@ -7,7 +7,7 @@ rustflags = [
     "-C", "link-arg=--print-memory-usage",
     "-C", "link-arg=-Map=firmware.map",
 ]
-runner = "picotool load -u -x"
+runner = "picotool load -u -x -t elf"
 
 [alias]
 xtest = "test -p api --target aarch64-apple-darwin"
