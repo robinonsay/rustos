@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
 members = ["api", "firmware/pico2"]
+# Plain `cargo build`/`cargo test` covers the portable crates on the host;
+# board crates only make sense for their own triple, built via the aliases
+# in .cargo/config.toml (e.g. `cargo pico2`).
+default-members = ["api"]
 
 [profile.dev]
 panic = "abort"

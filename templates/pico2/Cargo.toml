@@ -1,0 +1,18 @@
+[package]
+name = "{{project-name}}"
+version = "0.1.0"
+edition = "2024"
+
+# Standalone workspace root: stops cargo from searching parent directories
+# for a workspace to join.
+[workspace]
+
+[dependencies]
+api = { git = "https://github.com/robinonsay/rustos" }
+pico2 = { git = "https://github.com/robinonsay/rustos" }
+
+# The runtime has no unwinder.
+[profile.dev]
+panic = "abort"
+[profile.release]
+panic = "abort"

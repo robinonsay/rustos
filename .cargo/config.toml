@@ -1,0 +1,7 @@
+# Deliberately no [build] target: this workspace is architecture-neutral.
+# Portable crates (api) build and test for the host; each board crate is
+# built for its own triple via the aliases below — one per supported
+# architecture. Applications generated from templates/ carry their own
+# board-specific .cargo/config.toml instead.
+[alias]
+pico2 = "build -p pico2 --target thumbv8m.main-none-eabihf"

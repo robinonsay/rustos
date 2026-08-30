@@ -1,0 +1,10 @@
+# Marks this repo as a cargo-generate template source. Each supported board
+# is a sub-template under templates/; running plain
+#
+#   cargo generate --git https://github.com/robinonsay/rustos
+#
+# prompts for which board, or pick one directly:
+#
+#   cargo generate --git https://github.com/robinonsay/rustos templates/pico2
+[template]
+sub_templates = ["templates/pico2"]

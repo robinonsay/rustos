@@ -102,7 +102,7 @@
 
 #![no_std]
 
-use core::{panic::PanicInfo, ptr::copy_nonoverlapping};
+use core::ptr::copy_nonoverlapping;
 
 pub mod common;
 pub mod gpio;
@@ -173,26 +173,6 @@ unsafe extern "C" {
     static __sbss: u32;
     /// End of `.bss` in RAM.
     static __ebss: u32;
-}
-
-/// Where the program ends up after any `panic!`, failed `unwrap`, array
-/// bounds violation, or arithmetic overflow in a debug build.
-///
-/// Spinning forever is the honest minimum: there is no console to print to and
-/// no operating system to return to. It also stops execution at the fault
-/// rather than letting it propagate, so a debugger attached afterwards finds
-/// the machine still holding the state that caused it.
-///
-/// # Policy note
-///
-/// A program may contain exactly one `#[panic_handler]`. Because this library
-/// defines it, applications built on this crate **cannot** define their own.
-/// That is a deliberate choice appropriate to a runtime that owns startup; if
-/// applications should be able to choose their own panic behaviour, this must
-/// move out to the binary crate (which is what `cortex-m-rt` does).
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
 }
 
 /// One entry in the vector table.
