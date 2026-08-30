@@ -10,5 +10,5 @@ rustflags = [
 runner = "picotool load -u -x -t elf"
 
 [alias]
-xtest = "test -p api --target aarch64-apple-darwin"
+
 
