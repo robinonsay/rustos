@@ -99,14 +99,28 @@
 //! crate's `define_board!` macro; the application does not state board facts
 //! any more — the `demo` crate reaches the on-board LED as `board.pins.led`
 //! rather than by hard-coding pin 25.
+//!
+//! ## Host builds
+//!
+//! The Cortex-M runtime above (`BOOT_INFO`, `VECTOR_TABLE`, [`OnReset`] and the
+//! helpers it calls) exists only when the crate is compiled for a bare-metal
+//! target (`target_os = "none"`). It references linker-script symbols and
+//! Armv8-M barrier instructions that a host toolchain cannot resolve, so on the
+//! host those items are compiled out and the rest of the crate (register
+//! layouts, the drivers, and the pure decision functions the drivers are
+//! built on) compiles and runs under `cargo test -p pico2 --lib` and Miri.
+//! Nothing a host test can reach touches a register: the drivers only
+//! dereference peripheral addresses on the target.
 
 #![no_std]
 
+#[cfg(target_os = "none")]
 use core::ptr::copy_nonoverlapping;
 
 pub mod common;
 pub mod gpio;
 
+#[cfg(target_os = "none")]
 /// RP2350 `IMAGE_DEF` metadata block — **mandatory**; the chip will not boot
 /// without it.
 ///
@@ -155,6 +169,7 @@ static BOOT_INFO: [u32; 5] = [
     0xab123579,
 ];
 
+#[cfg(target_os = "none")]
 // Symbols defined by `link.ld`. These have an ADDRESS but no VALUE — the
 // linker places them, it does not store anything at them. Reading one as a
 // `u32` yields whatever bytes happen to live there; always take `&raw const`
@@ -172,6 +187,7 @@ unsafe extern "C" {
     static _stack_top: u32;
 }
 
+#[cfg(target_os = "none")]
 // SAFETY: an extern block is unsafe because its declarations are not checked against a
 // definition. The five symbols are defined by `link.ld` at the word-aligned bounds of
 // `.data` (RAM, with its load address in flash) and `.bss`, each section wrapped in
@@ -191,6 +207,7 @@ unsafe extern "C" {
     static __ebss: u32;
 }
 
+#[cfg(target_os = "none")]
 /// One entry in the vector table.
 ///
 /// A union rather than a plain `u32` so each slot can be written with the
@@ -212,12 +229,14 @@ union Vector {
     reserved: u32,
 }
 
+#[cfg(target_os = "none")]
 // SAFETY: `Vector` contains a raw pointer, which is not `Sync`, so the
 // compiler will not let a `static` hold one without this. It is sound here
 // because the table is immutable, lives in read-only flash, and is only ever
 // read by hardware performing vector fetches.
 unsafe impl Sync for Vector {}
 
+#[cfg(target_os = "none")]
 /// Cortex-M33 private peripheral block base. Datasheet §3.7.5: "The Arm
 /// Cortex-M33 registers start at a base address of 0xe0000000, defined as
 /// PPB_BASE".
@@ -226,17 +245,21 @@ unsafe impl Sync for Vector {}
 /// the one peripheral area that is genuinely portable across Cortex-M parts.
 const PPB_BASE: usize = 0xE000_0000;
 
+#[cfg(target_os = "none")]
 /// Coprocessor Access Control Register, PPB offset `0x0ED88` (§3.7).
 const CPACR: *mut u32 = (PPB_BASE + 0x0ED88) as *mut u32;
 
+#[cfg(target_os = "none")]
 /// Vector Table Offset Register, PPB offset `0x0ED08`.
 const VTOR: *mut u32 = (PPB_BASE + 0x0ED08) as *mut u32;
 
+#[cfg(target_os = "none")]
 /// Full access (`0b11`) for CP10 and CP11 — together these are the FP
 /// extension. Both fields must hold the same value or the result is UNKNOWN
 /// (Table 229).
 const CPACR_FPU_FULL: u32 = (0b11 << 20) | (0b11 << 22); // == 0x00F0_0000
 
+#[cfg(target_os = "none")]
 /// Enable the floating-point unit.
 ///
 /// The FPU is disabled out of reset. Executing any FP instruction before this
@@ -279,6 +302,7 @@ unsafe fn enable_fpu() {
     }
 }
 
+#[cfg(target_os = "none")]
 /// Point `VTOR` at our vector table.
 ///
 /// The bootrom entered us using the table at the flash base, but it does not
@@ -312,6 +336,7 @@ unsafe fn reset_vtor() {
     }
 }
 
+#[cfg(target_os = "none")]
 /// Copy initialised statics from flash to RAM.
 ///
 /// `.data` is the one section with two addresses. Its initial values must
@@ -344,6 +369,7 @@ unsafe fn reset_data() {
     unsafe { copy_nonoverlapping(src, dst, count) }
 }
 
+#[cfg(target_os = "none")]
 /// Zero the uninitialised statics.
 ///
 /// `.bss` holds statics whose initial value is all-zero. Storing those zeros
@@ -369,6 +395,7 @@ unsafe fn reset_bss() {
     unsafe { p.write_bytes(0, count) }
 }
 
+#[cfg(target_os = "none")]
 // The application entry point. This symbol is not defined anywhere in this
 // crate — it is defined by the binary that links against it, via `entry!`.
 // This is the Rust equivalent of a C forward declaration, with the same
@@ -433,6 +460,7 @@ macro_rules! entry {
     };
 }
 
+#[cfg(target_os = "none")]
 /// Reset handler — the first Rust code to execute, entered directly from the
 /// bootrom via vector table slot 1.
 ///
@@ -494,6 +522,7 @@ pub extern "C" fn OnHardFault() {
     loop {}
 }
 
+#[cfg(target_os = "none")]
 /// The Armv8-M vector table: 68 words at the very start of flash.
 ///
 /// Not code — an array of addresses. The hardware fetches from it directly on
