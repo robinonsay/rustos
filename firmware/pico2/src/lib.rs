@@ -113,10 +113,19 @@
 //! dereference peripheral addresses on the target.
 
 #![no_std]
+// On the host the target-only entry points (`Mmio` and the driver
+// constructors that use it) are compiled out, so the sequences they call look
+// unused outside `cargo test`.
+#![cfg_attr(not(target_os = "none"), allow(dead_code))]
+
+// Host unit tests use `std` collections for the scripted register file.
+#[cfg(test)]
+extern crate std;
 
 #[cfg(target_os = "none")]
 use core::ptr::copy_nonoverlapping;
 
+pub mod clocks;
 pub mod common;
 pub mod gpio;
 

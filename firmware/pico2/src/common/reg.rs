@@ -50,7 +50,7 @@
 /// [`SIO`](RegAddr::SIO) is explicitly **excluded** from this scheme; it
 /// provides its own dedicated `SET`/`CLR`/`XOR` registers instead.
 #[repr(usize)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 // Variant names deliberately match the datasheet's block names exactly, so
 // code can be checked against the register listings without translation.
 #[allow(non_camel_case_types)]
@@ -80,4 +80,197 @@ pub enum RegAddr {
     /// port. On RP2350 it does not, which is part of why the same GPIO code
     /// works when the chip is booted with its RISC-V Hazard3 cores instead.
     SIO = 0xd000_0000,
+
+    /// `CLOCKS`: the clock generators (`clk_ref`, `clk_sys`, `clk_peri`, ...)
+    /// and the frequency counter `FC0`. Datasheet §8.1.6, Table 542 (p521).
+    /// Not in `RESETS`; it is reset with the chip.
+    CLOCKS = 0x4001_0000,
+
+    /// `XOSC`: the crystal oscillator (12 MHz on the Pico 2). Datasheet
+    /// §8.2.8, Table 597 (p555). Not in `RESETS`.
+    XOSC = 0x4004_8000,
+
+    /// `PLL_SYS`: the system PLL that `clk_sys` runs from. Datasheet §8.6.5,
+    /// Table 635 (p580). `RESETS.RESET` bit 14.
+    PLL_SYS = 0x4005_0000,
+
+    /// `TICKS`: the tick generators that turn `clk_ref` into the 1 µs
+    /// timebase of TIMER0, TIMER1, the watchdog and `SysTick`. Datasheet §8.5.2,
+    /// Table 616 (p567). Not in `RESETS`.
+    TICKS = 0x4010_8000,
+}
+
+/// Offset of the atomic **XOR** alias of an APB register (§2.1.3, p27).
+///
+/// A write to `register + ALIAS_XOR` flips the written bits of the register.
+/// Not available on [`RegAddr::SIO`] (it has its own XOR registers). No
+/// driver writes it yet; the test register file models it.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) const ALIAS_XOR: usize = 0x1000;
+
+/// Offset of the atomic **bitmask set** alias of an APB register (§2.1.3).
+///
+/// A write to `register + ALIAS_SET` sets the written bits and leaves every
+/// other bit alone, in one bus write with no read-modify-write window.
+pub(crate) const ALIAS_SET: usize = 0x2000;
+
+/// Offset of the atomic **bitmask clear** alias of an APB register (§2.1.3).
+///
+/// A write to `register + ALIAS_CLR` clears the written bits and leaves every
+/// other bit alone.
+pub(crate) const ALIAS_CLR: usize = 0x3000;
+
+/// Every in-block offset is masked with this before it becomes an address:
+/// word-aligned and inside the block's 16 KiB window (4 KiB of registers plus
+/// the three alias views, §2.1.3). See [`Mmio`].
+pub(crate) const BLOCK_WINDOW_MASK: usize = 0x3ffc;
+
+/// Register access as a capability, so that a driver's *sequence* of register
+/// reads and writes can run against the hardware on the target and against a
+/// scripted register file in host tests.
+///
+/// A driver written against `Regs` keeps every decision (what to write, what a
+/// status value means, when a wait has gone on too long) in code that compiles
+/// and runs on the host, where unit tests exercise it (cwht coding standard
+/// CS-38). The only target-only piece is [`Mmio`], which turns
+/// `(block, offset)` into a volatile load or store and decides nothing.
+///
+/// `offset` is the register's byte offset from the block base as the
+/// datasheet's "List of Registers" gives it, optionally plus one of the alias
+/// offsets [`ALIAS_XOR`], [`ALIAS_SET`], [`ALIAS_CLR`].
+pub(crate) trait Regs {
+    /// Read the 32-bit register at `block + offset`.
+    fn read(&mut self, block: RegAddr, offset: usize) -> u32;
+    /// Write `value` to the 32-bit register at `block + offset`.
+    fn write(&mut self, block: RegAddr, offset: usize, value: u32);
+}
+
+/// The hardware implementation of [`Regs`]: volatile loads and stores to the
+/// peripheral windows of the RP2350 memory map. Zero-sized.
+///
+/// Only compiled for the bare-metal target; on the host the drivers run
+/// against the test register file instead, so no host code can dereference a
+/// peripheral address.
+#[cfg(target_os = "none")]
+pub(crate) struct Mmio;
+
+#[cfg(target_os = "none")]
+impl Mmio {
+    /// The address `block + (offset & BLOCK_WINDOW_MASK)`.
+    ///
+    /// The mask is the whole bounds argument: whatever `offset` a caller
+    /// passes, the access lands word-aligned inside the 16 KiB window that
+    /// the datasheet allocates to `block` (§2.1.3, p27), never outside it.
+    #[inline]
+    fn address(block: RegAddr, offset: usize) -> *mut u32 {
+        (block as usize + (offset & BLOCK_WINDOW_MASK)) as *mut u32
+    }
+}
+
+#[cfg(target_os = "none")]
+impl Regs for Mmio {
+    #[inline]
+    fn read(&mut self, block: RegAddr, offset: usize) -> u32 {
+        // SAFETY: `address` is a `RegAddr` peripheral base (RP2350 datasheet section 2.2,
+        // Table 7) plus an offset masked to a word inside that block's 16 KiB register and
+        // alias window (section 2.1.3), so the place is an aligned 32-bit MMIO word and never
+        // Rust-owned memory. The load is volatile through a raw pointer, so no reference to
+        // device memory is formed and the access is neither elided nor merged.
+        unsafe { Self::address(block, offset).read_volatile() }
+    }
+
+    #[inline]
+    fn write(&mut self, block: RegAddr, offset: usize, value: u32) {
+        // SAFETY: as for `read`: an aligned 32-bit MMIO word inside `block`'s window
+        // (datasheet sections 2.2 and 2.1.3), written with one volatile store through a raw
+        // pointer. Which register is written, and with what, is the calling driver's
+        // obligation; every caller cites the datasheet table of the register it writes.
+        unsafe { Self::address(block, offset).write_volatile(value) }
+    }
+}
+
+/// A bounded wait timed out: the condition did not hold within the budget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct PollTimeout;
+
+/// Read `block + offset` until `value & mask == want`, at most `budget` times.
+///
+/// Returns the number of reads it took (1 when the condition already held),
+/// or [`PollTimeout`] after `budget` reads without success. The budget is a
+/// loop count, not a time, so the bound holds even when the clock the wait is
+/// for never starts (cwht coding standard CS-37). A `budget` of 0 reads
+/// nothing and times out.
+pub(crate) fn poll<R: Regs>(
+    regs: &mut R,
+    block: RegAddr,
+    offset: usize,
+    mask: u32,
+    want: u32,
+    budget: u32,
+) -> Result<u32, PollTimeout> {
+    let mut reads: u32 = 0;
+    while reads < budget {
+        reads += 1;
+        if regs.read(block, offset) & mask == want {
+            return Ok(reads);
+        }
+    }
+    Err(PollTimeout)
+}
+
+#[cfg(test)]
+pub(crate) mod fake;
+
+#[cfg(test)]
+mod tests {
+    use super::fake::FakeRegs;
+    use super::*;
+
+    #[test]
+    fn poll_returns_one_when_the_condition_already_holds() {
+        let mut regs = FakeRegs::new();
+        regs.set(RegAddr::XOSC, 0x04, 0x8000_0000);
+        assert_eq!(
+            poll(&mut regs, RegAddr::XOSC, 0x04, 1 << 31, 1 << 31, 5),
+            Ok(1)
+        );
+    }
+
+    #[test]
+    fn poll_counts_reads_until_the_condition_holds() {
+        let mut regs = FakeRegs::new();
+        regs.script_reads(RegAddr::XOSC, 0x04, &[0, 0, 0x8000_0000]);
+        assert_eq!(
+            poll(&mut regs, RegAddr::XOSC, 0x04, 1 << 31, 1 << 31, 5),
+            Ok(3)
+        );
+    }
+
+    #[test]
+    fn poll_times_out_after_exactly_budget_reads() {
+        let mut regs = FakeRegs::new();
+        assert_eq!(
+            poll(&mut regs, RegAddr::XOSC, 0x04, 1 << 31, 1 << 31, 4),
+            Err(PollTimeout)
+        );
+        assert_eq!(regs.reads_of(RegAddr::XOSC, 0x04), 4);
+    }
+
+    #[test]
+    fn poll_with_zero_budget_reads_nothing() {
+        let mut regs = FakeRegs::new();
+        regs.set(RegAddr::XOSC, 0x04, 0x8000_0000);
+        assert_eq!(
+            poll(&mut regs, RegAddr::XOSC, 0x04, 1 << 31, 1 << 31, 0),
+            Err(PollTimeout)
+        );
+        assert_eq!(regs.reads_of(RegAddr::XOSC, 0x04), 0);
+    }
+
+    #[test]
+    fn poll_compares_only_the_masked_bits() {
+        let mut regs = FakeRegs::new();
+        regs.set(RegAddr::CLOCKS, 0x44, 0xffff_fff2);
+        assert_eq!(poll(&mut regs, RegAddr::CLOCKS, 0x44, 0b11, 0b10, 1), Ok(1));
+    }
 }

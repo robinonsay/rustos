@@ -76,6 +76,7 @@ use core::sync::atomic::Ordering::Acquire;
 
 use api::define_board;
 
+use crate::clocks::clocks::Rp2350Clocks;
 use crate::gpio::gpio::Rp2350Gpio;
 
 
@@ -118,6 +119,7 @@ define_board!{
         }
         devices {
             gpio: Rp2350Gpio,
+            clocks: Rp2350Clocks,
         }
     }
 }
