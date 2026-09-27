@@ -30,6 +30,62 @@ MEMORY
  */
 ENTRY(OnReset)
 
+/* Device interrupt handlers, vector table slots 16 to 67 (RP2350 datasheet
+ * section 3.2, Table 94). Each defaults to DefaultHandler; an application
+ * overrides one by defining the symbol with pico2::interrupt!. */
+PROVIDE(TIMER0_IRQ_0 = DefaultHandler);
+PROVIDE(TIMER0_IRQ_1 = DefaultHandler);
+PROVIDE(TIMER0_IRQ_2 = DefaultHandler);
+PROVIDE(TIMER0_IRQ_3 = DefaultHandler);
+PROVIDE(TIMER1_IRQ_0 = DefaultHandler);
+PROVIDE(TIMER1_IRQ_1 = DefaultHandler);
+PROVIDE(TIMER1_IRQ_2 = DefaultHandler);
+PROVIDE(TIMER1_IRQ_3 = DefaultHandler);
+PROVIDE(PWM_IRQ_WRAP_0 = DefaultHandler);
+PROVIDE(PWM_IRQ_WRAP_1 = DefaultHandler);
+PROVIDE(DMA_IRQ_0 = DefaultHandler);
+PROVIDE(DMA_IRQ_1 = DefaultHandler);
+PROVIDE(DMA_IRQ_2 = DefaultHandler);
+PROVIDE(DMA_IRQ_3 = DefaultHandler);
+PROVIDE(USBCTRL_IRQ = DefaultHandler);
+PROVIDE(PIO0_IRQ_0 = DefaultHandler);
+PROVIDE(PIO0_IRQ_1 = DefaultHandler);
+PROVIDE(PIO1_IRQ_0 = DefaultHandler);
+PROVIDE(PIO1_IRQ_1 = DefaultHandler);
+PROVIDE(PIO2_IRQ_0 = DefaultHandler);
+PROVIDE(PIO2_IRQ_1 = DefaultHandler);
+PROVIDE(IO_IRQ_BANK0 = DefaultHandler);
+PROVIDE(IO_IRQ_BANK0_NS = DefaultHandler);
+PROVIDE(IO_IRQ_QSPI = DefaultHandler);
+PROVIDE(IO_IRQ_QSPI_NS = DefaultHandler);
+PROVIDE(SIO_IRQ_FIFO = DefaultHandler);
+PROVIDE(SIO_IRQ_BELL = DefaultHandler);
+PROVIDE(SIO_IRQ_FIFO_NS = DefaultHandler);
+PROVIDE(SIO_IRQ_BELL_NS = DefaultHandler);
+PROVIDE(SIO_IRQ_MTIMECMP = DefaultHandler);
+PROVIDE(CLOCKS_IRQ = DefaultHandler);
+PROVIDE(SPI0_IRQ = DefaultHandler);
+PROVIDE(SPI1_IRQ = DefaultHandler);
+PROVIDE(UART0_IRQ = DefaultHandler);
+PROVIDE(UART1_IRQ = DefaultHandler);
+PROVIDE(ADC_IRQ_FIFO = DefaultHandler);
+PROVIDE(I2C0_IRQ = DefaultHandler);
+PROVIDE(I2C1_IRQ = DefaultHandler);
+PROVIDE(OTP_IRQ = DefaultHandler);
+PROVIDE(TRNG_IRQ = DefaultHandler);
+PROVIDE(PROC0_IRQ_CTI = DefaultHandler);
+PROVIDE(PROC1_IRQ_CTI = DefaultHandler);
+PROVIDE(PLL_SYS_IRQ = DefaultHandler);
+PROVIDE(PLL_USB_IRQ = DefaultHandler);
+PROVIDE(POWMAN_IRQ_POW = DefaultHandler);
+PROVIDE(POWMAN_IRQ_TIMER = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_0 = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_1 = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_2 = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_3 = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_4 = DefaultHandler);
+PROVIDE(SPAREIRQ_IRQ_5 = DefaultHandler);
+
 /* Minimum stack we insist on having room for. Reserved as a real section
  * below so RAM exhaustion becomes a LINK error, not silent corruption. */
 _min_stack_size = 8K;

@@ -78,6 +78,7 @@ use api::define_board;
 
 use crate::clocks::clocks::Rp2350Clocks;
 use crate::gpio::gpio::Rp2350Gpio;
+use crate::irq::Rp2350Nvic;
 
 
 define_board!{
@@ -120,6 +121,7 @@ define_board!{
         devices {
             gpio: Rp2350Gpio,
             clocks: Rp2350Clocks,
+            nvic: Rp2350Nvic,
         }
     }
 }

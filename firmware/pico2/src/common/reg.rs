@@ -98,6 +98,12 @@ pub enum RegAddr {
     /// timebase of TIMER0, TIMER1, the watchdog and `SysTick`. Datasheet §8.5.2,
     /// Table 616 (p567). Not in `RESETS`.
     TICKS = 0x4010_8000,
+
+    /// The Cortex-M33 NVIC enable and pending registers, starting at
+    /// `NVIC_ISER0` (PPB offset `0x0e100`, datasheet §3.7.5, Table 192, p179).
+    /// Part of the Arm private peripheral bus: no `RESETS` bit and no atomic
+    /// aliases; the set and clear registers are separate words instead.
+    NVIC = 0xe000_e100,
 }
 
 /// Offset of the atomic **XOR** alias of an APB register (§2.1.3, p27).

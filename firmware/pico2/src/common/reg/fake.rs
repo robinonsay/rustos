@@ -7,7 +7,7 @@
 //! values (a status bit that sets after N polls, or never). Writes through the
 //! atomic aliases of §2.1.3 are applied to the base register the way the bus
 //! applies them, except for the blocks that have no aliases (SIO, and the
-//! Cortex-M33 private peripherals).
+//! Cortex-M33 private peripherals such as the NVIC).
 
 extern crate std;
 
@@ -42,7 +42,7 @@ pub(crate) struct FakeRegs {
 
 /// Blocks without the `+0x1000/+0x2000/+0x3000` alias views (§2.1.3).
 fn has_aliases(block: RegAddr) -> bool {
-    !matches!(block, RegAddr::SIO)
+    !matches!(block, RegAddr::SIO | RegAddr::NVIC)
 }
 
 impl FakeRegs {
