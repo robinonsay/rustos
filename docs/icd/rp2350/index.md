@@ -29,6 +29,7 @@ at `../../rp2350-datasheet.pdf` (relative to this index file).
 | 12.1 UART | 958-979 | [`uart/`](uart/index.md) |
 | 12.2 I2C | 980-1042 | [`i2c/`](i2c/index.md) |
 | 12.3 SPI | 1043-1090 | [`spi/`](spi/index.md) |
+| 12.5 PWM | 1073-1090 | [`pwm/`](pwm/index.md) |
 | 12.8 System Timers | 1179-1189 | [`timer/`](timer/index.md) |
 
 ## Cross-References

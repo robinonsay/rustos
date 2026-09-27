@@ -130,6 +130,7 @@ pub mod common;
 pub mod critical_section;
 pub mod gpio;
 pub mod irq;
+pub mod pwm;
 pub mod timer;
 
 #[cfg(target_os = "none")]

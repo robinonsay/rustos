@@ -79,6 +79,7 @@ use api::define_board;
 use crate::clocks::clocks::Rp2350Clocks;
 use crate::gpio::gpio::Rp2350Gpio;
 use crate::irq::Rp2350Nvic;
+use crate::pwm::pwm::Rp2350Pwm;
 use crate::timer::timer::Rp2350Timer0;
 
 
@@ -124,6 +125,7 @@ define_board!{
             clocks: Rp2350Clocks,
             nvic: Rp2350Nvic,
             timer0: Rp2350Timer0,
+            pwm: Rp2350Pwm,
         }
     }
 }

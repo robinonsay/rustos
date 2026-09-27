@@ -108,6 +108,10 @@ pub enum RegAddr {
     /// `TIMER0`: the 64-bit microsecond timer and its four alarms. Datasheet
     /// §12.8.5, Table 1226 (p1184). `RESETS.RESET` bit 23.
     TIMER0 = 0x400b_0000,
+
+    /// `PWM`: twelve PWM slices (0 to 7 reachable on the RP2350A). Datasheet
+    /// §12.5.3, Table 1130 (p1083). `RESETS.RESET` bit 16.
+    PWM = 0x400a_8000,
 }
 
 /// Offset of the atomic **XOR** alias of an APB register (§2.1.3, p27).
