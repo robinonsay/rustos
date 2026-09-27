@@ -178,3 +178,75 @@ pub trait Gpio: ErrorType
     /// glitches high.
     fn output_from_handle<const N: usize>(&mut self, handle: PinHandle<N>) -> Result<Self::Output<N>, Self::Error>;
 }
+
+/// The levels of a group of input pins sampled at one instant.
+///
+/// Bit `n` of [`bits`](Self::bits) is the level of pin `n` (1 = high) for
+/// every pin `n` in [`mask`](Self::mask); bits outside the mask are 0. A
+/// value is produced by [`InputSnapshot::snapshot`] from a single sample of
+/// all the pins (SNP-4), so no two pins in it were read at different times.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InputLevels {
+    bits: u32,
+    mask: u32,
+}
+
+impl InputLevels {
+    /// Levels `bits` for the pins of `mask`; bits of `bits` outside `mask`
+    /// are dropped, so SNP-2 holds by construction.
+    #[must_use]
+    pub const fn new(bits: u32, mask: u32) -> Self {
+        Self { bits: bits & mask, mask }
+    }
+
+    /// The level bits, one per pin, 0 outside [`mask`](Self::mask).
+    #[must_use]
+    pub const fn bits(self) -> u32 {
+        self.bits
+    }
+
+    /// The pins this snapshot covers.
+    #[must_use]
+    pub const fn mask(self) -> u32 {
+        self.mask
+    }
+
+    /// The level of pin `pin`: `Some(true)` high, `Some(false)` low, `None`
+    /// if the pin is not in the snapshot.
+    #[must_use]
+    pub const fn level(self, pin: u32) -> Option<bool> {
+        if pin >= 32 || self.mask & (1 << pin) == 0 {
+            return None;
+        }
+        Some(self.bits & (1 << pin) != 0)
+    }
+}
+
+/// Samples a fixed group of input pins in one read.
+///
+/// Built for periodic sampling from a timer handler: a keyer that samples
+/// the key, both paddle contacts and the encoder every millisecond needs
+/// every level from the same instant, which separate [`GpioPinIn`] reads
+/// cannot give.
+///
+/// # Contract
+///
+/// `api/tests/gpio_snapshot_contract.rs` checks these clauses.
+///
+/// * **SNP-1** Every snapshot of one implementation value has the same
+///   [`InputLevels::mask`]: the group fixed when the value was made.
+/// * **SNP-2** Bits outside the mask are 0.
+/// * **SNP-3** For every pin in the mask, the level is the level the pin
+///   has at the instant of the sample (the level its `GpioPinIn::read` would
+///   return at that instant).
+/// * **SNP-4** All levels in one snapshot are taken at one instant (on the
+///   RP2350, one read of `SIO.GPIO_IN`).
+pub trait InputSnapshot: ErrorType {
+    /// Sample every pin of the group at once.
+    ///
+    /// # Errors
+    ///
+    /// Only if the implementation cannot reach its hardware; an
+    /// implementation that always can uses `Infallible`.
+    fn snapshot(&mut self) -> Result<InputLevels, Self::Error>;
+}

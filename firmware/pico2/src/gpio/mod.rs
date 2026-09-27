@@ -72,6 +72,7 @@
 //! - §2.1.3, p27 — atomic register aliases
 
 pub mod gpio;
+pub mod snapshot;
 
 /// One GPIO's pair of control registers in `IO_BANK0`.
 ///
