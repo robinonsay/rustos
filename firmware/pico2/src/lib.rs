@@ -140,6 +140,11 @@ pub mod gpio;
 /// * `#[link_section = ".boot_info"]` — the name must match the section in
 ///   `link.ld`, which `KEEP`s it (defeating `--gc-sections`) and places it in
 ///   the first 4 kB.
+// SAFETY: `link_section` is unsafe because a wrong section can place data where code or
+// other data is expected. `.boot_info` is a section of its own in `link.ld`, `KEEP`ed,
+// word-aligned and asserted to start within the first 4 kB of flash, and this 20-byte
+// immutable array is the only object placed in it; its words are the minimum Arm
+// IMAGE_DEF of RP2350 datasheet section 5.9.5.1, read only by the bootrom.
 #[used]
 #[unsafe(link_section = ".boot_info")]
 static BOOT_INFO: [u32; 5] = [
@@ -154,6 +159,11 @@ static BOOT_INFO: [u32; 5] = [
 // linker places them, it does not store anything at them. Reading one as a
 // `u32` yields whatever bytes happen to live there; always take `&raw const`
 // and use the resulting pointer.
+// SAFETY: an extern block is unsafe because its declarations are not checked against a
+// definition. `_stack_top` is defined by `link.ld` as `ORIGIN(RAM) + LENGTH(RAM)`, a
+// symbol with an address and no storage. This crate only ever takes `&raw const
+// _stack_top` (for vector table slot 0) and never reads through it, so the declared type
+// `u32` is never used to load a value.
 unsafe extern "C" {
     /// One past the last valid RAM byte; the initial stack pointer. The stack
     /// is full-descending, so the first push lands at `_stack_top - 4` and
@@ -162,6 +172,12 @@ unsafe extern "C" {
     static _stack_top: u32;
 }
 
+// SAFETY: an extern block is unsafe because its declarations are not checked against a
+// definition. The five symbols are defined by `link.ld` at the word-aligned bounds of
+// `.data` (RAM, with its load address in flash) and `.bss`, each section wrapped in
+// `ALIGN(4)`. This crate only takes their addresses with `&raw const` and never loads a
+// value through them, so the declared type `u32` only fixes pointer alignment, which the
+// `ALIGN(4)` of each bound satisfies.
 unsafe extern "C" {
     /// Load address of `.data` in flash: where the initial values ship.
     static __sidata: u32;
@@ -245,7 +261,16 @@ const CPACR_FPU_FULL: u32 = (0b11 << 20) | (0b11 << 22); // == 0x00F0_0000
 /// Writes a CPU control register. Must be called exactly once, early in
 /// [`OnReset`], before any floating-point code runs.
 #[inline]
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: called
+// once, before any floating-point instruction. The sole caller, `OnReset`, calls it first,
+// before any other Rust code of the image runs.
 unsafe fn enable_fpu() {
+    // SAFETY: CPACR is PPB_BASE `0xe000_0000` plus `0x0ed88` (RP2350 datasheet section
+    // 3.7.5, List of Registers), an aligned 32-bit system register; the read-modify-write
+    // sets only CP10 and CP11 to full access (the FP extension) and keeps the other fields.
+    // Volatile accesses through a raw pointer form no reference. `dsb` and `isb` touch no
+    // memory or stack and preserve flags, as the `asm!` options declare, and make the new
+    // setting take effect before the next FP instruction.
     unsafe {
         let current = CPACR.read_volatile(); // READ
         let updated = current | CPACR_FPU_FULL; // MODIFY — preserves CP0/CP4/CP5/CP7
@@ -272,7 +297,15 @@ unsafe fn enable_fpu() {
 ///
 /// Writes a CPU control register; call once, from [`OnReset`].
 #[inline]
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: called
+// once, from `OnReset`, before any interrupt is enabled. `OnReset` is its sole caller.
 unsafe fn reset_vtor() {
+    // SAFETY: VTOR is PPB_BASE `0xe000_0000` plus `0x0ed08` (RP2350 datasheet section
+    // 3.7.5), an aligned 32-bit system register, written once with a volatile store through
+    // a raw pointer. The value is the address of `VECTOR_TABLE`, which `link.ld` places at
+    // the flash origin with 512-byte alignment (asserted), meeting the Armv8-M alignment for
+    // 68 entries and the bits 31:7 that RP2350 implements. `dsb` and `isb` touch no memory
+    // or stack and preserve flags, as the `asm!` options declare.
     unsafe {
         VTOR.write_volatile(&raw const VECTOR_TABLE as u32);
         core::arch::asm!("dsb", "isb", options(nostack, preserves_flags));
@@ -295,11 +328,19 @@ unsafe fn reset_vtor() {
 /// Writes across the whole `.data` region using linker-provided bounds. Call
 /// once, from [`OnReset`], before any Rust code that reads a static.
 #[inline]
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: called
+// once, from `OnReset`, before any code reads a static. `OnReset` is its sole caller.
 unsafe fn reset_data() {
     let src = &raw const __sidata; // flash (LMA)
     let dst = &raw const __sdata as *mut u32; // RAM (VMA)
     let end = &raw const __edata as *const u32;
     let count = (end as usize - dst as usize) / 4;
+    // SAFETY: `copy_nonoverlapping` requires `src` valid for reading and `dst` valid for
+    // writing `count` words, both aligned, and the ranges disjoint. `link.ld` sets `__sdata`
+    // and `__edata` as the word-aligned bounds of `.data` in RAM and `__sidata` as its load
+    // address in flash (`> RAM AT > FLASH`, `ALIGN(4)`), so `count` is the exact word count,
+    // the source lies in flash and the destination in RAM, which do not overlap. Nothing
+    // else accesses `.data` yet: this runs before any code that reads a static.
     unsafe { copy_nonoverlapping(src, dst, count) }
 }
 
@@ -315,10 +356,16 @@ unsafe fn reset_data() {
 /// Writes across the whole `.bss` region using linker-provided bounds. Call
 /// once, from [`OnReset`].
 #[inline]
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: called
+// once, from `OnReset`, before any code reads a static. `OnReset` is its sole caller.
 unsafe fn reset_bss() {
     let p = &raw const __sbss as *mut u32;
     let end = &raw const __ebss as *const u32;
     let count = (end as usize - p as usize) / 4;
+    // SAFETY: `write_bytes` requires `p` valid for writing `count` aligned words. `link.ld`
+    // sets `__sbss` and `__ebss` as the word-aligned bounds of `.bss` in RAM (`NOLOAD`,
+    // `ALIGN(4)`), so `count` is its exact word count and every byte written belongs to
+    // `.bss`. Nothing else accesses `.bss` yet: this runs before any code that reads a static.
     unsafe { p.write_bytes(0, count) }
 }
 
@@ -327,6 +374,10 @@ unsafe fn reset_bss() {
 // This is the Rust equivalent of a C forward declaration, with the same
 // property that the linker matches on name alone; see `entry!` for how the
 // signature is nonetheless checked.
+// SAFETY: an extern block is unsafe because the declaration is not checked against the
+// definition. The only definition is the one `entry!` emits, whose body coerces the
+// application function to `fn() -> !` before the symbol exists, so the definition has
+// exactly the declared signature; a mismatch is a compile error in the application.
 unsafe extern "Rust" {
     fn __rustos_main() -> !;
 }
@@ -369,6 +420,10 @@ unsafe extern "Rust" {
 #[macro_export]
 macro_rules! entry {
     ($f:path) => {
+        // SAFETY: `no_mangle` is unsafe because an unmangled symbol can collide with another of
+        // the same name. `__rustos_main` is defined only here, the macro is invoked once per
+        // application binary, and a second invocation is a duplicate-symbol error at link time;
+        // the signature matches the extern declaration in this crate (see its SAFETY comment).
         #[unsafe(no_mangle)]
         pub extern "Rust" fn __rustos_main() -> ! {
             // Type check: rejects any signature other than fn() -> !.
@@ -394,8 +449,16 @@ macro_rules! entry {
 /// `extern "C"` and `#[no_mangle]` because `link.ld` names this symbol in its
 /// `ENTRY(OnReset)` directive, which both records the ELF entry point and
 /// gives `--gc-sections` a root to trace reachability from.
+// SAFETY: `no_mangle` is unsafe because an unmangled symbol can collide with another of
+// the same name. `OnReset` is defined once, here, and is the name `link.ld` gives
+// `ENTRY`; no other object of the image defines it.
 #[unsafe(no_mangle)]
 pub extern "C" fn OnReset() -> ! {
+    // SAFETY: each callee is called exactly once, here, in the order its contract requires:
+    // the FPU is enabled before any FP instruction, VTOR is set before any interrupt is
+    // enabled, and `.data` and `.bss` are initialised before any code reads a static, because
+    // this is the reset handler and no other Rust code of the image has run. `__rustos_main`
+    // has the declared signature `fn() -> !` (see the extern block's SAFETY comment).
     unsafe {
         enable_fpu();
         reset_vtor();
@@ -410,6 +473,9 @@ pub extern "C" fn OnReset() -> ! {
 /// Spins, so an unexpected interrupt stops the program at the point of the
 /// fault instead of returning into a corrupted state. Every slot in
 /// `VECTOR_TABLE` starts out pointing here.
+// SAFETY: `no_mangle` is unsafe because an unmangled symbol can collide with another of
+// the same name. `DefaultHandler` is defined once, here, and no other object of the
+// image defines it; it takes no argument and never returns, as a vector-table handler.
 #[unsafe(no_mangle)]
 pub extern "C" fn DefaultHandler() {
     loop {}
@@ -420,6 +486,9 @@ pub extern "C" fn DefaultHandler() {
 /// Reached by a bus fault, a misaligned or illegal access, an escalated
 /// lower-priority fault, or — most often during bring-up — a call through a
 /// null or garbage function pointer.
+// SAFETY: `no_mangle` is unsafe because an unmangled symbol can collide with another of
+// the same name. `OnHardFault` is defined once, here, and no other object of the image
+// defines it; it takes no argument and never returns, as a vector-table handler.
 #[unsafe(no_mangle)]
 pub extern "C" fn OnHardFault() {
     loop {}
@@ -460,6 +529,12 @@ pub extern "C" fn OnHardFault() {
 /// the `KEEP()`, `--gc-sections` deletes the table, since nothing in Rust
 /// *calls* a vector table; without the placement, the bootrom cannot find it
 /// at offset 0.
+// SAFETY: `link_section` is unsafe because a wrong section can place data where code or
+// other data is expected. `.vector_table` is a section of its own in `link.ld`, `KEEP`ed
+// at the flash origin with 512-byte alignment (both asserted), and this immutable table
+// of 68 word-sized `Vector` entries is the only object placed in it, read only by the
+// hardware on reset and exception entry (RP2350 datasheet section 5.9.3.3: with no
+// VECTOR_TABLE or ENTRY_POINT item the bootrom assumes the table at the image start).
 #[used]
 #[unsafe(link_section = ".vector_table")]
 static VECTOR_TABLE: [Vector; 68] = {

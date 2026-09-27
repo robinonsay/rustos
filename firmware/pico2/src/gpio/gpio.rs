@@ -131,6 +131,12 @@ impl Rp2350Gpio
     /// defeating the exclusive access the [`Gpio`] methods guarantee.
     pub fn new(_handle: DeviceHandle<Rp2350Gpio>) -> Self
     {
+        // SAFETY: `clr_reset_reg` and `wait_for_reset_done` require that the mask names only blocks
+        // this driver owns and that the waited-on blocks have been released. `IO_PAD_BITMASK` is
+        // bits 6 (IO_BANK0) and 9 (PADS_BANK0) of RESETS.RESET (RP2350 datasheet section 7.5.3),
+        // the two GPIO blocks, and this driver owns them because `new` consumes the one
+        // `DeviceHandle<Rp2350Gpio>` of the boot. The complement makes `clr_reset_reg` release
+        // exactly those two bits, and the wait then polls the same two bits in RESET_DONE.
         unsafe {
             clr_reset_reg(!IO_PAD_BITMASK);
             wait_for_reset_done(IO_PAD_BITMASK);
@@ -245,6 +251,9 @@ impl<const N: usize> Rp2350GpioOut<N>{
     /// [`Gpio::output_from_handle`].
     fn new_output(_handle: PinHandle<N>) -> Result<Self, GpioError>
     {
+        // SAFETY: `configure_gpio_pin_out` requires `N < MAX_GPIO_PIN`. `N` comes from the consumed `PinHandle<N>`, and the only handles are those `define_board!`
+        // creates in `crate::common::board` for pins 0 to 29, all below `MAX_GPIO_PIN` (30); the
+        // handle is moved into this call, so no other owner configures pin `N`.
         unsafe{
             configure_gpio_pin_out(N);
         }
@@ -262,6 +271,9 @@ impl<const N: usize> Rp2350GpioIn<N>{
     /// callers reach this through [`Gpio::input_from_handle`].
     fn new_input(_handle: PinHandle<N>, pull: Pull) -> Result<Self, GpioError>
     {
+        // SAFETY: `configure_gpio_pin_in` requires `N < MAX_GPIO_PIN`. `N` comes from the consumed `PinHandle<N>`, and the only handles are those `define_board!`
+        // creates in `crate::common::board` for pins 0 to 29, all below `MAX_GPIO_PIN` (30); the
+        // handle is moved into this call, so no other owner configures pin `N`.
         unsafe{
             configure_gpio_pin_in(N, pull);
         }
@@ -306,6 +318,12 @@ impl<const N: usize> Write<bool> for Rp2350GpioOut<N>
     /// it provides these dedicated registers instead (§2.1.3, p27).
     fn write(&mut self, value: bool) -> Result<(), Self::Error> {
         let sio_addr = RegAddr::SIO as usize as *mut Sio;
+        // SAFETY: `sio_addr` is SIO_BASE `0xd000_0000` (RP2350 datasheet section 2.2.6) and `Sio`
+        // is `#[repr(C)]` with GPIO_OUT_SET at `0x018` and GPIO_OUT_CLR at `0x020` (section
+        // 3.1.11), so both places are valid, aligned MMIO words. The pointer is formed with `&raw
+        // mut` and written once with a volatile store, so no reference to device memory exists.
+        // Both registers act only on the bits written as 1 (section 3.1.3), and `1 << N` with
+        // `N < 30` names only this pin, whose owner is `self` (`&mut self`, one object per pin).
         unsafe
         {
             let set_reg = match value{
@@ -334,6 +352,10 @@ impl<const N: usize> Read<bool> for Rp2350GpioIn<N>
     /// which is why both configuration paths set `IE`.
     fn read(&mut self) -> Result<bool, Self::Error> {
         let sio_addr = RegAddr::SIO as usize as *mut Sio;
+        // SAFETY: `sio_addr` is SIO_BASE `0xd000_0000` (RP2350 datasheet section 2.2.6) and
+        // `Sio` is `#[repr(C)]` with GPIO_IN at `0x004` (section 3.1.11), a read-only register, so
+        // the place is a valid, aligned MMIO word. It is read once through `&raw const` with a
+        // volatile load, so no reference is formed, and reading GPIO_IN has no side effect.
         unsafe{
             let in_reg = &raw const (*sio_addr).gpio_in;
             return Ok(((in_reg.read_volatile() & (1 << N))) == 1 << N)
@@ -366,11 +388,25 @@ impl<const N: usize>  GpioPinOut<N> for Rp2350GpioOut<N>{}
 /// (a bounds panic) or overflow the shift (silently masked in release builds).
 /// Callers reach this only through the pin constructors, whose `N` came from
 /// a [`PinHandle`] and is therefore a pin the board actually has.
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller:
+// `pin < MAX_GPIO_PIN`. The sole caller, `Rp2350GpioIn::new_input`, passes the `N` of a
+// consumed `PinHandle<N>`, and `define_board!` creates handles only for pins 0 to 29.
 unsafe fn configure_gpio_pin_in(pin: usize, pull: Pull)
 {
     let sio_addr = RegAddr::SIO as usize as *mut Sio;
     let pads_addr = RegAddr::PADS_BANK0 as usize as *mut PadsBank;
     let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
+    // SAFETY: the three bases are SIO_BASE `0xd000_0000` (RP2350 datasheet section 2.2.6),
+    // PADS_BANK0_BASE `0x4003_8000` (section 9.11.3) and IO_BANK0_BASE `0x4002_8000`
+    // (section 9.11.1), and the `#[repr(C)]` layouts place GPIO_OE_CLR at `0x040` (section
+    // 3.1.11), GPIOn pad registers (Table 852) and GPIOn_CTRL at their datasheet offsets.
+    // `pin < MAX_GPIO_PIN` (30, this function's contract) keeps `pads[pin]` and `gpio[pin]`
+    // inside their 48-entry arrays and `1 << pin` inside 32 bits. Every access uses `&raw`
+    // and a volatile read or write, so no reference to device memory is formed. The pin's
+    // owner is the caller (it consumed the pin's handle), so no other code writes these
+    // registers for this pin. The blocks are out of reset because this path is reached only
+    // through an `Rp2350Gpio`, which `Rp2350Gpio::new` constructs after releasing them; an
+    // access to a block held in reset would not fault in any case (section 7.5).
     unsafe{
         // Stop SIO driving the pin before reconfiguring it.
         let gpio_oe_clr = &raw mut (*sio_addr).gpio_oe_clr;
@@ -429,11 +465,26 @@ unsafe fn configure_gpio_pin_in(pin: usize, pull: Pull)
 /// # Safety
 ///
 /// `pin` must be `< MAX_GPIO_PIN`; see [`configure_gpio_pin_in`].
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller:
+// `pin < MAX_GPIO_PIN`. The sole caller, `Rp2350GpioOut::new_output`, passes the `N` of a
+// consumed `PinHandle<N>`, and `define_board!` creates handles only for pins 0 to 29.
 unsafe fn configure_gpio_pin_out(pin: usize)
 {
     let sio_addr = RegAddr::SIO as usize as *mut Sio;
     let pads_addr = RegAddr::PADS_BANK0 as usize as *mut PadsBank;
     let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
+    // SAFETY: the three bases are SIO_BASE `0xd000_0000` (RP2350 datasheet section 2.2.6),
+    // PADS_BANK0_BASE `0x4003_8000` (section 9.11.3) and IO_BANK0_BASE `0x4002_8000`
+    // (section 9.11.1), and the `#[repr(C)]` layouts place GPIO_OUT_CLR at `0x020` and
+    // GPIO_OE_SET at `0x038` (section 3.1.11), GPIOn pad registers (Table 852) and
+    // GPIOn_CTRL at their datasheet offsets. `pin < MAX_GPIO_PIN` (30, this function's
+    // contract) keeps `pads[pin]` and `gpio[pin]` inside their 48-entry arrays and
+    // `1 << pin` inside 32 bits. Every access uses `&raw` and a volatile read or write, so
+    // no reference to device memory is formed. The pin's owner is the caller (it consumed
+    // the pin's handle), so no other code writes these registers for this pin. The blocks
+    // are out of reset because this path is reached only through an `Rp2350Gpio`, which
+    // `Rp2350Gpio::new` constructs after releasing them; an access to a block held in reset
+    // would not fault in any case (section 7.5).
     unsafe{
         // Drive low first, then enable the driver: no glitch high.
         let gpio_out_clr = &raw mut (*sio_addr).gpio_out_clr;

@@ -92,6 +92,11 @@ impl<const N: usize> PinHandle<N>
     /// `compare_exchange` allows to run at most once per boot — which
     /// discharges both obligations. Call it directly only in host-side tests
     /// or on hardware not (yet) described by a `define_board!` invocation.
+    // SAFETY: the body performs no unsafe operation; it builds a zero-sized value. `unsafe`
+    // passes the obligation of the "# Safety" section to the caller: pin `N` exists on the
+    // target and no other `PinHandle<N>` is live. That uniqueness is the invariant every pin
+    // driver relies on. It holds for the one caller in this workspace, the `new` that
+    // `define_board!` generates, which runs at most once per boot (see its SAFETY comment).
     pub const unsafe fn new() -> Self
     {
         Self { _private: () }
@@ -156,6 +161,12 @@ impl<T> DeviceHandle<T>{
     /// exactly what the handle exists to rule out. Call it directly only in
     /// host-side tests or on hardware not (yet) described by a
     /// `define_board!` invocation.
+    // SAFETY: the body performs no unsafe operation; it builds a zero-sized value. `unsafe`
+    // passes the obligation of the "# Safety" section to the caller: no other
+    // `DeviceHandle<T>` is live, the invariant a driver constructor relies on when it takes
+    // the handle as proof of exclusive access to the peripheral. It holds for the one caller
+    // in this workspace, the `new` that `define_board!` generates, which runs at most once
+    // per boot (see its SAFETY comment).
     pub const unsafe fn new() -> Self {
         Self{_private: PhantomData}
     }
@@ -273,6 +284,12 @@ macro_rules! define_board {
             /// `take()`, which succeeds at most once per boot — so no
             /// `PinHandle` or `DeviceHandle` is ever created twice.
             const fn new() -> Self {
+                // SAFETY: calls `PinHandle::new` once per declared pin and `DeviceHandle::new` once per
+                // declared device. Their invariant is at most one live handle per pin and per peripheral.
+                // It holds because this `new` is private to the generated `impl` and its only caller is
+                // `take()`, whose `compare_exchange(false, true, ..)` on `BOARD_TAKEN` lets exactly one
+                // call reach it per boot, and the pin list names each pin once (a repeated pin name is a
+                // duplicate-field compile error).
                 unsafe{Self{
                     pins: $pins{$($pin_name: $crate::device::PinHandle::new(), )+},
                     $($($dev_name: $crate::device::DeviceHandle::new(),)+)?

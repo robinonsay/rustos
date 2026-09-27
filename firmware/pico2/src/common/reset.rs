@@ -126,9 +126,21 @@ struct Reset{
 ///
 /// Writes a chip-wide control register. Passing a mask with zeros outside the
 /// caller's own blocks releases peripherals belonging to other drivers.
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: `mask`
+// has zeros only at the RESETS bits of blocks the caller owns, so no other driver's block
+// is released. The sole caller, `Rp2350Gpio::new`, passes `!IO_PAD_BITMASK`, zero only at
+// bits 6 (IO_BANK0) and 9 (PADS_BANK0), the blocks of the GPIO driver it constructs. The
+// register access itself is justified at the `unsafe` block below.
 pub unsafe fn clr_reset_reg(mask: u32){
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    // SAFETY: `reset_addr` is RESETS_BASE `0x4002_0000` and `Reset` is `#[repr(C)]` with RESET at
+    // offset `0x0` (RP2350 datasheet section 7.5.3, List of Registers), so the place is a valid,
+    // aligned MMIO word in the APB region (section 2.2.4). It is reached through `&raw mut` with
+    // a volatile read and write, so no reference to device memory is formed and neither
+    // access is elided or merged. `current & mask` can only clear bits, and a 0 releases a
+    // block (section 7.5.2), so this store never asserts a reset, including on IO_QSPI and
+    // PADS_QSPI that execute-in-place depends on.
     unsafe{
         // Read the current value, then AND with the mask: every bit that is 0
         // in `mask` is cleared, releasing that block from reset.
@@ -167,9 +179,20 @@ pub unsafe fn clr_reset_reg(mask: u32){
 ///
 /// Writes a chip-wide control register. Callers must set only their own bits;
 /// see the danger note above.
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: `mask`
+// has ones only at the RESETS bits of blocks the caller owns, and never bit 7 (IO_QSPI) or
+// bit 10 (PADS_QSPI) while the image executes in place from flash. No code in this
+// workspace calls this function, so no call site can break the obligation today. The
+// register access itself is justified at the `unsafe` block below.
 pub unsafe fn set_reset_reg(mask: u32){
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    // SAFETY: `reset_addr` is RESETS_BASE `0x4002_0000` and `Reset` is `#[repr(C)]` with RESET at
+    // offset `0x0` (RP2350 datasheet section 7.5.3, List of Registers), so the place is a valid,
+    // aligned MMIO word in the APB region (section 2.2.4). It is reached through `&raw mut` with
+    // a volatile read and write, so no reference to device memory is formed. `current | mask`
+    // sets only the bits of `mask`; which blocks those are is the caller's obligation stated
+    // on this function.
     unsafe{
         // Read the current value, then OR in the mask: every bit that is 1
         // in `mask` is set, asserting reset on that block.
@@ -197,9 +220,18 @@ pub unsafe fn set_reset_reg(mask: u32){
 ///
 /// Reads a hardware register. Loops forever if a block in `mask` never
 /// reports ready, which happens if it was never released in the first place.
+// SAFETY: `unsafe` passes the obligation of the "# Safety" section to the caller: every
+// block in `mask` has been released, or the loop never ends. The sole caller,
+// `Rp2350Gpio::new`, first releases the same two bits with `clr_reset_reg` and then waits
+// on `IO_PAD_BITMASK`. The register access is justified at the `unsafe` block below.
 pub unsafe fn wait_for_reset_done(mask: u32){
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    // SAFETY: `reset_addr` is RESETS_BASE `0x4002_0000` and `Reset` is `#[repr(C)]` with
+    // RESET_DONE at offset `0x8` (RP2350 datasheet section 7.5.3), a read-only word, so the
+    // place is a valid, aligned MMIO word. It is reached through `&raw const` with a volatile
+    // read inside the loop, so no reference is formed and the load is repeated on every
+    // iteration, which the wait depends on. Reading RESET_DONE has no side effect.
     unsafe{
         let reset_done = &raw const (*reset_addr).reset_done;
         // Spin until every bit named in `mask` reads back 1 in RESET_DONE.
