@@ -33,8 +33,10 @@
 //!
 //! The July 2025 datasheet revision changed the documented reset values of
 //! `CLK_SYS_CTRL.SRC` and `CLK_SYS_CTRL.AUXSRC` for stepping A3, so this driver
-//! writes every field of every control register it uses and relies on no
-//! reset value.
+//! relies on no reset value: it moves `clk_sys` off the aux path by clearing
+//! `SRC` alone, which works whatever `AUXSRC` holds, and it writes every
+//! control field the tree depends on once its generator is off the aux path
+//! (§8.1.2.2).
 
 pub mod clocks;
 mod regs;

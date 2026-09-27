@@ -18,18 +18,22 @@
 //! |---|------|-----------|--------|
 //! | 1 | Check the configuration and derive every value | none | [`plan`] |
 //! | 2 | Start the crystal: range, start-up delay, enable; wait `STABLE` | `XOSC.CTRL`, `STARTUP`, `STATUS` | §8.2.3, §8.2.4, Tables 598 to 601 |
-//! | 3 | Move `clk_sys` to `clk_ref` (off any PLL) and wait for the glitchless mux | `CLK_SYS_CTRL`, `CLK_SYS_SELECTED` | §8.1.5.1, Tables 558, 560 |
+//! | 3 | Clear `CLK_SYS_CTRL.SRC` alone, so `clk_sys` leaves the aux mux for `clk_ref`, and wait for the glitchless mux; the aux select is not touched | `CLK_SYS_CTRL` (clear alias), `CLK_SYS_SELECTED` | §8.1.2.2, §8.1.5.1, Tables 558, 560 |
 //! | 4 | Divide `clk_ref` by 1 and move it to the crystal; wait for the mux | `CLK_REF_DIV`, `CLK_REF_CTRL`, `CLK_REF_SELECTED` | Tables 555 to 557 |
 //! | 5 | Reset `PLL_SYS` through the atomic aliases and wait for `RESET_DONE` | `RESETS.RESET`, `RESET_DONE` | §7.5, Table 534 |
 //! | 6 | Program `REFDIV` and `FBDIV`, power the PLL and VCO, wait `LOCK`, then set and power the post dividers | `PLL.CS`, `FBDIV_INT`, `PWR`, `PRIM` | §8.6.4 steps 1 to 5 |
-//! | 7 | `clk_sys` divider 1, aux source `PLL_SYS`, then the glitchless mux to aux; wait | `CLK_SYS_DIV`, `CLK_SYS_CTRL`, `CLK_SYS_SELECTED` | §8.1.5.1 |
-//! | 8 | Stop `clk_peri`, wait until stopped, source `clk_sys` divided by 1, start; wait until running | `CLK_PERI_CTRL`, `CLK_PERI_DIV` | §8.1.5.1, Tables 561, 562 |
+//! | 7 | `clk_sys` divider 1; aux source `PLL_SYS` while the glitchless mux is on `clk_ref`; then the glitchless mux to aux; wait | `CLK_SYS_DIV`, `CLK_SYS_CTRL`, `CLK_SYS_SELECTED` | §8.1.2.2, §8.1.5.1 |
+//! | 8 | Clear `ENABLE` alone, wait until `ENABLED` clears; then aux source `clk_sys`, divider 1, set `ENABLE`; wait until running | `CLK_PERI_CTRL` (clear, set aliases), `CLK_PERI_DIV` | §8.1.2.2, §8.1.5.1, Tables 561, 562 |
 //! | 9 | TIMER0 and watchdog ticks: stop, `CYCLES = xosc MHz`, start; wait `RUNNING` | `TICKS.*_CTRL`, `*_CYCLES` | §8.5.1, Tables 617, 618 |
 //! | 10 | Measure `clk_sys`, then `clk_peri`, against `clk_ref` over 1 ms and judge each | `FC0_*` | §8.1.3, §8.1.5.2, Tables 578 to 585 |
 //!
 //! Step 3 matters when the bootrom or an earlier image left `clk_sys` on the
 //! PLL: the PLL is reset in step 5, and `clk_sys` must not be running from it
-//! then. Step 10 is an independent check, not a datasheet requirement: the
+//! then. An aux select (`AUXSRC`) is changed only while its generator is off
+//! the aux path: `clk_sys` after `SELECTED` shows `clk_ref` (step 7), `clk_peri`
+//! after `ENABLED` shows it stopped (step 8). The aux mux "will glitch when
+//! switching" (Table 558), and §8.1.2.2 requires one of these two conditions
+//! before any aux change. Step 10 is an independent check, not a datasheet requirement: the
 //! frequency counter counts `clk_sys` and `clk_peri` edges over a window timed
 //! by the crystal, so a wrong divider or a PLL that locked to the wrong
 //! frequency is caught before any timing depends on it.
@@ -44,10 +48,10 @@ use api::device::DeviceHandle;
 use super::{
     CLK_PERI_AUXSRC_CLK_SYS, CLK_PERI_CTRL, CLK_PERI_DIV, CLK_PERI_ENABLE, CLK_PERI_ENABLED,
     CLK_REF_CTRL, CLK_REF_DIV, CLK_REF_DIV_BY_ONE, CLK_REF_SELECTED, CLK_REF_SRC_XOSC,
-    CLK_SYS_AUXSRC_PLL_SYS, CLK_SYS_CTRL, CLK_SYS_DIV, CLK_SYS_SELECTED, CLK_SYS_SRC_AUX,
-    CLK_SYS_SRC_REF, ClockConfig, ClockFault, ClockPlan, DIV_BY_ONE_INT16, FC0_DELAY,
-    FC0_DELAY_ONE, FC0_INTERVAL, FC0_INTERVAL_1MS, FC0_MAX_KHZ, FC0_MIN_KHZ, FC0_REF_KHZ,
-    FC0_RESULT, FC0_SRC, FC0_SRC_CLK_PERI, FC0_SRC_CLK_SYS, FC0_SRC_NULL, FC0_STATUS,
+    CLK_SYS_AUXSRC_PLL_SYS, CLK_SYS_CTRL, CLK_SYS_CTRL_SRC, CLK_SYS_DIV, CLK_SYS_SELECTED,
+    CLK_SYS_SRC_AUX, CLK_SYS_SRC_REF, ClockConfig, ClockFault, ClockPlan, DIV_BY_ONE_INT16,
+    FC0_DELAY, FC0_DELAY_ONE, FC0_INTERVAL, FC0_INTERVAL_1MS, FC0_MAX_KHZ, FC0_MIN_KHZ,
+    FC0_REF_KHZ, FC0_RESULT, FC0_SRC, FC0_SRC_CLK_PERI, FC0_SRC_CLK_SYS, FC0_SRC_NULL, FC0_STATUS,
     FC0_STATUS_DONE, FC0_STATUS_RUNNING, Measurement, PLL_CS, PLL_CS_LOCK, PLL_FBDIV_INT, PLL_PRIM,
     PLL_PWR, PLL_PWR_DSMPD, PLL_PWR_POSTDIVPD, RESET_BIT_PLL_SYS, RESETS_RESET, RESETS_RESET_DONE,
     TICK_ENABLE, TICK_RUNNING, TICKS_TIMER0_CTRL, TICKS_TIMER0_CYCLES, TICKS_WATCHDOG_CTRL,
@@ -236,18 +240,15 @@ fn start_xosc<R: Regs>(
     Ok(())
 }
 
-/// Steps 3 and 4: `clk_sys` onto `clk_ref` (glitchless `SRC = 0`, aux source
-/// written explicitly), then `clk_ref` divided by one from the crystal.
+/// Steps 3 and 4: `clk_sys` onto `clk_ref` by clearing `SRC` alone through
+/// the clear alias, so the aux select keeps whatever source it runs from
+/// (§8.1.2.2 steps 1 and 2); then `clk_ref` divided by one from the crystal.
 fn move_clk_ref_to_xosc<R: Regs>(
     regs: &mut R,
     plan: &ClockPlan,
     polls: &mut PollCounts,
 ) -> Result<(), ClockFault> {
-    regs.write(
-        RegAddr::CLOCKS,
-        CLK_SYS_CTRL,
-        CLK_SYS_AUXSRC_PLL_SYS | CLK_SYS_SRC_REF,
-    );
+    regs.write(RegAddr::CLOCKS, CLK_SYS_CTRL + ALIAS_CLR, CLK_SYS_CTRL_SRC);
     let sys_on_ref = (0b11, 1 << CLK_SYS_SRC_REF);
     polls.clk_sys_to_ref = wait(
         regs,
@@ -308,8 +309,9 @@ fn start_pll_sys<R: Regs>(
     Ok(())
 }
 
-/// Step 7 (§8.1.5.1): divider before source, aux mux while the glitchless
-/// mux is on `clk_ref`, then the glitchless mux to aux.
+/// Step 7 (§8.1.2.2 steps 3 to 5, §8.1.5.1): divider before source; the aux
+/// select written while step 3 holds the glitchless mux on `clk_ref` (its
+/// `SELECTED` was polled there); then the glitchless mux to aux.
 fn move_clk_sys_to_pll<R: Regs>(
     regs: &mut R,
     plan: &ClockPlan,
@@ -338,15 +340,15 @@ fn move_clk_sys_to_pll<R: Regs>(
     Ok(())
 }
 
-/// Step 8 (§8.1.5.1 step 3, Table 561): stop the generator cleanly, wait for
-/// `ENABLED` to clear, select `clk_sys` divided by one, start, wait for
-/// `ENABLED`.
+/// Step 8 (§8.1.2.2, generator without a glitchless mux; Table 561): clear
+/// `ENABLE` alone, wait for `ENABLED` to clear, only then select `clk_sys`,
+/// divide by one, set `ENABLE` alone, and wait for `ENABLED`.
 fn start_clk_peri<R: Regs>(
     regs: &mut R,
     plan: &ClockPlan,
     polls: &mut PollCounts,
 ) -> Result<(), ClockFault> {
-    regs.write(RegAddr::CLOCKS, CLK_PERI_CTRL, CLK_PERI_AUXSRC_CLK_SYS);
+    regs.write(RegAddr::CLOCKS, CLK_PERI_CTRL + ALIAS_CLR, CLK_PERI_ENABLE);
     let stopped = (CLK_PERI_ENABLED, 0);
     polls.clk_peri_stop = wait(
         regs,
@@ -356,12 +358,9 @@ fn start_clk_peri<R: Regs>(
         stopped,
         ClockFault::ClkPeriStopTimeout,
     )?;
+    regs.write(RegAddr::CLOCKS, CLK_PERI_CTRL, CLK_PERI_AUXSRC_CLK_SYS);
     regs.write(RegAddr::CLOCKS, CLK_PERI_DIV, DIV_BY_ONE_INT16);
-    regs.write(
-        RegAddr::CLOCKS,
-        CLK_PERI_CTRL,
-        CLK_PERI_ENABLE | CLK_PERI_AUXSRC_CLK_SYS,
-    );
+    regs.write(RegAddr::CLOCKS, CLK_PERI_CTRL + ALIAS_SET, CLK_PERI_ENABLE);
     let running = (CLK_PERI_ENABLED, CLK_PERI_ENABLED);
     polls.clk_peri_start = wait(
         regs,

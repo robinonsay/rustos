@@ -6,7 +6,18 @@ use std::vec::Vec;
 
 use super::*;
 use crate::clocks::{ClockConfigError, FC0_STATUS_PASS};
-use crate::common::reg::fake::FakeRegs;
+use crate::common::reg::fake::{Access, FakeRegs};
+use crate::common::reg::{ALIAS_CLR, ALIAS_SET};
+
+/// Datasheet reset values: `CLK_SYS_CTRL` `AUXSRC = 0x2` (ROSC) and `SRC = 1`
+/// (aux), so `clk_sys` runs from the ROSC through the aux mux (Table 558);
+/// `CLK_REF_CTRL` on the ROSC (Table 555); `CLK_PERI_CTRL` zero (Table 561).
+const CLK_SYS_CTRL_RESET: u32 = 0x41;
+const CLK_REF_CTRL_RESET: u32 = 0x0;
+const CLK_PERI_CTRL_RESET: u32 = 0x0;
+/// `AUXSRC`: bits 7:5 of `CLK_SYS_CTRL`, `CLK_PERI_CTRL`; 6:5 of `CLK_REF_CTRL`.
+const SYS_AUXSRC: u32 = 0b111 << 5;
+const REF_AUXSRC: u32 = 0b11 << 5;
 
 const CFG: ClockConfig = ClockConfig {
     poll_budget: 8,
@@ -17,6 +28,10 @@ const CFG: ClockConfig = ClockConfig {
 /// measurements read 150 MHz with the hardware PASS flag.
 fn healthy() -> FakeRegs {
     let mut r = FakeRegs::new();
+    // The datasheet reset values, which the golden sequence starts from.
+    r.set(RegAddr::CLOCKS, CLK_SYS_CTRL, CLK_SYS_CTRL_RESET);
+    r.set(RegAddr::CLOCKS, CLK_REF_CTRL, CLK_REF_CTRL_RESET);
+    r.set(RegAddr::CLOCKS, CLK_PERI_CTRL, CLK_PERI_CTRL_RESET);
     r.set(RegAddr::XOSC, XOSC_STATUS, XOSC_STATUS_STABLE);
     r.script_reads(RegAddr::CLOCKS, CLK_SYS_SELECTED, &[0b01, 0b10]);
     r.set(RegAddr::CLOCKS, CLK_REF_SELECTED, 0b0100);
@@ -52,7 +67,7 @@ fn golden_writes() -> Vec<(RegAddr, usize, u32)> {
         (XOSC, XOSC_CTRL, 0x0000_0aa0),
         (XOSC, XOSC_STARTUP, 47),
         (XOSC, XOSC_CTRL, 0x00fa_baa0),
-        (CLOCKS, CLK_SYS_CTRL, 0x0),
+        (CLOCKS, CLK_SYS_CTRL + ALIAS_CLR, 0x1),
         (CLOCKS, CLK_REF_DIV, 0x0001_0000),
         (CLOCKS, CLK_REF_CTRL, 0x2),
         (RESET, 0x2000, 1 << 14),
@@ -65,9 +80,10 @@ fn golden_writes() -> Vec<(RegAddr, usize, u32)> {
         (CLOCKS, CLK_SYS_DIV, 0x0001_0000),
         (CLOCKS, CLK_SYS_CTRL, 0x0),
         (CLOCKS, CLK_SYS_CTRL, 0x1),
+        (CLOCKS, CLK_PERI_CTRL + ALIAS_CLR, 0x0800),
         (CLOCKS, CLK_PERI_CTRL, 0x0),
         (CLOCKS, CLK_PERI_DIV, 0x0001_0000),
-        (CLOCKS, CLK_PERI_CTRL, 0x0800),
+        (CLOCKS, CLK_PERI_CTRL + ALIAS_SET, 0x0800),
         (TICKS, TICKS_TIMER0_CTRL, 0),
         (TICKS, TICKS_TIMER0_CYCLES, 12),
         (TICKS, TICKS_TIMER0_CTRL, 1),
@@ -231,7 +247,11 @@ fn pll_that_never_locks_leaves_post_dividers_off_and_clk_sys_on_clk_ref() {
             .iter()
             .any(|w| w.0 == RegAddr::PLL_SYS && w.1 == PLL_PRIM)
     );
-    assert_eq!(regs.get(RegAddr::CLOCKS, CLK_SYS_CTRL), CLK_SYS_SRC_REF);
+    // clk_sys on clk_ref, and the aux select still at its reset source.
+    assert_eq!(
+        regs.get(RegAddr::CLOCKS, CLK_SYS_CTRL),
+        CLK_SYS_CTRL_RESET & !CLK_SYS_CTRL_SRC
+    );
     assert!(!regs.wrote_block(RegAddr::TICKS));
 }
 
@@ -336,4 +356,144 @@ fn hardware_fail_flag_alone_fails_the_check() {
         bring_up(&mut regs, &CFG).err(),
         Some(ClockFault::ClkSysOutOfTolerance(150_000))
     );
+}
+
+/// A restart that did not reset `CLOCKS`: `clk_sys` on aux from `PLL_SYS`,
+/// `clk_ref` on the crystal, `clk_peri` running from `PLL_SYS` (`AUXSRC = 1`).
+const RESTART: [u32; 3] = [0x01, 0x02, (1 << 11) | (1 << 5)];
+const COLD: [u32; 3] = [CLK_SYS_CTRL_RESET, CLK_REF_CTRL_RESET, CLK_PERI_CTRL_RESET];
+
+/// `healthy()` with the three control registers preset to `ctrl`
+/// (`CLK_SYS_CTRL`, `CLK_REF_CTRL`, `CLK_PERI_CTRL`).
+fn healthy_from(ctrl: [u32; 3]) -> FakeRegs {
+    let mut r = healthy();
+    r.set(RegAddr::CLOCKS, CLK_SYS_CTRL, ctrl[0]);
+    r.set(RegAddr::CLOCKS, CLK_REF_CTRL, ctrl[1]);
+    r.set(RegAddr::CLOCKS, CLK_PERI_CTRL, ctrl[2]);
+    r
+}
+
+/// One generator as the aux-mux rule of §8.1.2.2 sees it: `status` is the
+/// register whose read value passes `off_aux` when the generator is off its
+/// aux path; `held` says the control value keeps it there.
+struct Generator {
+    ctrl: usize,
+    value: u32,
+    auxsrc: u32,
+    status: usize,
+    off_aux: fn(u32) -> bool,
+    held: fn(u32) -> bool,
+    confirmed: bool,
+}
+
+/// Replay the access log from the control values `start` and fail if any
+/// write changes an `AUXSRC` field while its generator may be on the aux
+/// path. `clk_sys` and `clk_ref` are off it only when `SRC` selects a non-aux
+/// source and a `SELECTED` read since that choice shows it; `clk_peri` only
+/// when `ENABLE` is clear and a `CTRL` read since then shows `ENABLED` clear
+/// (§8.1.2.2: "Before switching the clock source of an auxiliary mux you
+/// must either" leave the aux path or disable the generator).
+fn assert_aux_changes_only_off_the_aux_path(start: [u32; 3], log: &[Access]) {
+    let mut gens = [
+        Generator {
+            ctrl: CLK_SYS_CTRL,
+            value: start[0],
+            auxsrc: SYS_AUXSRC,
+            status: CLK_SYS_SELECTED,
+            off_aux: |v| v == 1 << CLK_SYS_SRC_REF,
+            held: |v| v & CLK_SYS_CTRL_SRC == CLK_SYS_SRC_REF,
+            confirmed: false,
+        },
+        Generator {
+            ctrl: CLK_REF_CTRL,
+            value: start[1],
+            auxsrc: REF_AUXSRC,
+            status: CLK_REF_SELECTED,
+            off_aux: |v| v != 0 && v & 0b0010 == 0,
+            held: |v| v & 0b11 != 1,
+            confirmed: false,
+        },
+        Generator {
+            ctrl: CLK_PERI_CTRL,
+            value: start[2],
+            auxsrc: SYS_AUXSRC,
+            status: CLK_PERI_CTRL,
+            off_aux: |v| v & CLK_PERI_ENABLED == 0,
+            held: |v| v & CLK_PERI_ENABLE == 0,
+            confirmed: false,
+        },
+    ];
+    for access in log {
+        match *access {
+            Access::Read {
+                block: RegAddr::CLOCKS,
+                offset,
+                value,
+            } => {
+                for g in gens.iter_mut().filter(|g| g.status == offset) {
+                    g.confirmed = (g.held)(g.value) && (g.off_aux)(value);
+                }
+            }
+            Access::Write {
+                block: RegAddr::CLOCKS,
+                offset,
+                value,
+            } => {
+                let alias = offset & 0x3000;
+                for g in gens.iter_mut().filter(|g| g.ctrl == offset - alias) {
+                    let next = match alias {
+                        ALIAS_SET => g.value | value,
+                        ALIAS_CLR => g.value & !value,
+                        _ => value,
+                    };
+                    assert!(
+                        (next ^ g.value) & g.auxsrc == 0 || g.confirmed,
+                        "AUXSRC of {:#x} changed on the aux path: {access:?}",
+                        g.ctrl
+                    );
+                    if (g.held)(next) != (g.held)(g.value) {
+                        g.confirmed = false;
+                    }
+                    g.value = next;
+                }
+            }
+            Access::Read { .. } | Access::Write { .. } => {}
+        }
+    }
+}
+
+#[test]
+fn no_aux_select_changes_while_its_generator_is_on_the_aux_path() {
+    for start in [COLD, RESTART] {
+        let mut regs = healthy_from(start);
+        bring_up(&mut regs, &CFG).unwrap();
+        assert_aux_changes_only_off_the_aux_path(start, regs.log());
+        assert_eq!(
+            regs.get(RegAddr::CLOCKS, CLK_SYS_CTRL),
+            CLK_SYS_AUXSRC_PLL_SYS | CLK_SYS_SRC_AUX
+        );
+        assert_eq!(
+            regs.get(RegAddr::CLOCKS, CLK_PERI_CTRL),
+            CLK_PERI_ENABLE | CLK_PERI_AUXSRC_CLK_SYS
+        );
+    }
+}
+
+#[test]
+#[should_panic(expected = "AUXSRC of 0x3c changed on the aux path")]
+fn the_aux_rule_check_rejects_the_iteration_1_step_3_write() {
+    // One word that moves the glitchless mux and the aux select together,
+    // from the reset state (INSP-095 finding-1).
+    let mut regs = healthy_from(COLD);
+    regs.write(RegAddr::CLOCKS, CLK_SYS_CTRL, 0x0);
+    assert_aux_changes_only_off_the_aux_path(COLD, regs.log());
+}
+
+#[test]
+#[should_panic(expected = "AUXSRC of 0x48 changed on the aux path")]
+fn the_aux_rule_check_rejects_the_iteration_1_step_8_write() {
+    // AUXSRC in the same word as the stop, before ENABLED clears.
+    let mut regs = healthy_from(RESTART);
+    regs.write(RegAddr::CLOCKS, CLK_PERI_CTRL, 0x0);
+    assert_aux_changes_only_off_the_aux_path(RESTART, regs.log());
 }

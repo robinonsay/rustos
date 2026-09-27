@@ -15,12 +15,15 @@
 //! * **CLK-2** `now()` advances by the elapsed time in microseconds, to the
 //!   implementation's stated accuracy.
 //! * **ALM-1** `schedule_at(at)` with `at` not later than the clock at the
-//!   time of the call returns `Ok(Scheduled::Due)`; the alarm is left not
-//!   armed and no fire is latched by the call.
-//! * **ALM-2** `schedule_at(at)` with `at` later than the clock returns
-//!   `Ok(Scheduled::Armed)`, and exactly one fire is latched when the clock
-//!   reaches `at`, unless the alarm is cancelled or rescheduled first. While
-//!   armed and not yet fired, `is_armed()` is `true`.
+//!   start of the call returns `Ok(Scheduled::Due)`. It may also return `Due`
+//!   for an `at` the clock reaches while the call runs. Whenever it returns
+//!   `Due`, the alarm is left not armed and no fire is latched by the call.
+//! * **ALM-2** `schedule_at(at)` with `at` later than the clock at the start
+//!   of the call returns `Ok(Scheduled::Armed)`, or `Ok(Scheduled::Due)` under
+//!   ALM-1 when the clock reaches `at` while the call runs. After `Armed`,
+//!   exactly one fire is latched when the clock reaches `at` (possibly before
+//!   the call returns), unless the alarm is cancelled or rescheduled first.
+//!   While armed and not yet fired, `is_armed()` is `true`.
 //! * **ALM-3** After a fire, `is_armed()` is `false`, and `take_fired()`
 //!   returns `true` exactly once, then `false` until the next fire.
 //! * **ALM-4** `cancel()` leaves the alarm not armed and discards a latched

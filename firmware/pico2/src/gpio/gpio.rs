@@ -41,7 +41,6 @@ use crate::common::reg::RegAddr;
 use api::common::{ErrorType, Read, Write};
 use api::device::{DeviceHandle, PinHandle};
 use api::gpio::{Gpio, GpioPinIn, GpioPinOut, Pull};
-use crate::gpio::snapshot::{Rp2350InputSnapshot, check_snapshot_mask};
 
 /// Something went wrong configuring a GPIO pin.
 pub enum GpioError
@@ -73,13 +72,6 @@ pub enum GpioError
         /// [`MAX_GPIO_PIN`].
         count: usize,
     },
-    /// [`Rp2350Gpio::input_snapshot`] was asked for pins this port has not
-    /// configured as inputs. `mask` holds the offending pins; an empty
-    /// request reports `mask: 0`.
-    NotInput {
-        /// The requested pins that are not inputs of this port.
-        mask: u32,
-    },
 }
 
 /// Hand-written rather than derived so the error type does not require
@@ -90,7 +82,6 @@ impl Debug for GpioError
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::PinOOB { pin, count } => f.debug_struct("PinOOB").field("pin", pin).field("count", count).finish(),
-            Self::NotInput { mask } => f.debug_struct("NotInput").field("mask", mask).finish(),
         }
     }
 }
@@ -99,13 +90,13 @@ impl Debug for GpioError
 /// The GPIO port: bring-up for the whole bank, and the factory for individual
 /// pins.
 ///
-/// Zero-sized. There is no state to hold — the registers live at fixed
-/// addresses — so this exists purely to give the [`Gpio`] and [`ErrorType`]
-/// trait impls (an `impl Trait for Type` block: the code that provides a
-/// trait's methods for one concrete type) somewhere to live.
+/// One word of state: the pins configured as inputs, kept for the input
+/// snapshot of `snapshot.rs` (cwht WP-SW-02). The registers live at fixed
+/// addresses, so otherwise this gives the [`Gpio`] and [`ErrorType`] trait
+/// impls (the code that provides a trait's methods for one type) a home.
 ///
-/// The `_private: ()` field makes the struct literal `Rp2350Gpio{}`
-/// unwritable outside this module, so the only route to an instance is
+/// The `inputs` field is private to `gpio`, so the struct literal is
+/// unwritable outside that module, and the only route to an instance is
 /// [`new`](Self::new) — which demands the board's
 /// [`DeviceHandle<Rp2350Gpio>`](api::device::DeviceHandle). At most one such
 /// handle exists per boot, and `new` consumes it, so at most one
@@ -113,10 +104,7 @@ impl Debug for GpioError
 /// all.
 pub struct Rp2350Gpio
 {
-    _private: (),
-    /// Pins this port has configured as inputs, one bit per pin: the only
-    /// pins [`input_snapshot`](Self::input_snapshot) will sample.
-    inputs: u32,
+    pub(super) inputs: u32,
 }
 
 impl Rp2350Gpio
@@ -153,24 +141,7 @@ impl Rp2350Gpio
             clr_reset_reg(!IO_PAD_BITMASK);
             wait_for_reset_done(IO_PAD_BITMASK);
         }
-        return Self{_private: (), inputs: 0};
-    }
-
-    /// A sampler for the input pins in `mask` that reads them all in one
-    /// `SIO.GPIO_IN` load (cwht WP-SW-02; [`InputSnapshot`](api::gpio::InputSnapshot)).
-    ///
-    /// Every pin in `mask` must already be an input of this port, configured
-    /// through [`Gpio::input_from_handle`]: the snapshot then only observes
-    /// pins whose owner chose to make them inputs, and reading `GPIO_IN` has
-    /// no side effect (§3.1.11, p55), so any number of samplers may exist.
-    ///
-    /// # Errors
-    ///
-    /// [`GpioError::NotInput`] if `mask` is empty or names a pin that is not
-    /// an input of this port.
-    pub fn input_snapshot(&self, mask: u32) -> Result<Rp2350InputSnapshot, GpioError>
-    {
-        check_snapshot_mask(mask, self.inputs).map(Rp2350InputSnapshot::new)
+        Self { inputs: 0 }
     }
 }
 
@@ -190,9 +161,7 @@ impl Gpio for Rp2350Gpio
     type Output<const N: usize> = Rp2350GpioOut<N>;
 
     fn input_from_handle<const N: usize>(&mut self, handle: PinHandle<N>, pull: Pull) -> Result<Self::Input<N>, Self::Error> {
-        let pin = Rp2350GpioIn::new_input(handle, pull)?;
-        self.inputs |= Rp2350GpioIn::<N>::BIT;
-        return Ok(pin);
+        self.track_input(Rp2350GpioIn::new_input(handle, pull))
     }
 
     fn output_from_handle<const N: usize>(&mut self, handle: PinHandle<N>) -> Result<Self::Output<N>, Self::Error> {
@@ -295,9 +264,6 @@ impl<const N: usize> Rp2350GpioOut<N>{
 impl<const N: usize> Rp2350GpioIn<N>{
     // See the note on Rp2350GpioOut::_VALID: unreferenced, so inert.
     const _VALID: () = assert!(N < MAX_GPIO_PIN);
-    /// This pin's bit in `GPIO_IN`. Referenced by `input_from_handle`, so the
-    /// bound is checked at compile time for every input pin actually built.
-    pub(crate) const BIT: u32 = { assert!(N < MAX_GPIO_PIN); 1 << N };
     /// Configure pin `N` as an input with the requested pull resistor.
     ///
     /// As with [`Rp2350GpioOut::new_output`], the consumed handle is the
