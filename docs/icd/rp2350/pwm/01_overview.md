@@ -37,6 +37,11 @@ the counter is below `CC`, low otherwise (trailing-edge mode). The period is
 `CC = 0` gives a constant low and `CC = TOP + 1` a constant high, both without
 toggling.
 
+5. On and off: write `CC`, then `CTR = TOP`. The counter wraps at its next
+   count and latches the new `CC` (see double buffering below) within one
+   count, at most 256 `clk_sys` cycles, instead of at the end of the period.
+   A duty change writes `CC` alone and takes effect at the next wrap.
+
 ## 12.5.2.3 Double buffering
 
 Each slice holds two copies of `CC` and `TOP`. Software writes one copy at any
@@ -67,8 +72,10 @@ also has a DMA request at wrap.
 
 ## Bring-up order used by the cwht driver
 
-1. Release PWM from reset: clear `RESETS.RESET` bit 16 through the `+0x3000`
-   alias, wait for `RESET_DONE` bit 16; write `EN = 0`.
+1. Reset and release PWM: set `RESETS.RESET` bit 16 through the `+0x2000`
+   alias, clear it through the `+0x3000` alias, wait for `RESET_DONE` bit 16;
+   write `EN = 0`. Asserting the reset first makes every start, including a
+   restart that did not reset PWM, begin with every slice stopped at `CC = 0`.
 2. For an output pin: `CSR = 0`; `DIV`; `TOP`; `CC = 0`; `CTR = 0`;
    `CSR.EN = 1`. The slice now runs with the output low.
 3. `IO_BANK0.GPIOn_CTRL = 4` (PWM, no overrides).

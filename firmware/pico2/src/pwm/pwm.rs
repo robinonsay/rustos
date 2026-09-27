@@ -6,12 +6,22 @@
 //!
 //! ## Glitch-free start and changes
 //!
-//! A new output's slice is configured and running with `CC = 0` before the
-//! pin is switched to the PWM function, and the pad isolation is released
-//! last, so the pin comes up low (PWM-6). Duty and on/off change only `CC`,
-//! and `CC` and `TOP` are double-buffered (§12.5.2.3), so they take effect at
-//! the next wrap with no partial pulse. `DIV` is not buffered: a frequency
-//! change can stretch or shorten the one period in progress.
+//! [`release`] resets the PWM block before it releases it, so every start,
+//! including a restart that did not reset PWM, begins from the register reset
+//! state: every slice stopped with `CC = 0`, which drives its pin low
+//! (§12.5.3, Tables 1131 to 1135; PWM-6). A new output's slice is configured
+//! and running with `CC = 0` before the pin is switched to the PWM function,
+//! and the pad isolation is released last, so the pin comes up low (PWM-6).
+//!
+//! A duty change writes only `CC`, which is double-buffered (§12.5.2.3), so it
+//! takes effect at the next wrap with no partial pulse: up to one period,
+//! `1 / f` (1.43 ms at 700 Hz, 10 ms at 100 Hz). An on/off change writes `CC`
+//! and then `CTR = TOP`, so the counter wraps at its next count and latches
+//! the new `CC` within one count, at most 256 `clk_sys` cycles (1.7 µs at
+//! 150 MHz), whatever the frequency (PWM-4; cwht INSP-099 finding-1). The
+//! price is that the low interval before a switch-on, or the high interval
+//! before a switch-off, can be cut short once. `DIV` is not buffered: a
+//! frequency change can stretch or shorten the one period in progress.
 
 use api::common::ErrorType;
 #[cfg(target_os = "none")]
@@ -21,7 +31,7 @@ use api::pwm::{Duty, PwmOutput};
 
 #[cfg(target_os = "none")]
 use crate::clocks::clocks::ClocksReady;
-use crate::common::reg::{ALIAS_CLR, RegAddr, Regs, poll};
+use crate::common::reg::{ALIAS_CLR, ALIAS_SET, RegAddr, Regs, poll};
 use crate::common::reset::{RESET_DONE_OFFSET, RESET_OFFSET};
 #[cfg(target_os = "none")]
 use crate::gpio::gpio::Rp2350Gpio;
@@ -106,8 +116,13 @@ impl Rp2350Pwm {
     }
 }
 
-/// Release PWM from reset and clear every slice enable.
+/// Reset PWM, release it, wait for `RESET_DONE` and clear every slice enable.
+///
+/// The reset is asserted first (set alias, §2.1.3) so the driver never starts
+/// from what an earlier image left in a block a restart did not reset: a
+/// running slice or a frozen high level (cwht INSP-105 finding-1, HZ-005 C2).
 pub(crate) fn release<R: Regs>(regs: &mut R) -> Result<(), PwmError> {
+    regs.write(RegAddr::RESET, RESET_OFFSET + ALIAS_SET, RESET_BIT_PWM);
     regs.write(RegAddr::RESET, RESET_OFFSET + ALIAS_CLR, RESET_BIT_PWM);
     poll(
         regs,
@@ -186,8 +201,11 @@ impl<const N: usize> Rp2350PwmOut<N> {
         Ok(t.achieved_mhz)
     }
 
-    /// Duty or on/off change against any [`Regs`] (PWM-4, PWM-5).
+    /// Duty or on/off change against any [`Regs`] (PWM-4, PWM-5). An on/off
+    /// change also forces a wrap at the next count (`CTR = TOP`), so the new
+    /// `CC` is latched within one count rather than at the end of the period.
     pub(crate) fn update_on<R: Regs>(&mut self, regs: &mut R, permille: u16, on: bool) {
+        let switched = on != self.on;
         self.duty_permille = permille;
         self.on = on;
         write_cc(
@@ -196,6 +214,16 @@ impl<const N: usize> Rp2350PwmOut<N> {
             Self::CHANNEL,
             cc_value(permille, self.period, on),
         );
+        if switched {
+            // `period` is `TOP + 1` of this slice (`timing`), so the write
+            // cannot underflow: `timing` never returns a period below
+            // `MIN_PERIOD` = 2.
+            regs.write(
+                RegAddr::PWM,
+                SLICE_STRIDE * Self::SLICE + CTR,
+                self.period - 1,
+            );
+        }
     }
 }
 

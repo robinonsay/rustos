@@ -5,7 +5,7 @@ extern crate std;
 use std::vec;
 
 use super::*;
-use crate::common::reg::fake::FakeRegs;
+use crate::common::reg::fake::{Access, FakeRegs};
 
 const P: RegAddr = RegAddr::PWM;
 const CLK: u32 = 150_000_000;
@@ -21,14 +21,48 @@ fn out<const N: usize>() -> Rp2350PwmOut<N> {
 }
 
 #[test]
-fn release_waits_then_disables_all_slices() {
+fn release_resets_then_releases_waits_and_disables_all_slices() {
     let mut regs = FakeRegs::new();
     regs.set(RegAddr::RESET, RESET_DONE_OFFSET, RESET_BIT_PWM);
     assert_eq!(release(&mut regs), Ok(()));
     assert_eq!(
         regs.writes(),
-        vec![(RegAddr::RESET, 0x3000, 1 << 16), (P, EN, 0)]
+        vec![
+            (RegAddr::RESET, 0x2000, 1 << 16),
+            (RegAddr::RESET, 0x3000, 1 << 16),
+            (P, EN, 0)
+        ]
     );
+    // Set, clear, then the RESET_DONE poll, then EN: the whole access order.
+    let order: vec::Vec<(bool, RegAddr, usize)> = regs
+        .log()
+        .iter()
+        .map(|a| match *a {
+            Access::Write { block, offset, .. } => (true, block, offset),
+            Access::Read { block, offset, .. } => (false, block, offset),
+        })
+        .collect();
+    assert_eq!(
+        order,
+        vec![
+            (true, RegAddr::RESET, 0x2000),
+            (true, RegAddr::RESET, 0x3000),
+            (false, RegAddr::RESET, RESET_DONE_OFFSET),
+            (true, P, EN)
+        ]
+    );
+}
+
+#[test]
+fn release_from_a_restart_that_left_pwm_running_starts_from_reset() {
+    // A warm start: RESETS shows PWM out of reset, so a release-only driver
+    // would keep whatever slice state the earlier image left.
+    let mut regs = FakeRegs::new();
+    regs.set(RegAddr::RESET, RESET_OFFSET, 0);
+    regs.set(RegAddr::RESET, RESET_DONE_OFFSET, RESET_BIT_PWM);
+    assert_eq!(release(&mut regs), Ok(()));
+    let w = regs.writes();
+    assert_eq!(w[0], (RegAddr::RESET, RESET_OFFSET + 0x2000, RESET_BIT_PWM));
 }
 
 #[test]
@@ -100,7 +134,7 @@ fn pin_to_slice_and_channel_follows_table_1129() {
 }
 
 #[test]
-fn duty_and_enable_write_only_cc_in_the_right_half() {
+fn on_off_writes_cc_in_the_right_half_then_forces_a_wrap() {
     let mut regs = FakeRegs::new();
     let mut a = out::<14>(); // slice 7, channel A
     a.update_on(&mut regs, 500, true);
@@ -111,10 +145,29 @@ fn duty_and_enable_write_only_cc_in_the_right_half() {
         regs.writes(),
         vec![
             (P, 7 * SLICE_STRIDE + CC, 32_433),
+            (P, 7 * SLICE_STRIDE + CTR, 64_864),
             (P, 4 * SLICE_STRIDE + CC, 64_865 << 16),
-            (P, 4 * SLICE_STRIDE + CC, 0)
+            (P, 4 * SLICE_STRIDE + CTR, 64_864),
+            (P, 4 * SLICE_STRIDE + CC, 0),
+            (P, 4 * SLICE_STRIDE + CTR, 64_864),
         ]
     );
+}
+
+#[test]
+fn duty_change_while_on_or_off_writes_only_cc() {
+    let mut regs = FakeRegs::new();
+    let mut a = out::<14>();
+    a.update_on(&mut regs, 250, false); // off stays off
+    a.update_on(&mut regs, 500, true);
+    a.update_on(&mut regs, 750, true); // on stays on
+    let w = regs.writes();
+    assert_eq!(
+        w.iter().filter(|x| x.1 == 7 * SLICE_STRIDE + CTR).count(),
+        1
+    );
+    assert_eq!(w[0], (P, 7 * SLICE_STRIDE + CC, 0));
+    assert_eq!(w[3], (P, 7 * SLICE_STRIDE + CC, 48_649));
 }
 
 #[test]
@@ -126,8 +179,9 @@ fn frequency_change_keeps_the_duty_and_rescales_cc() {
     assert!(mhz.abs_diff(700_000) <= 700);
     let w = regs.writes();
     let b = 7 * SLICE_STRIDE;
+    // w[0..2] are the switch-on: CC, then CTR = TOP.
     assert_eq!(
-        &w[1..],
+        &w[2..],
         &[(P, b + DIV, 53), (P, b + TOP, 64_689), (P, b + CC, 16_173)]
     );
     assert_eq!((o.period, o.duty_permille, o.on), (64_690, 250, true));
@@ -143,6 +197,6 @@ fn refused_frequency_changes_nothing() {
         o.frequency_on(&mut regs, 0),
         Err(PwmError::FrequencyOutOfRange)
     );
-    assert_eq!(regs.writes().len(), 1);
+    assert_eq!(regs.writes().len(), 2); // the switch-on only: CC, CTR
     assert_eq!((o.period, o.duty_permille, o.on), before);
 }

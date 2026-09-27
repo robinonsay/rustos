@@ -15,11 +15,15 @@
 //! * **PWM-2** A frequency the implementation cannot produce, including 0, is
 //!   rejected with `Err`, and the previous frequency and duty stay in force.
 //! * **PWM-3** The duty set by `set_duty` survives later frequency changes.
-//! * **PWM-4** `set_enabled(false)` holds the output low from the end of the
-//!   current period; `set_enabled(true)` restores the set duty.
+//! * **PWM-4** `set_enabled(false)` holds the output low, and
+//!   `set_enabled(true)` restores the set duty, each within the switching
+//!   latency the implementation states (on the RP2350, one counter step, at
+//!   most 1.7 µs at 150 MHz, whatever the frequency). `set_duty` takes effect
+//!   from the next period, with no partial pulse.
 //! * **PWM-5** Duty 0 is a constant low and duty 1000 ‰ a constant high,
 //!   with no pulses.
-//! * **PWM-6** A newly constructed output is disabled (low).
+//! * **PWM-6** A newly constructed output is disabled (low), after a power-on
+//!   start and after a restart alike.
 
 use crate::common::ErrorType;
 
@@ -70,8 +74,8 @@ pub trait PwmOutput: ErrorType {
     /// Only if the implementation cannot reach its hardware.
     fn set_duty(&mut self, duty: Duty) -> Result<(), Self::Error>;
 
-    /// Turn the output on (the set duty) or off (held low) from the next
-    /// period (PWM-4).
+    /// Turn the output on (the set duty) or off (held low) within the
+    /// implementation's stated switching latency (PWM-4).
     ///
     /// # Errors
     ///
