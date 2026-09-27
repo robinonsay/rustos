@@ -149,6 +149,9 @@ const _: () = assert!(
 
 /// `CLK_REF_CTRL.SRC` value `XOSC_CLKSRC` (Table 555).
 pub(crate) const CLK_REF_SRC_XOSC: u32 = 0x2;
+/// `CLK_SYS_CTRL.SRC`, bit 0: the field mask, written to the clear alias to
+/// move the glitchless mux to `clk_ref` without touching `AUXSRC` (Table 558).
+pub(crate) const CLK_SYS_CTRL_SRC: u32 = 1 << 0;
 /// `CLK_SYS_CTRL.SRC` value `CLK_REF` (Table 558).
 pub(crate) const CLK_SYS_SRC_REF: u32 = 0x0;
 /// `CLK_SYS_CTRL.SRC` value `CLKSRC_CLK_SYS_AUX` (Table 558).
