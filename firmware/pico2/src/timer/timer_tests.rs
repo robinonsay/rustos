@@ -116,6 +116,17 @@ fn schedule_that_missed_the_match_is_due_and_disarmed() {
 }
 
 #[test]
+fn schedule_still_armed_when_the_time_equals_the_target_is_due_and_disarmed() {
+    let mut regs = FakeRegs::new();
+    regs.set(T, TIMERAWH, 0);
+    regs.script_reads(T, TIMERAWL, &[99, 99, 100, 100]);
+    regs.script_reads(T, ARMED, &[1]);
+    assert_eq!(schedule(&mut regs, 0, 100), Ok(Scheduled::Due));
+    let w = regs.writes();
+    assert_eq!(&w[w.len() - 2..], &[(T, ARMED, 1), (T, INTR, 1)]);
+}
+
+#[test]
 fn schedule_that_did_not_arm_is_an_error_and_disarmed() {
     let mut regs = at_time(1_000);
     regs.script_reads(T, ARMED, &[0]);

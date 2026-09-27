@@ -46,6 +46,11 @@ use api::irq::InterruptController;
 
 use crate::common::reg::{RegAddr, Regs};
 
+#[cfg(target_os = "none")]
+mod vectors;
+#[cfg(target_os = "none")]
+pub(crate) use vectors::{Vector, with_device_interrupts};
+
 /// The RP2350's 52 system-level interrupt lines, numbered as in Table 94.
 ///
 /// Only lines 0 to 45 are wired to peripherals; 46 to 51 are

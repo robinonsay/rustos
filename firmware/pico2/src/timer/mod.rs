@@ -143,11 +143,17 @@ pub(crate) const fn plan_arm(now: u64, at: u64) -> ArmPlan {
 /// How an alarm stands right after `ALARMn` was written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AfterArm {
-    /// Armed and not yet due, or already fired and latched in `INTR`.
+    /// Armed and the time still short of the target, or already fired and
+    /// latched in `INTR`.
     Pending,
-    /// Still armed although the time is past the target: the comparator
-    /// missed the match while the value was being written, and would next
-    /// match 2^32 µs later. The driver disarms and reports `Due`.
+    /// Still armed although the time has reached the target (`now >= at`):
+    /// the comparator may have missed the match while the value was being
+    /// written, and would then next match 2^32 µs later. The driver disarms
+    /// (which also discards a fire latched after the read) and reports `Due`.
+    /// Treating `now == at` as missed is safe whether or not a write in the
+    /// matching microsecond fires, and matches the SDK's own test of a
+    /// reached target: `timer_busy_wait_until` waits only while
+    /// `timerawl < target` (datasheet §12.8.4.3, SDK lines 110 to 122).
     Missed,
     /// Not armed and nothing latched: the hardware refused the arm.
     Fault,
@@ -156,8 +162,8 @@ pub(crate) enum AfterArm {
 /// Decide [`AfterArm`] from `ARMED` and `INTR` bits of the alarm and the time
 /// `now` read after the write. Pure.
 ///
-/// | armed | intr | `now > at` | result |
-/// |-------|------|------------|--------|
+/// | armed | intr | `now >= at` | result |
+/// |-------|------|-------------|--------|
 /// | 1 | any | 0 | `Pending` |
 /// | 1 | any | 1 | `Missed` |
 /// | 0 | 1 | any | `Pending` (fired) |
@@ -165,7 +171,7 @@ pub(crate) enum AfterArm {
 #[must_use]
 pub(crate) const fn after_arm(armed: bool, intr: bool, now: u64, at: u64) -> AfterArm {
     if armed {
-        if now > at {
+        if now >= at {
             AfterArm::Missed
         } else {
             AfterArm::Pending

@@ -50,18 +50,21 @@ fn plan_arm_compare_value_is_the_low_word_across_a_high_word_boundary() {
     assert_eq!(plan_arm(0xffff_fff0, 0x1_0000_0010), ArmPlan::Arm(0x10));
 }
 
-// after_arm: conditions armed (A), intr (I), now > at (L).
+// after_arm: conditions armed (A), intr (I), now >= at (L).
 // A: (A=1,L=0) Pending vs (A=0,I=0) Fault.  I: (A=0,I=1) Pending vs (A=0,I=0) Fault.
 // L: (A=1,L=0) Pending vs (A=1,L=1) Missed.
 
 #[test]
 fn after_arm_armed_and_not_late_is_pending() {
     assert_eq!(after_arm(true, false, 100, 200), AfterArm::Pending);
-    assert_eq!(after_arm(true, false, 200, 200), AfterArm::Pending);
+    assert_eq!(after_arm(true, false, 199, 200), AfterArm::Pending);
 }
 
 #[test]
 fn after_arm_armed_and_late_is_missed() {
+    // now == at is the INSP-097 finding-1 edge: still armed in the matching
+    // microsecond is treated as a missed match.
+    assert_eq!(after_arm(true, false, 200, 200), AfterArm::Missed);
     assert_eq!(after_arm(true, false, 201, 200), AfterArm::Missed);
     assert_eq!(after_arm(true, true, 201, 200), AfterArm::Missed);
 }
