@@ -69,6 +69,8 @@
 //! * [`irq`]: the interrupt controller. [`irq::InterruptController`]
 //!   enables, disables and pends numbered interrupt lines, and has no
 //!   priority operation: every enabled line keeps one priority.
+//! * [`time`]: [`time::Instant`] and [`time::Duration`] in microseconds, the
+//!   monotonic [`time::Clock`] and the one-shot [`time::Alarm`].
 //!
 //! ## Design notes
 //!
@@ -89,3 +91,4 @@ pub mod common;
 pub mod gpio;
 pub mod device;
 pub mod irq;
+pub mod time;

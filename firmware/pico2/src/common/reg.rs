@@ -104,6 +104,10 @@ pub enum RegAddr {
     /// Part of the Arm private peripheral bus: no `RESETS` bit and no atomic
     /// aliases; the set and clear registers are separate words instead.
     NVIC = 0xe000_e100,
+
+    /// `TIMER0`: the 64-bit microsecond timer and its four alarms. Datasheet
+    /// §12.8.5, Table 1226 (p1184). `RESETS.RESET` bit 23.
+    TIMER0 = 0x400b_0000,
 }
 
 /// Offset of the atomic **XOR** alias of an APB register (§2.1.3, p27).

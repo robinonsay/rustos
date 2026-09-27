@@ -7,7 +7,16 @@
 //! block can silently kill a program — lives on the private `Reset` layout
 //! struct below.
 
+use core::mem::offset_of;
+
 use crate::common::reg::RegAddr;
+
+/// Offset of `RESETS.RESET` from the block base, for drivers that use the
+/// [`Regs`](crate::common::reg::Regs) capability and the atomic aliases.
+pub(crate) const RESET_OFFSET: usize = offset_of!(Reset, reset);
+/// Offset of `RESETS.RESET_DONE` from the block base.
+pub(crate) const RESET_DONE_OFFSET: usize = offset_of!(Reset, reset_done);
+const _: () = assert!(RESET_OFFSET == 0x0 && RESET_DONE_OFFSET == 0x8);
 /// `RESETS` — the subsystem reset controller. Base `0x4002_0000`.
 ///
 /// Almost every peripheral on the chip comes out of power-on reset **held in
