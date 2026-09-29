@@ -31,6 +31,7 @@ at `../../rp2350-datasheet.pdf` (relative to this index file).
 | 12.3 SPI | 1043-1090 | [`spi/`](spi/index.md) |
 | 12.5 PWM | 1073-1090 | [`pwm/`](pwm/index.md) |
 | 12.8 System Timers | 1179-1189 | [`timer/`](timer/index.md) |
+| 4.4 XIP, 5.4 and 5.5 Bootrom flash API and UF2, 12.14 QMI | 340-351, 372-400, 1223-1246 | [`flash/`](flash/index.md) |
 
 ## Cross-References
 
