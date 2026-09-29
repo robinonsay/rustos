@@ -51,7 +51,12 @@ build 2025-02-20 (PDF page = printed page + 1 in this build).
 ## cwht Driver Notes (WP-SW-08)
 
 - WP-SW-08 is the `FlashStore` work package of cwht 07 section 19 (erase sector,
-  program page, read) for the configuration copies A and B and the event log.
+  program page, read) for the configuration sectors A and B and the event log.
+  Both users write under the same conditions (Receive or Fault-safe, PA_EN and
+  TX_KEY low, key inputs open), one declared scheduler window at a time. See
+  [`02_programming.md`](02_programming.md) "cwht window design".
+- The flash driver holds no watchdog handle: only the cwht main loop kicks the
+  watchdog, after every monitor task has run.
   This chapter is its DML-3 register ICD; the analytical proof and the time
   budget are in cwht `docs/design/analysis/fw-b1-dml3-wp-sw-08-10-12.md`
   section 4. The driver itself is FW-B2 work.
@@ -61,11 +66,11 @@ build 2025-02-20 (PDF page = printed page + 1 in this build).
   runs from SRAM (`.data.ramfunc`, copied by `reset_data()`), with PRIMASK set,
   calling only ROM functions resolved before the window. See
   [`02_programming.md`](02_programming.md).
-- cwht keeps its store out of the last sector of the 4 MB device (RP2350-E10,
-  [`02_programming.md`](02_programming.md) "UF2 downloads").
+- cwht keeps its store and its event log out of the last sector of the 4 MB
+  device (RP2350-E10, [`02_programming.md`](02_programming.md) "UF2 downloads").
 
 ## Cross-References
 
 - Critical section (PRIMASK): cwht WP-SW-09, `pico2::irq`.
-- Watchdog feed before the window: cwht WP-SW-07 (`watchdog/`, not yet extracted).
+- Watchdog kick by the main loop before and after the window: cwht WP-SW-07 (`watchdog/`, not yet extracted).
 - CRC-32 of each record: cwht `cwht-core` (WP-SW-12), not a rustos item.

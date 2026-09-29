@@ -33,31 +33,46 @@ p341).
 | Core 1 not running (it stays in the bootrom wait state) | it would fetch from XIP | p387 |
 | No DMA channel reads or writes the XIP windows during the window | DMA XIP access faults | p387 |
 | No debugger memory access to XIP during the window | it returns a bus fault | p387 |
-| The watchdog is fed immediately before masking, and the window is shorter than half the watchdog load | the watchdog keeps counting while the core is in ROM | cwht keyer host study §6.5 |
+| The flash driver never touches the watchdog. The window starts only right after a watchdog kick given by the application's main loop, and the longest time without a kick (the rest of that pass, the window, the next full pass) is at most half the watchdog load | the watchdog keeps counting while the core is in ROM; a kick from the driver would let a runaway caller keep the chip alive | cwht keyer host study §6.5, R-1 |
 | Offsets are checked by the caller: sector or page aligned, and only inside the store sectors | the range functions do no checks | p387 |
 | After step 5, re-apply any QMI timing the application set after boot (for example a faster `M0_TIMING.CLKDIV`) | step 5 restores the boot-time mode, not the application's | p388, p1239 |
 
 A fault inside the window cannot run its handler (the handler is in flash),
 so the core locks up; the running watchdog then resets the chip within its
-load time. This is the bounded outcome the driver design relies on.
+load time of the last main-loop kick. This is the bounded outcome the driver
+design relies on.
 
 ## cwht window design (WP-SW-08)
 
 One RAM-resident function per operation, entered with the arguments already
-checked by a pure decision function (`plan`, host-tested):
+checked by a pure decision function (`plan`, host-tested). The cwht scheduler
+(`SW-SCHED`) declares each window as a state with a bound, so the stall is
+neither a tick overrun nor a missed monitor deadline while it stays inside the
+bound:
 
 | Step | Action | Where it runs |
 |------|--------|---------------|
-| 0 | `plan(op, offset, len)`: reject anything that is not a whole sector (erase) or whole page (program) inside copy A or copy B | flash, host-tested |
-| 1 | Resolve `IF`, `EX`, `RE`/`RP`, `FC`, `XF`; copy the XIP setup function to an SRAM buffer | flash |
-| 2 | Feed the watchdog; set PRIMASK | flash (then jump to SRAM) |
+| 0 | `plan(op, offset, len, conditions)`: reject anything that is not a whole sector (erase) or whole page (program) of a configuration or event-log sector, or that fails the write conditions below | flash, host-tested |
+| 1 | The main-loop pass dispatches every due task; the kick decision finds every monitor on time and kicks the watchdog | flash, cwht main loop |
+| 2 | In the same pass, the scheduler enters its declared store-window state (start time from TIMER0; bound 10 ms for a program window, 450 ms for an erase window); resolve `IF`, `EX`, `RE`/`RP`, `FC`, `XF`; copy the XIP setup function to an SRAM buffer; set PRIMASK | flash (then jump to SRAM) |
 | 3 | `connect_internal_flash`, `flash_exit_xip`, the range function, `flash_flush_cache`, the SRAM copy of the XIP setup | SRAM and ROM only |
 | 4 | Re-apply the application's QMI timing; clear PRIMASK | SRAM, then flash |
-| 5 | Read back through XIP and compare (program) or check for 0xFF (erase) | flash |
+| 5 | The scheduler leaves the store-window state and reads TIMER0 (it counts through PRIMASK). Over the bound: a tick overrun, safe state. Within it: the missed ticks are counted as a declared stall, not as overruns | flash, cwht scheduler |
+| 6 | A catch-up pass runs every monitor task once on fresh samples, then the kick decision | flash, cwht main loop |
+| 7 | Later, as an ordinary step: read back through XIP and compare (program), or check for 0xFF (erase) | flash |
 
-Erase and program are separate windows, so the longest window is one sector
-erase. The record is one 256-byte page, so each commit is one erase window and
-one program window.
+Write conditions (cwht, every `FlashStore` user, configuration and event
+log): the mode is Receive or Fault-safe; PA_EN and TX_KEY are low and the key
+inputs read open; the pass that ends in step 1 took a PA temperature sample;
+at least 1 s has passed since the last window. Receive audio is muted, charge
+enable is de-asserted and transmit is disarmed before step 2 and restored
+after step 6.
+
+Records are appended: each 256-byte record goes into the next blank page of
+its sector (16 pages per sector), so almost every write is a program window.
+A sector is erased only to reclaim it, when the other sector of its ring is
+full and it holds only older records. Erase and program are always separate
+windows.
 
 ## UF2 downloads and RP2350-E10 (§5.5.2, p399-400; Appendix E, p1350-1351)
 
@@ -74,9 +89,10 @@ one program window.
   repository, cwht assumption A-F3), the block lands at `0x3FFF00`, and the
   sector erase clears the whole last sector `0x3FF000`.
 - Consequence: nothing that must survive a firmware update may live in the
-  last sector. cwht places copy A at offset `0x3FD000`, copy B at `0x3FE000`
-  and leaves `0x3FF000` unused. The application `FLASH` region ends at
-  `0x3FD000` (12 KiB below the device end).
+  last sector. cwht places its event log in an 8-sector reserve at offsets
+  `0x3F5000` to `0x3FCFFF`, configuration sector A at `0x3FD000`, sector B at
+  `0x3FE000`, and leaves `0x3FF000` unused. The application `FLASH` region
+  ends at `0x3F5000` (44 KiB below the device end).
 
 ## Time budget (cwht WP-SW-08, DML-3)
 
@@ -89,10 +105,14 @@ the repository) until the DML-5 dev-board measurement; they are marked (A).
 | 4 kB sector erase, maximum | 400 ms (A) | cwht A-7 |
 | 256-byte page program, maximum | 3 ms (A) | cwht A-7 |
 | Window overhead (connect, exit XIP, flush, XIP setup) | at most 1 ms (A) | cwht A-F2 |
-| Longest masked window: erase | 401 ms | sum |
-| Longest masked window if erase and program share one window | 404 ms | sum |
-| Watchdog load (cwht) | 1.0 s: 2.48 times the 404 ms window | cwht keyer host study §6.5 |
-| Largest sector erase that keeps the factor 2 | 496 ms | 1.0 s / 2 - 3 ms - 1 ms |
+| Program window | 4 ms | sum |
+| Erase window | 401 ms | sum |
+| Declared window bounds (cwht scheduler) | 10 ms program, 450 ms erase | cwht proposal |
+| One main-loop pass with every task due | at most 1 ms (A) | cwht A-F8 |
+| Longest time without a watchdog kick: rest of the pass, erase window, catch-up pass | 403 ms; 452 ms at the erase bound | sum |
+| Watchdog load (cwht) | 1.0 s: 2.48 times 403 ms, 2.21 times 452 ms | cwht keyer host study §6.5 |
+| Largest erase bound that keeps the factor 2 | 498 ms | 1.0 s / 2 - 2 x 1 ms |
+| Largest sector erase before the bound declares an overrun | 449 ms | 450 ms - 1 ms |
 | Read-back of one 256-byte record after the flush | under 1 ms | 03h at CLKDIV 12 worst case, [`03_xip_qmi.md`](03_xip_qmi.md) |
 
 The figures are recomputed by cwht
