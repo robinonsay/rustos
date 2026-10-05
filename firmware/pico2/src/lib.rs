@@ -110,6 +110,7 @@ pub mod gpio;
 pub mod clocks;
 pub mod timer;
 pub mod watchdog;
+pub mod usb;
 
 /// RP2350 `IMAGE_DEF` metadata block — **mandatory**; the chip will not boot
 /// without it.

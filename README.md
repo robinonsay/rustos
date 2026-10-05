@@ -38,11 +38,15 @@ citations:
   anything else of ours;
 - the **linker script**, the file that tells the linker at which address in
   the chip's memory map to place each part of the program;
-- and a **GPIO** driver (general-purpose input/output — a chip pin the
-  program can drive high or low, or read the level of).
+- a **GPIO** driver (general-purpose input/output — a chip pin the
+  program can drive high or low, or read the level of);
+- and drivers for the **clock tree** (crystal oscillator, PLLs, 150 MHz
+  system clock, 48 MHz USB clock), the microsecond **timer**, the
+  **watchdog**, and a polled **USB serial port** (a CDC-ACM device, which
+  desktop operating systems open as a serial port without a driver install).
 
-Each of those pieces is taught from scratch in this repository's
-[bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No external
+The boot pieces and the GPIO driver are taught from scratch in this
+repository's [bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No external
 embedded crates (`cortex-m`, `cortex-m-rt`, `rp-hal`, `embassy`, …) are
 used; nothing outside this repository is compiled into the firmware image.
 
@@ -73,10 +77,13 @@ rustos/
 interfaces) that application code programs against — `ErrorType`, `Read`,
 `Write`, `Gpio`, `GpioPinIn`, `GpioPinOut`, and the `Pull` enum — plus the
 `PinHandle` ownership type and the `define_board!` macro described in the
-next section. The crate contains no register addresses and no dependency on
-any other crate in the workspace, so it compiles for your host machine as
-well as for the microcontroller, which is what makes logic written against
-it testable without hardware.
+next section. Its `usb` module holds the chip-independent half of the USB
+serial port — descriptors, the endpoint-0 request state machine, CDC-ACM
+line coding, a byte ring buffer — unit-tested on the host. The crate
+contains no register addresses and no dependency on any other crate in the
+workspace, so it compiles for your host machine as well as for the
+microcontroller, which is what makes logic written against it testable
+without hardware.
 
 **`firmware/pico2/`** is a **library** crate (it has `src/lib.rs` and no
 `main.rs`) holding everything that must exist before and around user code:
@@ -97,6 +104,14 @@ it testable without hardware.
   `Rp2350` board type with the Pico 2's pin map;
 - a GPIO driver (`Rp2350Gpio`, producing `Rp2350GpioIn` / `Rp2350GpioOut`
   pins) implementing the `api` traits;
+- `clocks` (`Rp2350Clocks`): crystal, both PLLs, and the `clk_ref`,
+  `clk_sys`, `clk_peri` and `clk_usb` generators;
+- `timer` (`Rp2350Timer`): the 1 µs tick and the 64-bit `TIMER0` counter,
+  with busy-wait delays;
+- `watchdog` (`Rp2350Watchdog`): start, feed, forced reset, and the reason
+  for the last reset;
+- `usb` (`Rp2350Usb`): a polled USB CDC-ACM device with non-blocking
+  `read`/`write` and a link-lost indicator;
 - `link.ld`, the linker script that places every section in the RP2350's
   memory map, and `build.rs`, which tells Cargo where to find it.
 
@@ -329,8 +344,8 @@ which the GPIO driver and the tutorial cite by section and page.
 ## What is implemented and what is planned
 
 **Implemented today:** the three-crate workspace described above — boot path,
-GPIO driver, portable traits, the board-definition macro, and the blinky
-demo. That is all of the code.
+GPIO, clock, timer, watchdog and USB serial drivers, portable traits, the
+board-definition macro, and the blinky demo. That is all of the code.
 
 **Planned, documented, not implemented:** everything under `docs/design/`,
 `docs/requirements/`, `docs/test_cases/`, `docs/sdp/`, `docs/sprints/`,
