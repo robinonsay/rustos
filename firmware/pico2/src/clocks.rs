@@ -34,12 +34,12 @@
 //! (§8.1.2.2, p517). The rules from that section, each implemented by one
 //! function here:
 //!
-//! * Glitchless switch ([`switch_glitchless`]): write `SRC`, then poll
+//! * Glitchless switch (`switch_glitchless`): write `SRC`, then poll
 //!   `SELECTED` until the new source's bit is set.
 //! * Aux switch on a generator with a glitchless mux (same function): first
 //!   move the glitchless mux *off* the aux input and wait for `SELECTED`,
 //!   then change `AUXSRC`, then switch back to aux and wait again.
-//! * Aux switch on a generator without one ([`switch_aux_only`]): clear
+//! * Aux switch on a generator without one (`switch_aux_only`): clear
 //!   `ENABLE`, wait until `ENABLED` reads back 0 (two cycles of the old
 //!   source), change `AUXSRC`, set `ENABLE`, wait for `ENABLED`.
 //!
@@ -53,13 +53,13 @@
 //! 1. Disable resus (`CLK_SYS_RESUS_CTRL = 0`, Table 576, p543), so the
 //!    momentary absence of `clk_sys` edges while switching cannot trigger a
 //!    "resuscitation" back to the ROSC.
-//! 2. Start the XOSC and wait for `STATUS.STABLE` ([`start_xosc`]).
+//! 2. Start the XOSC and wait for `STATUS.STABLE` (`start_xosc`).
 //! 3. Move `clk_sys` onto `clk_ref` and `clk_ref` onto the ROSC, both via
 //!    their glitchless muxes. After this neither clock depends on a PLL, so
 //!    the PLLs can be reset safely. (On a cold boot this is already the
 //!    case for `clk_ref`; after a debugger warm reset it may not be.)
 //! 4. Reset and program `PLL_SYS` and `PLL_USB`, waiting for lock
-//!    ([`start_pll`]).
+//!    (`start_pll`).
 //! 5. `clk_ref` ← XOSC ÷ 1 (glitchless source 2).
 //! 6. `clk_sys` ← aux `PLL_SYS` ÷ 1.
 //! 7. `clk_usb` ← `PLL_USB` ÷ 1, `clk_peri` ← `clk_sys` ÷ 1 (aux-only
