@@ -53,7 +53,7 @@
 //! pin — but past that point everything it does goes through these traits, so
 //! those naming lines are the only ones that change when the chip does.
 //!
-//! ## The three modules, in reading order
+//! ## The modules, in reading order
 //!
 //! * [`common`] — the value-transfer vocabulary. [`common::ErrorType`] names
 //!   the single error type a peripheral reports; [`common::Read`] and
@@ -66,6 +66,11 @@
 //! * [`gpio`] — the first peripheral. [`gpio::Gpio`] is the factory trait
 //!   that consumes a `PinHandle` and returns a configured input or output
 //!   pin, typed by its pin number.
+//! * [`usb`] — chip-independent USB device logic for a CDC-ACM ("USB
+//!   serial") function: SETUP decoding, descriptor building, the endpoint-0
+//!   request state machine and a byte FIFO. Pure computation, unit-tested on
+//!   the host down to the exact bytes; the RP2350 register driver that uses
+//!   it lives in `pico2::usb`.
 //!
 //! ## Design notes
 //!
@@ -85,3 +90,4 @@
 pub mod common;
 pub mod gpio;
 pub mod device;
+pub mod usb;
