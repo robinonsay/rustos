@@ -207,3 +207,26 @@ pub unsafe fn wait_for_reset_done(mask: u32){
         {}
     }
 }
+
+/// Put the blocks in `mask` through a full reset: assert, release, and wait
+/// until they report ready.
+///
+/// Use this when a driver needs its block in a known state regardless of
+/// what ran before — a debugger warm reset, for instance, restarts the
+/// processors without resetting peripherals, so a PLL or the USB controller
+/// can still hold the previous run's configuration. Unlike
+/// [`clr_reset_reg`], the mask here is **not** complemented: pass the bits
+/// of the blocks to cycle.
+///
+/// # Safety
+///
+/// As [`set_reset_reg`]: the blocks in `mask` lose all state, so they must
+/// belong to the caller, and `IO_QSPI` (7) / `PADS_QSPI` (10) must never be
+/// included on an image executing from flash.
+pub unsafe fn cycle_reset(mask: u32){
+    unsafe{
+        set_reset_reg(mask);
+        clr_reset_reg(!mask);
+        wait_for_reset_done(mask);
+    }
+}
