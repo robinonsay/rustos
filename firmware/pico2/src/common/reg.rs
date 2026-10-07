@@ -94,6 +94,11 @@ pub enum RegAddr {
     /// register layout as `PLL_SYS`. Base from §8.6.5, p581.
     PLL_USB = 0x4005_8000,
 
+    /// `PWM` — the twelve PWM slices: per-slice control, divider, counter,
+    /// compare and wrap registers, then the global enable and interrupt
+    /// registers. See [`crate::pwm`]. Base from §12.5.3, p1084.
+    PWM = 0x400a_8000,
+
     /// `TIMER0` — the first of the two 64-bit microsecond system timers.
     /// See [`crate::timer`]. Base from §12.8.5, p1186.
     TIMER0 = 0x400b_0000,

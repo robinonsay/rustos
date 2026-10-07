@@ -30,6 +30,11 @@
 //!    `write_volatile` are the only things that guarantee the load or store
 //!    actually happens, once, in program order.
 //!
+//! `IoBank`, `PadsBank` and `GpioRegs` are `pub(crate)` rather than
+//! private because a pin is routed to any peripheral through these same two
+//! blocks: the PWM driver ([`crate::pwm`]) selects its function on a pin with
+//! the same `PADS_BANK0` / `IO_BANK0` sequence the GPIO driver uses for SIO.
+//!
 //! `#[repr(C)]` is mandatory on every struct here. It is what fixes field
 //! order and offsets to the declaration order; without it the compiler is free
 //! to reorder fields and the addresses stop matching the hardware. Explicit
@@ -83,7 +88,7 @@ pub mod gpio;
 /// connected to the pin. It says nothing about the electrical behaviour of the
 /// pin itself — that is [`PadsBank`].
 #[repr(C)]
-struct GpioRegs{
+pub(crate) struct GpioRegs{
     /// `GPIOn_STATUS` — offset `0x0` within the pair. **Read-only.**
     ///
     /// Reports the live signal values at four observation points along the
@@ -148,7 +153,7 @@ struct GpioRegs{
 /// The QSPI pins have their own separate `IO_QSPI` block at a different base;
 /// this struct covers only the 48 general-purpose pins.
 #[repr(C)]
-struct IoBank{
+pub(crate) struct IoBank{
     /// `GPIO0_STATUS` … `GPIO47_CTRL` — `0x000`–`0x17f`.
     ///
     /// Index by GPIO number: `gpio[25].ctrl` is `GPIO25_CTRL` at `0x0cc`.
@@ -218,7 +223,7 @@ struct IoBank{
 /// one right and the other wrong produces a pin that looks correct in the
 /// register dump and does nothing in the real world.
 #[repr(C)]
-struct PadsBank{
+pub(crate) struct PadsBank{
     /// `VOLTAGE_SELECT` — `0x00`. Bank-wide, reset `0x0`.
     ///
     /// Bit 0 sets the IO voltage threshold for **every** pad in the bank:
