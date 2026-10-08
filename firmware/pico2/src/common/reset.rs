@@ -208,6 +208,25 @@ pub unsafe fn wait_for_reset_done(mask: u32){
     }
 }
 
+/// Whether every block in `mask` is out of reset and ready: one read of
+/// `RESET_DONE` (Table 536, p506), no waiting. `1` means ready, as in
+/// [`wait_for_reset_done`].
+///
+/// For code that can run at any point of a boot and must not touch a block
+/// that may still be held in reset, such as a panic or fault handler.
+///
+/// # Safety
+///
+/// Reads a hardware register.
+pub unsafe fn is_reset_done(mask: u32) -> bool{
+    // Pointer to the RESETS block.
+    let reset_addr = RegAddr::RESET as usize as *mut Reset;
+    unsafe{
+        let reset_done = &raw const (*reset_addr).reset_done;
+        reset_done.read_volatile() & mask == mask
+    }
+}
+
 /// Put the blocks in `mask` through a full reset: assert, release, and wait
 /// until they report ready.
 ///

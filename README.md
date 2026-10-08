@@ -42,8 +42,10 @@ citations:
   program can drive high or low, or read the level of);
 - and drivers for the **clock tree** (crystal oscillator, PLLs, 150 MHz
   system clock, 48 MHz USB clock), the microsecond **timer**, the
-  **watchdog**, and a polled **USB serial port** (a CDC-ACM device, which
-  desktop operating systems open as a serial port without a driver install).
+  **watchdog**, a polled **USB serial port** (a CDC-ACM device, which
+  desktop operating systems open as a serial port without a driver install),
+  and **PWM** square-wave outputs (a fixed-frequency tone on a pin, switched
+  on and off).
 
 The boot pieces and the GPIO driver are taught from scratch in this
 repository's [bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No external
@@ -112,6 +114,9 @@ without hardware.
   for the last reset;
 - `usb` (`Rp2350Usb`): a polled USB CDC-ACM device with non-blocking
   `read`/`write` and a link-lost indicator;
+- `pwm` (`Rp2350Pwm`): 50 % square waves of 100 Hz–20 kHz on any GPIO,
+  switched on and off at whole cycles, off when dropped, and all off at once
+  from a panic handler;
 - `link.ld`, the linker script that places every section in the RP2350's
   memory map, and `build.rs`, which tells Cargo where to find it.
 
@@ -344,7 +349,7 @@ which the GPIO driver and the tutorial cite by section and page.
 ## What is implemented and what is planned
 
 **Implemented today:** the three-crate workspace described above — boot path,
-GPIO, clock, timer, watchdog and USB serial drivers, portable traits, the
+GPIO, clock, timer, watchdog, USB serial and PWM drivers, portable traits, the
 board-definition macro, and the blinky demo. That is all of the code.
 
 **Planned, documented, not implemented:** everything under `docs/design/`,
