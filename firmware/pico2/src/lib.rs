@@ -109,6 +109,7 @@ pub mod common;
 pub mod gpio;
 pub mod clocks;
 pub mod timer;
+pub mod systick;
 pub mod watchdog;
 pub mod usb;
 pub mod pwm;
@@ -335,6 +336,7 @@ unsafe fn reset_bss() {
 // signature is nonetheless checked.
 unsafe extern "Rust" {
     fn __rustos_main() -> !;
+    fn __rustos_safe_state();
 }
 
 /// Declare the application entry point: a function of type `fn() -> !`.
@@ -370,19 +372,48 @@ unsafe extern "Rust" {
 /// is a `mismatched types` error in the application crate, pointing at the
 /// `entry!` invocation.
 ///
-/// `$crate` is not needed in the current expansion, but the macro is exported
-/// at the crate root, so `pico2::entry!(..)` works with no accompanying `use`.
+/// The macro is exported at the crate root, so `pico2::entry!(..)` works with
+/// no accompanying `use`.
+///
+/// # The safe state
+///
+/// `entry!(main, safe_state = key_open)` also names a function of type `fn()`
+/// that the fault handlers ([`OnHardFault`], [`DefaultHandler`]) call first,
+/// before they stop: the place to put outputs that drive something outside
+/// the chip back to their safe level, so that a fault does not leave them as
+/// they were until the watchdog, if it runs, resets the chip. `entry!(main)`
+/// alone names [`no_safe_state`], which does nothing.
+///
+/// The function runs in the fault handler, with the program in whatever state
+/// faulted it: it should do no more than write the registers it needs, with
+/// no locks, no allocation and no driver state. A fault inside it, from the
+/// HardFault handler, locks the processor up (Armv8-M: a fault that cannot be
+/// handled at HardFault priority); only a reset ends that, as it ends the
+/// handler's own loop.
 #[macro_export]
 macro_rules! entry {
     ($f:path) => {
+        $crate::entry!($f, safe_state = $crate::no_safe_state);
+    };
+    ($f:path, safe_state = $s:path) => {
         #[unsafe(no_mangle)]
         pub extern "Rust" fn __rustos_main() -> ! {
             // Type check: rejects any signature other than fn() -> !.
             let f: fn() -> ! = $f;
             f()
         }
+
+        #[unsafe(no_mangle)]
+        pub extern "Rust" fn __rustos_safe_state() {
+            // Type check, as above: fn().
+            let s: fn() = $s;
+            s()
+        }
     };
 }
+
+/// The safe state of an application that names none in [`entry!`]: nothing.
+pub fn no_safe_state() {}
 
 /// Reset handler — the first Rust code to execute, entered directly from the
 /// bootrom via vector table slot 1.
@@ -413,11 +444,13 @@ pub extern "C" fn OnReset() -> ! {
 
 /// Catch-all for every exception and interrupt without a dedicated handler.
 ///
-/// Spins, so an unexpected interrupt stops the program at the point of the
-/// fault instead of returning into a corrupted state. Every slot in
-/// `VECTOR_TABLE` starts out pointing here.
+/// Puts the application's outputs in their safe state (see "The safe state"
+/// on [`entry!`]), then spins, so an unexpected interrupt stops the program
+/// at the point of the fault instead of returning into a corrupted state.
+/// Every slot in `VECTOR_TABLE` starts out pointing here.
 #[unsafe(no_mangle)]
 pub extern "C" fn DefaultHandler() {
+    unsafe { __rustos_safe_state() };
     loop {}
 }
 
@@ -425,9 +458,11 @@ pub extern "C" fn DefaultHandler() {
 ///
 /// Reached by a bus fault, a misaligned or illegal access, an escalated
 /// lower-priority fault, or — most often during bring-up — a call through a
-/// null or garbage function pointer.
+/// null or garbage function pointer. Puts the application's outputs in their
+/// safe state first, as [`DefaultHandler`] does, then spins.
 #[unsafe(no_mangle)]
 pub extern "C" fn OnHardFault() {
+    unsafe { __rustos_safe_state() };
     loop {}
 }
 
