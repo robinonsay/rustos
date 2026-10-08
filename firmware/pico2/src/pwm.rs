@@ -204,7 +204,7 @@ use api::device::{DeviceHandle, PinHandle};
 use crate::clocks::{CLK_SYS_HZ, Rp2350Clocks};
 use crate::common::MAX_GPIO_PIN;
 use crate::common::reg::RegAddr;
-use crate::common::reset::{clr_reset_reg, cycle_reset, wait_for_reset_done};
+use crate::common::reset::{clr_reset_reg, cycle_reset, is_reset_done, wait_for_reset_done};
 use crate::gpio::{IoBank, PadsBank};
 
 /// Lowest frequency [`Rp2350Pwm::square_from_handle`] accepts, in hertz.
@@ -702,10 +702,15 @@ impl Rp2350Pwm {
     /// [Turning a tone off](self#turning-a-tone-off)).
     ///
     /// For a panic or fault handler, which holds none of the
-    /// [`Rp2350PwmSquare`]s, and in which `Drop` does not run. Writes to the
-    /// block while it is still held in reset, before [`new`](Self::new),
-    /// do nothing (see [`crate::common::reset`]), so it can be called at
-    /// any point of a boot.
+    /// [`Rp2350PwmSquare`]s, and in which `Drop` does not run. In such a
+    /// handler, open any key or PTT line first and call this second, so the
+    /// radio is unkeyed before anything else runs.
+    ///
+    /// It can be called at any point of a boot. If the PWM block is not out
+    /// of reset (`RESET_DONE` bit 16 clear, Table 536, p506), as before
+    /// [`new`](Self::new), it writes nothing: the block then holds its reset
+    /// values, `CC` = 0 (Table 1134, p1088), and the datasheet does not say
+    /// what a write to a block held in reset does.
     ///
     /// # Safety
     ///
@@ -714,6 +719,9 @@ impl Rp2350Pwm {
     /// again, such as a panic handler, a fault handler or just before a
     /// reset.
     pub unsafe fn silence_all() {
+        if !unsafe { is_reset_done(RESET_PWM) } {
+            return;
+        }
         for slice in 0..SLICES {
             unsafe { (&raw mut (*pwm_clr()).slice[slice].cc).write_volatile(u32::MAX) };
         }
