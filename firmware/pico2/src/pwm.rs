@@ -45,8 +45,9 @@
 //! | PWM  | 0A | 0B | 1A | 1B | … | 7A | 7B | 0A | 0B | 1A | 1B | … | 6A | 6B |
 //!
 //! So for GPIO0–31 the slice is (*gpio* / 2) mod 8, and even pins are
-//! channel A, odd pins channel B; GPIO32–47 (QFN-80 only) use slices 8–11
-//! in the same pattern ([`gpio_to_slice`], [`gpio_to_channel`]). Every pin on
+//! channel A, odd pins channel B; GPIO32–47 use slices 8–11 in the same
+//! pattern ([`gpio_to_slice`], [`gpio_to_channel`]). GPIO30–47 exist on the
+//! QFN-80 package only. Every pin on
 //! the Pico 2 therefore has a PWM output, but GPIO*n* and GPIO*n*+16 are the
 //! *same* output: "If you select the same PWM output on two GPIO pins, the
 //! same signal appears on both" (§12.5.2, p1076). This driver hands each
@@ -79,15 +80,15 @@
 //! to 3000 Hz (0.06 Hz). Compile-time assertions below check both bounds for
 //! every integer frequency in the range.
 //!
-//! Below about 2.3 kHz the divider has a fractional part (700 Hz is
-//! `DIV` = 3 + 5/16, `TOP` = 64 689). The fractional divider is a
+//! Below about 2.3 kHz the divider usually has a fractional part (700 Hz
+//! is `DIV` = 3 + 5/16, `TOP` = 64 689). The fractional divider is a
 //! "first-order delta-sigma type" (§12.5.2.4, p1080) that reaches the
 //! average rate "by spacing some enable pulses further apart than others"
-//! (Figure 118, p1080) — for a first-order modulator, `DIV_INT` or
-//! `DIV_INT` + 1 cycles apart. So an edge can sit about one `clk_sys` cycle
-//! (6.7 ns) from its ideal position, and the two halves of a period can
-//! differ by about that much. On an audio tone that is far below anything
-//! audible.
+//! (Figure 118, p1080). The datasheet does not say how far apart; for a
+//! first-order modulator it is `DIV_INT` or `DIV_INT` + 1 cycles, so an
+//! edge would sit about one `clk_sys` cycle (6.7 ns) from its ideal
+//! position and the two halves of a period could differ by about that
+//! much. On an audio tone that is far below anything audible.
 //!
 //! # Double buffering: whole cycles only
 //!
@@ -118,8 +119,10 @@
 //!    copies the output uses hold `TOP` and `CC` = 0, so the slice's outputs
 //!    are low by the datasheet's own rules, without relying on the reset
 //!    value of the internal copies, which the datasheet does not give. The
-//!    wait is at most 65 536 × `DIV` `clk_sys` cycles: 10 ms at 100 Hz,
-//!    1.5 ms at 700 Hz, 0.44 ms above 2.3 kHz.
+//!    wait is one period, at most 65 536 × `DIV` `clk_sys` cycles: 10 ms at
+//!    100 Hz, 1.5 ms at 700 Hz, 0.44 ms above 2.3 kHz. It gives up after
+//!    at least two periods with [`PwmError::NoWrap`], stopping the slice
+//!    again and leaving the pin unconnected.
 //! 2. Pad: clear `OD`, set `IE` (Table 852, p785).
 //! 3. `GPIOn_CTRL.FUNCSEL` = 4, the PWM function (Table 644, p588–589;
 //!    e.g. `0x04 → PWM_A_1` for GPIO18, Table 686, p639).
@@ -131,10 +134,33 @@
 //! in, the ISO bit should be cleared." Until step 4 the pad holds its
 //! latched state — on a pin untouched since power-on, the reset state:
 //! output disabled, pulled low (§9.3, p586). After it, the PWM drives the
-//! pin, already low. Free-running mode makes both A and B pins outputs
+//! pin, already low.
+//!
+//! A reset of the processors alone (a debugger's warm reset) leaves
+//! `IO_BANK0` and `PADS_BANK0` as they were: pads return to their reset
+//! state at first power-up, and then only on a brown-out, `RUN` held low,
+//! `CDBGRSTREQ` or a rescue reset (§9.3, p586–587). A pin the last run gave
+//! to the PWM then still has `FUNCSEL` = 4 and its isolation released, and
+//! its tone keeps playing until [`Rp2350Pwm::new`]. That first disconnects
+//! every such pin, setting `FUNCSEL` to the null function (0x1f, Table 650,
+//! p609), which "ensures that the output buffer is high-impedance" (§9.3,
+//! p586), and only then resets the PWM block. The watchdog reset this
+//! crate uses goes through the power-on state machine and resets all
+//! three blocks. Free-running mode makes both A and B pins outputs
 //! (§12.5.2.5, p1081), and `OEOVER` = 0, which the whole-register `CTRL`
 //! write sets, takes the output enable from the selected peripheral (Table
 //! 650, p608).
+//!
+//! # Turning a tone off
+//!
+//! Always by `CC` = 0 with the slice left running, never by stopping the
+//! slice: an output is high while the counter is below `CC` (Figure 111,
+//! p1077) and the counter only moves while the slice is enabled
+//! (§12.5.2.5, p1080), so a slice stopped in the high half of a period
+//! holds its pin high. [`Write::write`]`(false)` and dropping a
+//! [`Rp2350PwmSquare`] both store `CC` = 0 for that channel;
+//! [`Rp2350Pwm::silence_all`] does it for every channel at once, for a
+//! panic or fault handler that holds no handles.
 //!
 //! # Two pins on one slice
 //!
@@ -225,7 +251,7 @@ struct Pwm {
     _en: u32,
     /// `0x0f4` `INTR` (Table 1137, p1089): raw interrupt flags, one per
     /// slice, set at every wrap of that slice's counter and cleared by
-    /// writing 1 (type `WC`, Appendix A, p1346). "To clear flags, write a
+    /// writing 1 (type `WC`, Appendix A, p1346–1347). "To clear flags, write a
     /// mask back to INTR" (§12.5.2.7, p1082).
     intr: u32,
 }
@@ -271,6 +297,12 @@ const CC_B_SHIFT: u32 = 16;
 /// 644 (p588–589), the same for every GPIO, e.g. `0x04 → PWM_A_0` in
 /// `GPIO0_CTRL` (Table 650, p609).
 const FUNCSEL_PWM: u32 = 4;
+/// `GPIOn_CTRL.FUNCSEL` mask, bits 4:0 (Table 650, p609).
+const FUNCSEL_MASK: u32 = 0x1f;
+/// `GPIOn_CTRL` at its reset value (Table 650, p608–609): `FUNCSEL` = 0x1f,
+/// the null function, whose output buffer is high-impedance (§9.3, p586),
+/// and every override field "normal" (0).
+const GPIO_CTRL_NULL: u32 = 0x1f;
 /// Pad `ISO`, bit 8, reset 1: "Pad isolation control. Remove this once the
 /// pad is configured by software." (Table 852, p785.)
 const PAD_ISO: u32 = 1 << 8;
@@ -533,6 +565,15 @@ pub enum PwmError {
         /// The frequency that was requested, in hertz.
         requested_hz: u32,
     },
+    /// The slice, started for this pin, did not wrap within two periods,
+    /// so its outputs cannot be known to be low: for example, `clk_sys`
+    /// does not reach the PWM block (`CLK_SYS_PWM`, `WAKE_EN0` bit 25,
+    /// Table 586, p546). The slice is stopped again and the pin was never
+    /// connected.
+    NoWrap {
+        /// The slice.
+        slice: usize,
+    },
 }
 
 /// The PWM block: reset bring-up, and the factory for square-wave pins.
@@ -557,21 +598,25 @@ impl Rp2350Pwm {
     /// Reset the PWM block, leaving every slice stopped, and make sure the
     /// GPIO blocks a PWM output is routed through are out of reset.
     ///
-    /// `PWM` goes through a full reset cycle (Table 534, p504), so all its
-    /// registers hold their reset values whatever ran before. `IO_BANK0`
-    /// and `PADS_BANK0` are only released, never reset: if
+    /// `IO_BANK0` and `PADS_BANK0` are only released, never reset: if
     /// [`Rp2350Gpio::new`](crate::gpio::gpio::Rp2350Gpio::new) has already
     /// run, this changes nothing, and if it runs later it does the same
     /// release again, harmlessly. (The watchdog does the same with
-    /// `SYSCFG`.) No pin is touched.
+    /// `SYSCFG`.) Then every bonded-out pin whose `FUNCSEL` is the PWM —
+    /// which in this boot only a run before a processor-only reset can have
+    /// left (see [Safe start](self#safe-start)) — is set back to the null
+    /// function, high-impedance. No other pin is touched. Last, `PWM` goes
+    /// through a full reset cycle (Table 534, p504), so all its registers
+    /// hold their reset values whatever ran before.
     ///
     /// `&Rp2350Clocks` is required because every divider is computed from
     /// [`CLK_SYS_HZ`].
     pub fn new(_handle: DeviceHandle<Rp2350Pwm>, _clocks: &Rp2350Clocks) -> Self {
         unsafe {
-            cycle_reset(RESET_PWM);
             clr_reset_reg(!RESET_IO_PADS);
             wait_for_reset_done(RESET_IO_PADS);
+            disconnect_pwm_pins();
+            cycle_reset(RESET_PWM);
         }
         Self {
             claimed: 0,
@@ -588,12 +633,14 @@ impl Rp2350Pwm {
     /// [module documentation](self#safe-start). If pin `N` is the first on
     /// its slice this starts the slice and busy-waits for its first wrap,
     /// at most 65 536 × `DIV` `clk_sys` cycles (10 ms at 100 Hz, 1.5 ms at
-    /// 700 Hz). A second pin on a running slice does not wait.
+    /// 700 Hz), so start a watchdog with a longer timeout than that, or
+    /// configure the PWM pins before starting it. A second pin on a running
+    /// slice does not wait.
     ///
     /// The handle is consumed, as by
     /// [`Gpio::output_from_handle`](api::gpio::Gpio::output_from_handle):
     /// it proves pin `N` exists and that nobody else holds it. Errors, all
-    /// detected before any register is written:
+    /// but the last detected before any register is written:
     ///
     /// * [`PwmError::FrequencyOutOfRange`] — `hz` outside
     ///   [`MIN_FREQUENCY_HZ`]–[`MAX_FREQUENCY_HZ`].
@@ -601,6 +648,8 @@ impl Rp2350Pwm {
     ///   this output.
     /// * [`PwmError::SliceFrequencyConflict`] — the other channel of this
     ///   slice already runs at a different period.
+    /// * [`PwmError::NoWrap`] — the slice started for this pin did not wrap
+    ///   within two periods; it is stopped again.
     pub fn square_from_handle<const N: usize>(
         &mut self,
         _handle: PinHandle<N>,
@@ -623,7 +672,11 @@ impl Rp2350Pwm {
             return Err(PwmError::ChannelInUse { slice, channel });
         }
         match self.running[slice] {
-            None => unsafe { start_slice(slice, &config) },
+            None => {
+                if !unsafe { start_slice(slice, &config) } {
+                    return Err(PwmError::NoWrap { slice });
+                }
+            }
             Some(running) if running == config => {}
             Some(running) => {
                 return Err(PwmError::SliceFrequencyConflict {
@@ -640,6 +693,33 @@ impl Rp2350Pwm {
     }
 }
 
+impl Rp2350Pwm {
+    /// Turn off every PWM output: `CC` = 0 for both channels of every
+    /// slice, one store per slice through the atomic clear alias, every
+    /// slice left running. Each output goes low at its slice's next wrap,
+    /// within one period (10 ms at [`MIN_FREQUENCY_HZ`]). It never stops a
+    /// slice, which could hold a pin high (see
+    /// [Turning a tone off](self#turning-a-tone-off)).
+    ///
+    /// For a panic or fault handler, which holds none of the
+    /// [`Rp2350PwmSquare`]s, and in which `Drop` does not run. Writes to the
+    /// block while it is still held in reset, before [`new`](Self::new),
+    /// do nothing (see [`crate::common::reset`]), so it can be called at
+    /// any point of a boot.
+    ///
+    /// # Safety
+    ///
+    /// It overrides the owners of the outputs: a tone its owner turned on
+    /// is off, and the owner is not told. Call it only where no owner runs
+    /// again, such as a panic handler, a fault handler or just before a
+    /// reset.
+    pub unsafe fn silence_all() {
+        for slice in 0..SLICES {
+            unsafe { (&raw mut (*pwm_clr()).slice[slice].cc).write_volatile(u32::MAX) };
+        }
+    }
+}
+
 /// [`Rp2350Pwm::square_from_handle`]'s error type.
 impl ErrorType for Rp2350Pwm {
     type Error = PwmError;
@@ -650,9 +730,11 @@ impl ErrorType for Rp2350Pwm {
 ///
 /// Ownership works as for [`Rp2350GpioOut`](crate::gpio::gpio::Rp2350GpioOut):
 /// construction consumed the pin's [`PinHandle`], so in safe code at most
-/// one of these exists per pin, and [`Write::write`] takes `&mut self`. And
-/// with the same limit: nothing gives the pin back, and dropping this value
-/// leaves the hardware as it is — a tone that is on stays on.
+/// one of these exists per pin, and [`Write::write`] takes `&mut self`, and
+/// nothing gives the pin back. Unlike a GPIO output, dropping this value
+/// does change the hardware: it turns the tone off, as `write(false)`, so
+/// an early return cannot leave a tone playing. The pin stays connected to
+/// its PWM output, held low, with the slice running.
 ///
 /// Holds only the slice's [`SquareConfig`]; the slice and channel follow
 /// from `N`.
@@ -713,15 +795,23 @@ impl<const N: usize> Write<bool> for Rp2350PwmSquare<N> {
     }
 }
 
+/// Turns the tone off: see the [`Rp2350PwmSquare`] documentation.
+impl<const N: usize> Drop for Rp2350PwmSquare<N> {
+    fn drop(&mut self) {
+        let Ok(()) = self.write(false);
+    }
+}
+
 /// Program a stopped slice for `config` with both outputs at 0 %, start
 /// it, and wait for its first wrap: step 1 of the safe-start sequence in
-/// the module documentation.
+/// the module documentation. `false` if it did not wrap within two
+/// periods; the slice is then stopped again.
 ///
 /// # Safety
 ///
 /// `slice` < [`SLICES`], and no pin may own an output of it yet: this
 /// rewrites the whole slice, both channels included.
-unsafe fn start_slice(slice: usize, config: &SquareConfig) {
+unsafe fn start_slice(slice: usize, config: &SquareConfig) -> bool {
     let pwm = pwm();
     let wrapped = 1 << slice;
     unsafe {
@@ -739,7 +829,38 @@ unsafe fn start_slice(slice: usize, config: &SquareConfig) {
         let intr = &raw mut (*pwm).intr;
         intr.write_volatile(wrapped);
         csr.write_volatile(CSR_EN);
-        while intr.read_volatile() & wrapped == 0 {}
+        // Each look at INTR takes at least one clk_sys cycle, so this many
+        // looks span at least two periods.
+        let looks = 2 * (config.period_sixteenths() / 16 + 1);
+        for _ in 0..looks {
+            if intr.read_volatile() & wrapped != 0 {
+                return true;
+            }
+        }
+        // No pin owns either output of this slice yet, so stopping it
+        // cannot hold one high.
+        csr.write_volatile(0);
+        false
+    }
+}
+
+/// Set every bonded-out pin whose `FUNCSEL` is the PWM back to the null
+/// function, high-impedance, with every override "normal": the register's
+/// reset value. Pins with any other function are not touched.
+///
+/// # Safety
+///
+/// `IO_BANK0` is out of reset, and no pin has been given to the PWM in this
+/// boot: only [`Rp2350Pwm::new`] calls this, once.
+unsafe fn disconnect_pwm_pins() {
+    let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
+    for pin in 0..MAX_GPIO_PIN {
+        unsafe {
+            let ctrl = &raw mut (*io_addr).gpio[pin].ctrl;
+            if ctrl.read_volatile() & FUNCSEL_MASK == FUNCSEL_PWM {
+                ctrl.write_volatile(GPIO_CTRL_NULL);
+            }
+        }
     }
 }
 
