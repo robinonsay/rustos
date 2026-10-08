@@ -99,7 +99,10 @@ without hardware.
   macro emits the `__rustos_main` symbol the reset handler calls, and
   type-checks `main` against `fn() -> !` at compile time (`!` is the type of
   a function that never returns; on bare metal there is nothing to return
-  to, so a `main` that could fall off the end is a type error);
+  to, so a `main` that could fall off the end is a type error); it can also
+  name a *safe state*, a function the fault handlers call first, so that a
+  fault puts the application's outputs back to their safe level before the
+  program stops;
 - `common/board.rs`, which instantiates `api`'s `define_board!` macro as the
   `Rp2350` board type with the Pico 2's pin map;
 - a GPIO driver (`Rp2350Gpio`, producing `Rp2350GpioIn` / `Rp2350GpioOut`
@@ -107,9 +110,13 @@ without hardware.
 - `clocks` (`Rp2350Clocks`): crystal, both PLLs, and the `clk_ref`,
   `clk_sys`, `clk_peri` and `clk_usb` generators;
 - `timer` (`Rp2350Timer`): the 1 µs tick and the 64-bit `TIMER0` counter,
-  with busy-wait delays;
-- `watchdog` (`Rp2350Watchdog`): start, feed, forced reset, and the reason
-  for the last reset;
+  with busy-wait delays, never paused by a debugger;
+- `systick` (`Rp2350SysTick`): the core's SysTick counter run free on the
+  processor clock, a second witness of elapsed time apart from the 1 µs
+  tick;
+- `watchdog` (`Rp2350Watchdog`): start, feed, forced reset, the reason for
+  the last reset, and the two scratch registers a watchdog reset keeps for
+  the application;
 - `usb` (`Rp2350Usb`): a polled USB CDC-ACM device with non-blocking
   `read`/`write` and a link-lost indicator;
 - `link.ld`, the linker script that places every section in the RP2350's
@@ -344,7 +351,7 @@ which the GPIO driver and the tutorial cite by section and page.
 ## What is implemented and what is planned
 
 **Implemented today:** the three-crate workspace described above — boot path,
-GPIO, clock, timer, watchdog and USB serial drivers, portable traits, the
+GPIO, clock, timer, SysTick, watchdog and USB serial drivers, portable traits, the
 board-definition macro, and the blinky demo. That is all of the code.
 
 **Planned, documented, not implemented:** everything under `docs/design/`,

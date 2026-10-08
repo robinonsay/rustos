@@ -24,11 +24,11 @@
 //!   bring-up (releasing the GPIO blocks from reset) happens there — when
 //!   the peripheral is claimed, not at `take()`. A peripheral no code claims
 //!   is never brought up. The other device handles work the same way:
-//!   `clocks` ([`Rp2350Clocks`]), `timer` ([`Rp2350Timer`]), `watchdog`
-//!   ([`Rp2350Watchdog`]) and `usb` ([`Rp2350Usb`]). Those drivers also
-//!   take a `&Rp2350Clocks` (and USB a `&Rp2350Timer`), so the type system
-//!   enforces the bring-up order: clocks first, then timer and watchdog,
-//!   then USB.
+//!   `clocks` ([`Rp2350Clocks`]), `timer` ([`Rp2350Timer`]), `systick`
+//!   ([`Rp2350SysTick`]), `watchdog` ([`Rp2350Watchdog`]) and `usb`
+//!   ([`Rp2350Usb`]). Those drivers also take a `&Rp2350Clocks` (and USB a
+//!   `&Rp2350Timer`), so the type system enforces the bring-up order: clocks
+//!   first, then timer, SysTick and watchdog, then USB.
 //! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
 //!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
@@ -83,6 +83,7 @@ use api::define_board;
 
 use crate::clocks::Rp2350Clocks;
 use crate::gpio::gpio::Rp2350Gpio;
+use crate::systick::Rp2350SysTick;
 use crate::timer::Rp2350Timer;
 use crate::usb::Rp2350Usb;
 use crate::watchdog::Rp2350Watchdog;
@@ -129,6 +130,7 @@ define_board!{
             gpio: Rp2350Gpio,
             clocks: Rp2350Clocks,
             timer: Rp2350Timer,
+            systick: Rp2350SysTick,
             watchdog: Rp2350Watchdog,
             usb: Rp2350Usb,
         }

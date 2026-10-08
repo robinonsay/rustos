@@ -71,8 +71,8 @@
 //! hold the transmitter keyed indefinitely by halting the core with the
 //! key line asserted. The cost: stepping through code with the watchdog
 //! running resets the chip after the timeout, so debug sessions should
-//! either not start the watchdog or use a long timeout. (Note also that
-//! `TIMER0` *does* pause under debug — see [`crate::timer`].)
+//! either not start the watchdog or use a long timeout. (`TIMER0` is
+//! kept from pausing under debug the same way — see [`crate::timer`].)
 //!
 //! # Why did the chip reset?
 //!
@@ -125,6 +125,28 @@
 //! the datasheet does not itself say which `REASON` bit the bootrom's reboot
 //! leaves (the bootrom source arms the timer, hence `TIMER`). Unverified on
 //! hardware.
+//!
+//! # Scratch registers for the application
+//!
+//! `SCRATCH0`–`SCRATCH7` keep their contents through every reset short of
+//! a chip-level one ("Information persists through soft reset of the
+//! chip", Table 1250, p1195), and every chip-level reset — power-on,
+//! brown-out, the RUN pin, a debugger reset — clears them all ("All
+//! chip-level reset sources in the table also reset the system watchdog
+//! peripheral. This includes watchdog scratch registers SCRATCH0 →
+//! SCRATCH7", §7.3, p493). That makes them the place to leave a note for
+//! the next boot after a watchdog reset, a note that unplugging the board
+//! erases.
+//!
+//! Only two of the eight are the application's: the bootrom reads
+//! `SCRATCH4`–`SCRATCH7` as its boot vector (§5.2.4, p372; this driver's
+//! marker lives in `SCRATCH4`), and passes the parameters of a one-shot
+//! reboot, such as the flash update that follows a UF2 download, in
+//! `SCRATCH2` and `SCRATCH3` ("SCRATCH2: Parameter 0 • SCRATCH3: Parameter
+//! 1", p373). `SCRATCH0` and `SCRATCH1` appear nowhere in the boot path, so
+//! [`Scratch`] names only those two, and
+//! [`scratch`](Rp2350Watchdog::scratch) and
+//! [`set_scratch`](Rp2350Watchdog::set_scratch) reach no other.
 //!
 //! # GPIO pins across a watchdog reset
 //!
@@ -329,6 +351,16 @@ const POWMAN_SWITCH_DELAY_LOOPS: u32 = 64 * (CLK_SYS_HZ / CLK_REF_HZ);
 
 // --- Public types --------------------------------------------------------
 
+/// A scratch register the application may use: see "Scratch registers for
+/// the application" in the module documentation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Scratch {
+    /// `SCRATCH0`, offset `0x0c` (Table 1250, p1195).
+    Scratch0 = 0,
+    /// `SCRATCH1`, offset `0x10`.
+    Scratch1 = 1,
+}
+
 /// Why the chip last reset, as determined by [`Rp2350Watchdog::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResetReason {
@@ -527,6 +559,20 @@ impl Rp2350Watchdog {
         }
         let wd = RegAddr::WATCHDOG as usize as *mut Watchdog;
         unsafe { (&raw mut (*wd).load).write_volatile(self.load) };
+    }
+
+    /// The value in `reg`: what the last [`set_scratch`](Self::set_scratch)
+    /// left there, if no chip-level reset came since; 0 after one.
+    pub fn scratch(&self, reg: Scratch) -> u32 {
+        let wd = RegAddr::WATCHDOG as usize as *const Watchdog;
+        unsafe { (&raw const (*wd).scratch[reg as usize]).read_volatile() }
+    }
+
+    /// Leave `value` in `reg` for the next boot to read: it survives a
+    /// watchdog reset, and a chip-level reset clears it.
+    pub fn set_scratch(&mut self, reg: Scratch, value: u32) {
+        let wd = RegAddr::WATCHDOG as usize as *mut Watchdog;
+        unsafe { (&raw mut (*wd).scratch[reg as usize]).write_volatile(value) };
     }
 
     /// Microseconds left before the watchdog fires (`CTRL.TIME`).

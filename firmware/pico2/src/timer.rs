@@ -39,6 +39,22 @@
 //! SDK accordingly uses a scale factor of 1 on RP2350 and 2 only on RP2040.
 //! Not verified on hardware.
 //!
+//! # Never paused by a debugger
+//!
+//! `TIMER0` stops counting while a debugger halts core 0 or core 1 when
+//! the matching `DBGPAUSE` bit is set, and both bits reset to 1 (Table
+//! 1238, p1189: "DBG1: Pause when processor 1 is in debug mode", reset
+//! `0x1`; `DBG0` the same for processor 0). With the reset value, a
+//! debugger that halts core 1 alone freezes the time core 0 reads while
+//! core 0 runs on: every deadline measured on this timer stops coming
+//! due, while code on core 0 carries on (and feeds the watchdog, which
+//! [`crate::watchdog`] never lets a debugger pause). For a device that
+//! keys a transmitter, a deadline that stops coming due is a key-down
+//! limit that never expires, so [`Rp2350Timer::new`] writes `DBGPAUSE` = 0:
+//! the count goes on whatever a debugger does, the same policy as the
+//! watchdog's pause bits. The cost is the same too: stepping through
+//! code sees time run on.
+//!
 //! Page numbers in this crate are PDF page indices of the RP2350 datasheet
 //! (one more than the number printed in the page footer).
 
@@ -122,10 +138,11 @@ struct Timer {
     timerawh: u32,
     /// `0x28`: `TIMERAWL`, bits 31:0 of the count, no side effects.
     timerawl: u32,
-    /// `0x2c`: `DBGPAUSE` (Table 1238, p1189). Bits 1 and 2 pause the
-    /// timer while core 0 / core 1 is halted by a debugger; both reset to
-    /// 1 and are left that way.
-    _dbgpause: u32,
+    /// `0x2c`: `DBGPAUSE` (Table 1238, p1189). Bit 1 `DBG0` and bit 2
+    /// `DBG1` pause the timer while core 0 / core 1 is in debug mode; both
+    /// reset to 1. [`Rp2350Timer::new`] clears them: see "Never paused by a
+    /// debugger" in the module documentation.
+    dbgpause: u32,
     /// `0x30`: `PAUSE`, reset 0.
     _pause: u32,
     /// `0x34`: `LOCKED`, reset 0.
@@ -137,6 +154,7 @@ struct Timer {
 
 const _: () = assert!(core::mem::offset_of!(Timer, timerawh) == 0x24);
 const _: () = assert!(core::mem::offset_of!(Timer, timerawl) == 0x28);
+const _: () = assert!(core::mem::offset_of!(Timer, dbgpause) == 0x2c);
 const _: () = assert!(core::mem::offset_of!(Timer, _source) == 0x38);
 
 /// `TIMER0` — bit 23 of `RESETS.RESET` (Table 534, p504).
@@ -163,13 +181,17 @@ impl Rp2350Timer {
     /// `TIMER0` is put through a full reset (Table 534, p504) so the count
     /// starts at 0 and every register is at its reset value even after a
     /// debugger warm reset, which restarts the processors but not the
-    /// peripherals. The reset values are what this driver wants: count
-    /// ticks (`SOURCE` = 0), not paused, pause while a debugger halts a
-    /// core (`DBGPAUSE` = `0b110`), no alarms armed.
+    /// peripherals. The reset values are what this driver wants — count
+    /// ticks (`SOURCE` = 0), not paused, no alarms armed — except
+    /// `DBGPAUSE`, which resets to `0b110` (pause while a debugger halts
+    /// either core) and is then written 0, so that the count never stops
+    /// for a debugger (see the module documentation).
     pub fn new(_handle: DeviceHandle<Rp2350Timer>, _clocks: &Rp2350Clocks) -> Self {
+        let timer = RegAddr::TIMER0 as usize as *mut Timer;
         unsafe {
             start_tick(TickDestination::Timer0);
             cycle_reset(RESET_TIMER0);
+            (&raw mut (*timer).dbgpause).write_volatile(0);
         }
         Self { _private: () }
     }
