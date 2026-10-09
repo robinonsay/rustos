@@ -6,7 +6,7 @@ carries the board's build environment (`.cargo/config.toml` with the
 target triple, linker flags, and flash runner).
 
 Requires [cargo-generate](https://github.com/cargo-generate/cargo-generate)
-(`cargo install cargo-generate`).
+0.23.4 or later (`cargo install cargo-generate`).
 
 ```sh
 # Pick a board interactively:
@@ -27,6 +27,12 @@ cargo run --release   # builds and flashes via picotool
 | Template | Board | Target |
 |---|---|---|
 | `templates/pico2` | Raspberry Pi Pico 2 (RP2350) | `thumbv8m.main-none-eabihf` |
+
+A template's manifest is `Cargo.toml.liquid`, never `Cargo.toml`: cargo
+reads every `Cargo.toml` in a git dependency's repository, so a template's
+`name = "{{project-name}}"` would put an error in the build output of every
+crate that depends on RustOS. cargo-generate removes the `.liquid` suffix
+when it generates the app.
 
 ## Co-developing an app and RustOS
 
