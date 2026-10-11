@@ -133,7 +133,7 @@
 //! * **Supply noise.** Not this driver's business, but driving GPIO23
 //!   (`smps_ps`) high puts the Pico 2's regulator into PWM mode, which
 //!   "can greatly reduce the inherent ripple of the SMPS at light load, and
-//!   therefore the ripple on the ADC supply" (Pico 2 datasheet §4.4).
+//!   therefore the ripple on the ADC supply" (Pico 2 datasheet §5.3, p16).
 //!
 //! No interrupt is enabled (`INTE` stays 0, Table 1126, p1073; the DMA's
 //! `INTE0`–`INTE3` stay 0).
