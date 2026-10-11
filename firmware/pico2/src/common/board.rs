@@ -30,7 +30,9 @@
 //!   ([`Rp2350Adc`]). Those drivers except DMA also take a `&Rp2350Clocks`
 //!   (and USB a `&Rp2350Timer`), so the type system enforces the bring-up
 //!   order: clocks first, then timer, SysTick, watchdog, PWM and the ADC,
-//!   then USB. An ADC stream also takes a channel from the DMA.
+//!   then USB. An ADC stream also takes a channel from the DMA. `core1`
+//!   ([`Rp2350Core1`]) is the right to start the second core, once; its
+//!   `launch` takes a `&Rp2350Timer` for its time limit.
 //! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
 //!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
@@ -87,6 +89,7 @@ use crate::adc::Rp2350Adc;
 use crate::clocks::Rp2350Clocks;
 use crate::dma::Rp2350Dma;
 use crate::gpio::gpio::Rp2350Gpio;
+use crate::multicore::Rp2350Core1;
 use crate::pwm::Rp2350Pwm;
 use crate::systick::Rp2350SysTick;
 use crate::timer::Rp2350Timer;
@@ -141,6 +144,7 @@ define_board!{
             pwm: Rp2350Pwm,
             dma: Rp2350Dma,
             adc: Rp2350Adc,
+            core1: Rp2350Core1,
         }
     }
 }

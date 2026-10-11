@@ -479,6 +479,21 @@ impl Rp2350Usb {
         n
     }
 
+    /// How many bytes [`write`](Self::write) would take right now: the room
+    /// left in the [`TX_BUFFER_SIZE`]-byte transmit buffer, or 0 while the
+    /// device is not configured. Never blocks and touches no hardware.
+    ///
+    /// For a caller that must not send part of a message: a write of at
+    /// most this many bytes, with no other write before it, is taken whole.
+    /// A [`poll`](Self::poll) in between only adds room, as packets leave,
+    /// unless it ends the session, and then the write takes nothing.
+    pub fn room(&self) -> usize {
+        if !self.control.is_configured() {
+            return 0;
+        }
+        self.tx.free()
+    }
+
     /// True once the host has selected the configuration
     /// (SET_CONFIGURATION(1)): the serial port exists and bytes can flow.
     /// Stays true while the bus is suspended, as USB says it should.

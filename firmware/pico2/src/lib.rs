@@ -85,7 +85,7 @@
 //!   `VTOR`. Portable to any Armv8-M chip.
 //! * **RP2350 chip support** — `BOOT_INFO`, [`common::reg`],
 //!   [`common::reset`], [`gpio`], [`clocks`], [`timer`], [`watchdog`],
-//!   [`usb`], [`pwm`], [`dma`], [`adc`]. Portable to any RP2350 board, and notably
+//!   [`usb`], [`pwm`], [`dma`], [`adc`], [`multicore`]. Portable to any RP2350 board, and notably
 //!   *not* Arm-specific: RP2350 can boot RISC-V Hazard3 cores instead, driving
 //!   these same registers (p14).
 //! * **Pico 2 board support** — [`common::board`], which declares exactly the
@@ -115,6 +115,7 @@ pub mod usb;
 pub mod pwm;
 pub mod dma;
 pub mod adc;
+pub mod multicore;
 
 /// RP2350 `IMAGE_DEF` metadata block — **mandatory**; the chip will not boot
 /// without it.
@@ -392,6 +393,11 @@ unsafe extern "Rust" {
 /// HardFault handler, locks the processor up (Armv8-M: a fault that cannot be
 /// handled at HardFault priority); only a reset ends that, as it ends the
 /// handler's own loop.
+///
+/// Both cores share the vector table, so once [`multicore`] has started core
+/// 1 the handlers, and the safe state with them, run on whichever core
+/// faulted, while the other core carries on. [`multicore::core()`] tells the
+/// function which one it is on.
 #[macro_export]
 macro_rules! entry {
     ($f:path) => {

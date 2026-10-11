@@ -71,6 +71,11 @@
 //!   request state machine and a byte FIFO. Pure computation, unit-tested on
 //!   the host down to the exact bytes; the RP2350 register driver that uses
 //!   it lives in `pico2::usb`.
+//! * [`multicore`] — starting a second core: the launch handshake of the
+//!   RP2350 bootrom as a state machine that never blocks, over a
+//!   [`multicore::Mailbox`] the chip crate supplies, tested on the host
+//!   against a model of the other core; the RP2350 driver that uses it is
+//!   `pico2::multicore`.
 //!
 //! ## Design notes
 //!
@@ -91,3 +96,4 @@ pub mod common;
 pub mod gpio;
 pub mod device;
 pub mod usb;
+pub mod multicore;
