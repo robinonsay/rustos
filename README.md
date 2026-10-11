@@ -126,7 +126,7 @@ without hardware.
   the last reset, and the two scratch registers a watchdog reset keeps for
   the application;
 - `usb` (`Rp2350Usb`): a polled USB CDC-ACM device with non-blocking
-  `read`/`write` and a link-lost indicator;
+  `read`/`write`, the room left to write, and a link-lost indicator;
 - `pwm` (`Rp2350Pwm`): 50 % square waves of 100 Hz–20 kHz on any GPIO,
   switched on and off at whole cycles, off when dropped, and all off at once
   from a panic handler;
