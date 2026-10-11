@@ -96,6 +96,7 @@
 
 use core::cell::UnsafeCell;
 use core::marker::PhantomData;
+use core::ops::Range;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use api::device::DeviceHandle;
@@ -244,8 +245,16 @@ impl Mailbox for Fifo {
 
 // --- Core 1's stack ------------------------------------------------------
 
-/// Memory for core 1's stack: `WORDS` eight-byte words, eight-byte aligned
-/// as the procedure call standard requires of a stack pointer.
+/// Memory for core 1's stack: `WORDS` eight-byte words.
+///
+/// Aligned to 32 bytes, and [`Rp2350Core1::launch`] takes only a whole
+/// number of 32-byte blocks (`WORDS` a multiple of 4), so that one
+/// Cortex-M33 MPU region can cover exactly this stack: a region's base is
+/// "bits \[31:5\] of the lower inclusive limit" and its limit is
+/// "postfixed with 0x1F" (Tables 234 and 235, p196). That is more than the
+/// eight bytes the procedure call standard requires of a stack pointer and
+/// `MSPLIM` requires of a limit. [`range`](Self::range) gives the
+/// addresses.
 ///
 /// Declare one as a `static` and hand it to [`Rp2350Core1::launch`]:
 ///
@@ -257,7 +266,7 @@ impl Mailbox for Fifo {
 /// that `.bss` leaves room for core 0's stack counts it. Core 1's stack
 /// limit is set to its first byte, so core 1 faults rather than grow out of
 /// it.
-#[repr(C, align(8))]
+#[repr(C, align(32))]
 pub struct Core1Stack<const WORDS: usize> {
     words: UnsafeCell<[u64; WORDS]>,
 }
@@ -276,6 +285,14 @@ impl<const WORDS: usize> Core1Stack<WORDS> {
         Self {
             words: UnsafeCell::new([0; WORDS]),
         }
+    }
+
+    /// The stack's addresses, from its lowest byte, where core 1's stack
+    /// limit is set, to one past its highest, where core 1's stack pointer
+    /// starts. For an MPU region; reading them touches nothing.
+    pub fn range(&self) -> Range<usize> {
+        let bottom = self.words.get() as usize;
+        bottom..bottom + WORDS * 8
     }
 }
 
@@ -341,10 +358,16 @@ impl Rp2350Core1 {
             assert!(
                 WORDS >= Core1Stack::<WORDS>::MIN_WORDS,
                 "core 1's stack is too small"
-            )
+            );
+            assert!(
+                WORDS.is_multiple_of(4),
+                "core 1's stack must be whole 32-byte blocks"
+            );
         };
-        let bottom = stack.words.get() as usize;
-        let top = bottom + WORDS * 8;
+        let Range {
+            start: bottom,
+            end: top,
+        } = stack.range();
         CORE1_ENTRY.store(entry as usize, Ordering::Release);
         CORE1_STACK_LIMIT.store(bottom, Ordering::Release);
         // The two stores reach memory before any word of the handshake
