@@ -44,8 +44,9 @@ citations:
   system clock, 48 MHz USB clock), the microsecond **timer**, the
   **watchdog**, a polled **USB serial port** (a CDC-ACM device, which
   desktop operating systems open as a serial port without a driver install),
-  and **PWM** square-wave outputs (a fixed-frequency tone on a pin, switched
-  on and off).
+  **PWM** square-wave outputs (a fixed-frequency tone on a pin, switched
+  on and off), and the **ADC** (analog-to-digital converter) sampling one
+  analog pin continuously into memory through a **DMA** channel.
 
 The boot pieces and the GPIO driver are taught from scratch in this
 repository's [bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No external
@@ -110,7 +111,8 @@ without hardware.
 - a GPIO driver (`Rp2350Gpio`, producing `Rp2350GpioIn` / `Rp2350GpioOut`
   pins) implementing the `api` traits;
 - `clocks` (`Rp2350Clocks`): crystal, both PLLs, and the `clk_ref`,
-  `clk_sys`, `clk_peri` and `clk_usb` generators;
+  `clk_sys`, `clk_peri` and `clk_usb` generators (`clk_adc` is started by
+  `adc`);
 - `timer` (`Rp2350Timer`): the 1 µs tick and the 64-bit `TIMER0` counter,
   with busy-wait delays, never paused by a debugger;
 - `systick` (`Rp2350SysTick`): the core's SysTick counter run free on the
@@ -124,6 +126,11 @@ without hardware.
 - `pwm` (`Rp2350Pwm`): 50 % square waves of 100 Hz–20 kHz on any GPIO,
   switched on and off at whole cycles, off when dropped, and all off at once
   from a panic handler;
+- `dma` (`Rp2350Dma`): the DMA block's 16 channels as owned handles, for a
+  driver to take one;
+- `adc` (`Rp2350Adc`, `Rp2350AdcStream`): one of GPIO26–29 sampled free
+  running at 1–480 kHz, a DMA channel moving each sample into a 16 kB ring
+  in RAM, read at the application's own pace with overruns reported;
 - `link.ld`, the linker script that places every section in the RP2350's
   memory map, and `build.rs`, which tells Cargo where to find it.
 

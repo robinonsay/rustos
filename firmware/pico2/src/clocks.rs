@@ -65,8 +65,10 @@
 //! 7. `clk_usb` ← `PLL_USB` ÷ 1, `clk_peri` ← `clk_sys` ÷ 1 (aux-only
 //!    generators).
 //!
-//! `clk_adc`, `clk_hstx` and the four `clk_gpout` generators are not
-//! touched.
+//! `clk_hstx` and the four `clk_gpout` generators are not touched.
+//! `clk_adc` is not started here: [`crate::adc`] starts it, from `PLL_USB`
+//! at [`CLK_ADC_HZ`], when the ADC is claimed (`start_clk_adc`), so an
+//! application without the ADC runs exactly this sequence and no more.
 //!
 //! # Flash speed
 //!
@@ -103,6 +105,11 @@ pub const CLK_PERI_HZ: u32 = CLK_SYS_HZ;
 /// `clk_usb`: the USB controller. Must be exactly 48 MHz (Table 540,
 /// p516; §12.7.3.1, p1142).
 pub const CLK_USB_HZ: u32 = PLL_USB_CONFIG.output_hz();
+
+/// `clk_adc`: the ADC, once [`crate::adc`] has started it. Fed from
+/// `PLL_USB`, undivided. The ADC "requires a 48 MHz clock" (§12.4.3,
+/// p1068).
+pub const CLK_ADC_HZ: u32 = PLL_USB_CONFIG.output_hz();
 
 /// `PLL_SYS` voltage-controlled-oscillator frequency, 1500 MHz.
 pub const PLL_SYS_VCO_HZ: u32 = PLL_SYS_CONFIG.vco_hz();
@@ -171,6 +178,7 @@ const _: () = assert!(PLL_SYS_CONFIG.is_valid());
 const _: () = assert!(PLL_USB_CONFIG.is_valid());
 const _: () = assert!(CLK_SYS_HZ == 150_000_000);
 const _: () = assert!(CLK_USB_HZ == 48_000_000);
+const _: () = assert!(CLK_ADC_HZ == 48_000_000);
 // The USB controller needs clk_sys > 48 MHz (§12.7.3.1, p1142), and
 // erratum RP2350-E12 asks for at least 10% faster than clk_usb (Appendix E,
 // p1367). 150 MHz is more than three times 48 MHz.
@@ -191,8 +199,8 @@ struct ClockGenerator {
     /// `CLK_x_DIV`. The integer part always starts at bit 16, but its
     /// width differs: 8 bits for `clk_ref` (Table 556, p536), 16 for
     /// `clk_sys` (Table 559, p537), 2 for `clk_peri` (Table 562, p538), 4
-    /// for `clk_usb` (Table 568, p540). `1 << 16` is divide-by-1 in all of
-    /// them.
+    /// for `clk_usb` (Table 568, p540), 4 for `clk_adc` (Table 571, p541).
+    /// `1 << 16` is divide-by-1 in all of them.
     div: u32,
     /// `CLK_x_SELECTED`: one-hot, which glitchless-mux input is live. Only
     /// meaningful on `clk_ref` and `clk_sys`; reads 1 elsewhere. "Whilst
@@ -227,8 +235,11 @@ const GEN_SYS: usize = 5;
 const GEN_PERI: usize = 6;
 /// Index of `clk_usb` (offset `0x60`).
 const GEN_USB: usize = 8;
+/// Index of `clk_adc` (offset `0x6c`, Table 570, p541).
+const GEN_ADC: usize = 9;
 const _: () = assert!(GEN_REF * 0x0c == 0x30 && GEN_SYS * 0x0c == 0x3c);
 const _: () = assert!(GEN_PERI * 0x0c == 0x48 && GEN_USB * 0x0c == 0x60);
+const _: () = assert!(GEN_ADC * 0x0c == 0x6c);
 
 /// `CLK_REF_CTRL.SRC`, bits 1:0 (Table 555, p535): 0 ROSC, 1 aux, 2 XOSC,
 /// 3 LPOSC.
@@ -252,8 +263,9 @@ const SYS_CTRL_AUXSRC_MASK: u32 = 0b111;
 /// `CLK_SYS_CTRL.AUXSRC` value for `PLL_SYS`.
 const SYS_AUXSRC_PLL_SYS: u32 = 0;
 
-/// `CLK_PERI_CTRL` / `CLK_USB_CTRL`: `ENABLE` bit 11, `ENABLED` bit 28
-/// (read-only), `AUXSRC` bits 7:5 (Table 561, p537; Table 567, p539).
+/// `CLK_PERI_CTRL` / `CLK_USB_CTRL` / `CLK_ADC_CTRL`: `ENABLE` bit 11,
+/// `ENABLED` bit 28 (read-only), `AUXSRC` bits 7:5 (Table 561, p537; Table
+/// 567, p539; Table 570, p541).
 const AUX_CTRL_ENABLE: u32 = 1 << 11;
 /// Read-only "generator is running" status, bit 28.
 const AUX_CTRL_ENABLED: u32 = 1 << 28;
@@ -265,6 +277,9 @@ const AUX_CTRL_AUXSRC_MASK: u32 = 0b111;
 const PERI_AUXSRC_CLK_SYS: u32 = 0;
 /// `CLK_USB_CTRL.AUXSRC` value for `PLL_USB`.
 const USB_AUXSRC_PLL_USB: u32 = 0;
+/// `CLK_ADC_CTRL.AUXSRC` value for `PLL_USB`, `CLKSRC_PLL_USB` (Table 570,
+/// p541).
+const ADC_AUXSRC_PLL_USB: u32 = 0;
 
 /// Divide-by-1 in every `CLK_x_DIV` register used here: integer part 1 at
 /// bit 16, fractional part (where present) 0.
@@ -409,6 +424,24 @@ unsafe fn init() {
     }
 }
 
+/// Start `clk_adc` at [`CLK_ADC_HZ`]: `PLL_USB` ÷ 1, through the same
+/// aux-only switch as `clk_usb` (`clk_adc` has no glitchless mux, Table
+/// 570, p541). Called by [`crate::adc`] before it touches the ADC, whose
+/// registers time out on the bus while `clk_adc` is stopped (§12.6.7,
+/// p1103). Its `CLK_SYS_ADC` and `CLK_ADC_ADC` gates are enabled out of
+/// reset (`WAKE_EN0` bits 3 and 2, reset 1, Table 586, p547), and nothing
+/// in this crate clears them.
+///
+/// # Safety
+///
+/// [`Rp2350Clocks::new`] has run, so `PLL_USB` is locked at 48 MHz, and
+/// nothing is using the ADC: the generator stops for a moment while its
+/// source is switched.
+pub(crate) unsafe fn start_clk_adc() {
+    let clocks = RegAddr::CLOCKS as usize as *mut Clocks;
+    unsafe { switch_aux_only(&raw mut (*clocks).clk[GEN_ADC], ADC_AUXSRC_PLL_USB, DIV_BY_1) };
+}
+
 /// Start the crystal oscillator and wait until it is stable.
 ///
 /// §8.2.3–8.2.4 (p555): the startup delay must be programmed *before*
@@ -497,7 +530,8 @@ unsafe fn switch_glitchless(
     }
 }
 
-/// Configure a generator that has only an aux mux (`clk_peri`, `clk_usb`):
+/// Configure a generator that has only an aux mux (`clk_peri`, `clk_usb`,
+/// `clk_adc`):
 /// §8.1.2.2 (p517), "to switch between clock sources for the aux mux when
 /// the generator does not have a glitchless mux".
 ///
