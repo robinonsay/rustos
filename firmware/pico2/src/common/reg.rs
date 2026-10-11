@@ -94,6 +94,11 @@ pub enum RegAddr {
     /// register layout as `PLL_SYS`. Base from §8.6.5, p581.
     PLL_USB = 0x4005_8000,
 
+    /// `ADC` — the analogue-to-digital converter: control, result, sample
+    /// FIFO and pacing divider. Its registers answer only while `clk_adc`
+    /// runs. See [`crate::adc`]. Base from §12.4.7, p1071.
+    ADC = 0x400a_0000,
+
     /// `PWM` — the twelve PWM slices: per-slice control, divider, counter,
     /// compare and wrap registers, then the global enable and interrupt
     /// registers. See [`crate::pwm`]. Base from §12.5.3, p1084.
@@ -119,6 +124,11 @@ pub enum RegAddr {
     /// timebase of the timers and the watchdog. See [`crate::timer`]. Base
     /// from §8.5.2, p569.
     TICKS = 0x4010_8000,
+
+    /// `DMA` — the sixteen DMA channels, their interrupts, and the DMA's
+    /// security and memory-protection settings. An AHB peripheral. See
+    /// [`crate::dma`]. Base from §12.6.10, p1110.
+    DMA = 0x5000_0000,
 
     /// `USBCTRL_DPRAM` — the USB controller's 4 kB dual-port RAM: setup
     /// packet, endpoint and buffer control words, packet buffers. Unlike

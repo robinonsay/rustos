@@ -26,10 +26,11 @@
 //!   is never brought up. The other device handles work the same way:
 //!   `clocks` ([`Rp2350Clocks`]), `timer` ([`Rp2350Timer`]), `systick`
 //!   ([`Rp2350SysTick`]), `watchdog` ([`Rp2350Watchdog`]), `usb`
-//!   ([`Rp2350Usb`]) and `pwm` ([`Rp2350Pwm`]). Those drivers also take a
-//!   `&Rp2350Clocks` (and USB a `&Rp2350Timer`), so the type system enforces
-//!   the bring-up order: clocks first, then timer, SysTick, watchdog and PWM,
-//!   then USB.
+//!   ([`Rp2350Usb`]), `pwm` ([`Rp2350Pwm`]), `dma` ([`Rp2350Dma`]) and `adc`
+//!   ([`Rp2350Adc`]). Those drivers except DMA also take a `&Rp2350Clocks`
+//!   (and USB a `&Rp2350Timer`), so the type system enforces the bring-up
+//!   order: clocks first, then timer, SysTick, watchdog, PWM and the ADC,
+//!   then USB. An ADC stream also takes a channel from the DMA.
 //! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
 //!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
@@ -82,7 +83,9 @@ use core::sync::atomic::Ordering::Acquire;
 
 use api::define_board;
 
+use crate::adc::Rp2350Adc;
 use crate::clocks::Rp2350Clocks;
+use crate::dma::Rp2350Dma;
 use crate::gpio::gpio::Rp2350Gpio;
 use crate::pwm::Rp2350Pwm;
 use crate::systick::Rp2350SysTick;
@@ -136,6 +139,8 @@ define_board!{
             watchdog: Rp2350Watchdog,
             usb: Rp2350Usb,
             pwm: Rp2350Pwm,
+            dma: Rp2350Dma,
+            adc: Rp2350Adc,
         }
     }
 }
