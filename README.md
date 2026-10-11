@@ -45,8 +45,9 @@ citations:
   **watchdog**, a polled **USB serial port** (a CDC-ACM device, which
   desktop operating systems open as a serial port without a driver install),
   **PWM** square-wave outputs (a fixed-frequency tone on a pin, switched
-  on and off), and the **ADC** (analog-to-digital converter) sampling one
-  analog pin continuously into memory through a **DMA** channel.
+  on and off), the **ADC** (analog-to-digital converter) sampling one
+  analog pin continuously into memory through a **DMA** channel, and
+  **starting the second core** with its own stack.
 
 The boot pieces and the GPIO driver are taught from scratch in this
 repository's [bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No external
@@ -82,7 +83,10 @@ interfaces) that application code programs against — `ErrorType`, `Read`,
 `PinHandle` ownership type and the `define_board!` macro described in the
 next section. Its `usb` module holds the chip-independent half of the USB
 serial port — descriptors, the endpoint-0 request state machine, CDC-ACM
-line coding, a byte ring buffer — unit-tested on the host. The crate
+line coding, a byte ring buffer — unit-tested on the host. Its `multicore`
+module is the bootrom's handshake for starting the second core, as a state
+machine that never waits, tested on the host against a model of that core.
+The crate
 contains no register addresses and no dependency on any other crate in the
 workspace, so it compiles for your host machine as well as for the
 microcontroller, which is what makes logic written against it testable
@@ -131,6 +135,10 @@ without hardware.
 - `adc` (`Rp2350Adc`, `Rp2350AdcStream`): one of GPIO26–29 sampled free
   running at 1–480 kHz, a DMA channel moving each sample into a 16 kB ring
   in RAM, read at the application's own pace with overruns reported;
+- `multicore` (`Rp2350Core1`, `Fifo`, `Core1Stack`): starting core 1 on a
+  stack of its own with a stack limit that faults instead of overflowing,
+  the FIFOs between the cores read and written without waiting, and which
+  core is running;
 - `link.ld`, the linker script that places every section in the RP2350's
   memory map, and `build.rs`, which tells Cargo where to find it.
 
