@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1204" width="720" height="1204" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>What implements and uses each api module: in pico2, the GPIO, PWM and USB types implement the common and gpio traits, the board invokes define_board!, three constructors consume pin handles, every driver takes a device handle, Rp2350Usb owns the USB logic and, on PR #6, Fifo and Rp2350Core1 use api::multicore; outside rustos, the keyer box, decoder box, one-Pico image and template applications name api items directly, each pinned to a rustos revision</title>
+  <defs>
+    <marker id="a03dp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1204" fill="#ffffff"/>
+  <text x="24" y="36" font-size="20" font-weight="bold">What implements and uses each api module</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">Each arrow points from the user to the api module it uses. rustos master 80bf599.</text>
+  <text x="24" y="80" font-size="14" fill="#4b5563">Purple dashed: rustos PR #6 or an open cw-message-gateway PR, not merged.</text>
+
+  <!-- frames -->
+  <rect x="16" y="100" width="200" height="678" rx="6" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="16" y="100" width="150" height="28" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <text x="28" y="119" font-size="14" font-weight="bold">api: portable</text>
+  <rect x="304" y="100" width="400" height="678" rx="6" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="304" y="100" width="190" height="28" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <text x="316" y="119" font-size="14" font-weight="bold">pico2: chip-specific</text>
+
+  <!-- row 1: common -->
+  <rect x="24" y="140" width="184" height="118" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="116" y="166" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::common</text>
+  <text x="116" y="192" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ErrorType</text>
+  <text x="116" y="212" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Read&lt;T&gt;</text>
+  <text x="116" y="232" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Write&lt;T&gt;</text>
+  <rect x="312" y="140" width="384" height="118" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="324" y="164" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350GpioIn&lt;N&gt;: Read&lt;bool&gt;</text>
+  <text x="324" y="184" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350GpioOut&lt;N&gt;: Write&lt;bool&gt;</text>
+  <text x="324" y="204" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350PwmSquare&lt;N&gt;: Write&lt;bool&gt;</text>
+  <text x="324" y="224" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Usb: Read&lt;u8&gt;, Write&lt;u8&gt;</text>
+  <text x="324" y="244" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Gpio, Rp2350Pwm: ErrorType</text>
+  <line x1="310" y1="199" x2="210" y2="199" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="260" y="189" text-anchor="middle" font-size="14">implement</text>
+
+  <!-- row 2: device -->
+  <rect x="24" y="274" width="184" height="138" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="116" y="300" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::device</text>
+  <text x="116" y="326" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">PinHandle&lt;N&gt;</text>
+  <text x="116" y="346" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DeviceHandle&lt;T&gt;</text>
+  <text x="116" y="366" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">define_board!</text>
+  <rect x="312" y="274" width="384" height="138" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="324" y="298" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">board.rs: define_board! → Rp2350</text>
+  <text x="324" y="318" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">PinHandle&lt;N&gt; taken by</text>
+  <text x="340" y="338" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Gpio::{input,output}_from_handle</text>
+  <text x="340" y="358" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Pwm::square_from_handle</text>
+  <text x="340" y="378" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Adc::stream_from_handle</text>
+  <text x="324" y="398" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DeviceHandle&lt;T&gt;: all 9 drivers' new</text>
+  <line x1="310" y1="343" x2="210" y2="343" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="260" y="315" text-anchor="middle" font-size="14">invoke,</text>
+  <text x="260" y="333" text-anchor="middle" font-size="14">consume</text>
+
+  <!-- row 3: gpio -->
+  <rect x="24" y="428" width="184" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="116" y="454" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::gpio</text>
+  <text x="116" y="478" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Gpio, Pull</text>
+  <text x="116" y="498" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">GpioPinIn&lt;N&gt;</text>
+  <text x="116" y="518" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">GpioPinOut&lt;N&gt;</text>
+  <rect x="312" y="428" width="384" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="324" y="452" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Gpio: Gpio, Error = GpioError</text>
+  <text x="324" y="472" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Input&lt;N&gt; = Rp2350GpioIn&lt;N&gt;</text>
+  <text x="324" y="492" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Output&lt;N&gt; = Rp2350GpioOut&lt;N&gt;</text>
+  <text x="324" y="516" font-size="14" fill="#4b5563">the output pin offers no Read&lt;bool&gt; read-back</text>
+  <line x1="310" y1="482" x2="210" y2="482" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="260" y="472" text-anchor="middle" font-size="14">implement</text>
+
+  <!-- row 4: usb -->
+  <rect x="24" y="552" width="184" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="116" y="578" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::usb</text>
+  <text x="116" y="602" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ControlHandler</text>
+  <text x="116" y="622" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ByteRing&lt;N&gt;</text>
+  <text x="116" y="642" text-anchor="middle" font-size="14">descriptors, ZLP rules</text>
+  <rect x="312" y="552" width="384" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="324" y="576" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Usb (usb/mod.rs, usb/hw.rs)</text>
+  <text x="324" y="596" font-size="14">owns a ControlHandler and two ByteRing&lt;512&gt;</text>
+  <text x="324" y="616" font-size="14">runs every stage, applies each Effect</text>
+  <text x="324" y="636" font-size="14">re-exports UsbDeviceConfig for applications</text>
+  <line x1="310" y1="606" x2="210" y2="606" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="260" y="596" text-anchor="middle" font-size="14">use</text>
+
+  <!-- row 5: multicore (PR #6) -->
+  <rect x="24" y="676" width="184" height="90" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="116" y="702" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::multicore</text>
+  <text x="116" y="726" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Mailbox, Launch,</text>
+  <text x="116" y="746" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Step</text>
+  <rect x="312" y="676" width="384" height="90" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="324" y="700" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Fifo: Mailbox (the SIO FIFO registers)</text>
+  <text x="324" y="720" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Core1::launch steps a Launch</text>
+  <text x="324" y="744" font-size="14" fill="#4b5563">rustos PR #6 at 410dffa (open)</text>
+  <line x1="310" y1="722" x2="210" y2="722" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="260" y="694" text-anchor="middle" font-size="14">implement,</text>
+  <text x="260" y="712" text-anchor="middle" font-size="14">use</text>
+
+  <!-- applications -->
+  <line x1="124" y1="812" x2="124" y2="782" stroke="#374151" stroke-width="2" marker-end="url(#a03dp-arrow)"/>
+  <text x="138" y="804" font-size="14">name api items directly</text>
+  <rect x="16" y="814" width="688" height="306" rx="6" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="376" y="814" width="328" height="28" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <text x="388" y="833" font-size="14" font-weight="bold">applications outside rustos</text>
+
+  <rect x="24" y="854" width="328" height="124" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="38" y="880" font-size="16" font-weight="bold">Keyer box, gateway main</text>
+  <text x="38" y="902" font-size="14">rustos 8c91507</text>
+  <text x="38" y="924" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::common::{Read, Write}</text>
+  <text x="38" y="944" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::gpio::{Gpio, Pull}</text>
+  <text x="38" y="964" font-size="14" fill="#4b5563">USB config through pico2::usb</text>
+
+  <rect x="368" y="854" width="328" height="124" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="382" y="880" font-size="16" font-weight="bold">Decoder box, PR #30 (open)</text>
+  <text x="382" y="902" font-size="14">rustos 80bf599 (master)</text>
+  <text x="382" y="924" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::gpio::Gpio</text>
+  <text x="382" y="944" font-size="14" fill="#4b5563">USB config through pico2::usb</text>
+
+  <rect x="24" y="988" width="328" height="124" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="38" y="1014" font-size="16" font-weight="bold">One-Pico keyer, PR #31 (draft)</text>
+  <text x="38" y="1036" font-size="14">rustos 410dffa (rustos PR #6)</text>
+  <text x="38" y="1058" font-size="14">as the keyer box, plus</text>
+  <text x="38" y="1078" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::device::PinHandle</text>
+  <text x="38" y="1098" font-size="14" fill="#4b5563">core 1 through pico2::multicore</text>
+
+  <rect x="368" y="988" width="328" height="124" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="382" y="1014" font-size="16" font-weight="bold">New app from templates/pico2</text>
+  <text x="382" y="1036" font-size="14">no pin: rustos default branch</text>
+  <text x="382" y="1058" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::common::Write</text>
+  <text x="382" y="1078" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api::gpio::Gpio</text>
+
+  <!-- legend -->
+  <rect x="24" y="1138" width="22" height="16" fill="#dcfce7" stroke="#166534"/>
+  <text x="54" y="1152" font-size="14">firmware code</text>
+  <rect x="184" y="1138" width="22" height="16" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="4 3"/>
+  <text x="214" y="1152" font-size="14">not merged (open PR)</text>
+  <rect x="394" y="1138" width="22" height="16" fill="none" stroke="#374151" stroke-dasharray="4 3"/>
+  <text x="424" y="1152" font-size="14">crate or group boundary</text>
+  <text x="24" y="1186" font-size="14" fill="#4b5563">A rustos change reaches an application only when its Cargo.toml pin moves.</text>
+</svg>

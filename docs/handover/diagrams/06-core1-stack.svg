@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1176" width="720" height="1176" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>Core 1's stack: the Core1Stack static in .bss, 32-byte aligned, with MSPLIM at its bottom and the initial stack pointer at its top, the MPU region taken from range(), the trampoline that sets MSPLIM before the first push, and what a stack overflow does</title>
+  <defs>
+    <marker id="c06s-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1176" fill="#ffffff"/>
+
+  <text x="24" y="36" font-size="20" font-weight="bold">Core 1's stack: limited before the first push</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">rustos PR #6, untested on hardware; the MPU region is from keyer PR #31</text>
+
+  <g transform="translate(4,0)">
+    <!-- ===== left: memory ===== -->
+    <text x="20" y="92" font-size="14"><tspan font-weight="bold">Memory</tspan>, high addresses at top (not to scale)</text>
+
+    <rect x="36" y="104" width="170" height="46" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="121" y="124" text-anchor="middle" font-size="14" font-weight="bold">core 0's stack</text>
+    <text x="121" y="142" text-anchor="middle" font-size="14">top of RAM</text>
+
+    <rect x="36" y="150" width="170" height="36" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+    <text x="121" y="173" text-anchor="middle" font-size="14">free RAM and statics</text>
+
+    <rect x="36" y="186" width="170" height="234" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="121" y="212" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">static STACK:</text>
+    <text x="121" y="230" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Core1Stack&lt;WORDS&gt;</text>
+    <text x="121" y="252" text-anchor="middle" font-size="14">WORDS × 8 bytes</text>
+    <text x="121" y="270" text-anchor="middle" font-size="14">in .bss, zeroed</text>
+    <line x1="80" y1="290" x2="80" y2="384" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+    <text x="92" y="330" font-size="14">core 1's</text>
+    <text x="92" y="348" font-size="14">stack grows</text>
+    <text x="92" y="366" font-size="14">down</text>
+    <line x1="36" y1="420" x2="206" y2="420" stroke="#991b1b" stroke-width="4"/>
+
+    <rect x="36" y="420" width="170" height="46" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+    <text x="121" y="440" text-anchor="middle" font-size="14">other statics,</text>
+    <text x="121" y="458" text-anchor="middle" font-size="14">below the stack limit</text>
+    <line x1="36" y1="420" x2="206" y2="420" stroke="#991b1b" stroke-width="4"/>
+
+    <!-- annotations -->
+    <line x1="208" y1="186" x2="356" y2="186" stroke="#374151" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="226" y="204" font-size="14">first SP =</text>
+    <text x="226" y="222" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">range().end</text>
+
+    <path d="M212,192 h6 v222 h-6" fill="none" stroke="#5b21b6" stroke-width="2"/>
+    <text x="226" y="284" font-size="14">one MPU region</text>
+    <text x="226" y="302" font-size="14">can cover exactly</text>
+    <text x="226" y="320" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">range()</text>
+
+    <text x="226" y="394" font-size="14" font-weight="bold" fill="#991b1b">MSPLIM =</text>
+    <text x="226" y="412" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">range().start</text>
+    <line x1="208" y1="420" x2="356" y2="420" stroke="#991b1b" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+    <!-- alignment rules -->
+    <rect x="20" y="486" width="336" height="100" rx="8" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+    <text x="32" y="508" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">align(32)</tspan>: start on a 32-byte boundary</text>
+    <text x="32" y="528" font-size="14">WORDS a multiple of 4: so is the end</text>
+    <text x="32" y="548" font-size="14">WORDS at least 128 (1 kB)</text>
+    <text x="32" y="568" font-size="14" fill="#4b5563">launch checks the last two at compile time</text>
+
+    <!-- MPU (keyer image) -->
+    <rect x="20" y="600" width="336" height="70" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="32" y="622" font-size="14" font-weight="bold">Keyer image (PR #31): core 1's MPU</text>
+    <text x="32" y="642" font-size="14">RBAR ← start, RLAR ← end − 32,</text>
+    <text x="32" y="660" font-size="14">read and write, never execute</text>
+
+  </g>
+
+  <!-- ===== right: time ===== -->
+  <text x="372" y="92" font-size="14" font-weight="bold">What core 1 runs, top to bottom</text>
+
+  <rect x="372" y="104" width="332" height="72" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="538" y="126" text-anchor="middle" font-size="14" font-weight="bold">bootrom, after the 6th echo</text>
+  <text x="538" y="146" text-anchor="middle" font-size="14">SP ← <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">range().end</tspan>, VTOR ← table</text>
+  <text x="538" y="164" text-anchor="middle" font-size="14">branch to <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">core1_start</tspan></text>
+  <line x1="538" y1="176" x2="538" y2="184" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+
+  <rect x="372" y="186" width="332" height="156" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="538" y="208" text-anchor="middle" font-size="14" font-weight="bold"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">core1_start</tspan>: naked, no prologue</text>
+  <g font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">
+    <text x="388" y="232">movw r0, :lower16:LIMIT</text>
+    <text x="388" y="252">movt r0, :upper16:LIMIT</text>
+    <text x="388" y="272">lda r0, [r0] ; acquire</text>
+    <rect x="382" y="278" width="312" height="20" fill="#fee2e2" stroke="#991b1b" stroke-width="1"/>
+    <text x="388" y="293">msr MSPLIM, r0 ; limit set</text>
+    <text x="388" y="313">b core1_run ; no push yet</text>
+  </g>
+  <text x="388" y="333" font-size="13" fill="#4b5563">LIMIT is the static <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">CORE1_STACK_LIMIT</tspan></text>
+  <line x1="538" y1="342" x2="538" y2="358" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+
+  <rect x="372" y="360" width="332" height="90" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="538" y="382" text-anchor="middle" font-size="14" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">core1_run</text>
+  <text x="388" y="402" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">enable_fpu()</tspan>: core 1's own CPACR</text>
+  <text x="388" y="421" font-size="14">entry ← <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">CORE1_ENTRY</tspan> (acquire)</text>
+  <text x="388" y="440" font-size="14">calls entry with core 1's <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Fifo</tspan></text>
+  <line x1="538" y1="450" x2="538" y2="466" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+
+  <rect x="372" y="468" width="332" height="54" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="538" y="490" text-anchor="middle" font-size="14">your <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">fn(Fifo) -&gt; !</tspan></text>
+  <text x="538" y="510" text-anchor="middle" font-size="14">pushes freely: the limit is in place</text>
+
+  <rect x="372" y="540" width="332" height="136" rx="8" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+  <text x="388" y="562" font-size="14" font-weight="bold">Why a naked trampoline</text>
+  <text x="388" y="584" font-size="14">An ordinary function pushes its return</text>
+  <text x="388" y="603" font-size="14">address before its first line runs, while</text>
+  <text x="388" y="622" font-size="14">core 1 still has whatever limit it was</text>
+  <text x="388" y="641" font-size="14">left with.</text>
+  <text x="388" y="662" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">core1_start</tspan> touches no stack.</text>
+
+  <g transform="translate(4,0)">
+    <!-- ===== bottom: overflow ===== -->
+    <line x1="20" y1="692" x2="700" y2="692" stroke="#374151" stroke-width="1"/>
+    <text x="20" y="720" font-weight="bold">What a stack overflow on core 1 does</text>
+
+    <rect x="20" y="734" width="300" height="56" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/>
+    <text x="170" y="756" text-anchor="middle" font-size="14">a push would take SP below MSPLIM:</text>
+    <text x="170" y="776" text-anchor="middle" font-size="14">not written; STKOF UsageFault</text>
+    <line x1="170" y1="790" x2="170" y2="816" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+
+    <rect x="20" y="818" width="300" height="56" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/>
+    <text x="170" y="840" text-anchor="middle" font-size="14">UsageFault is not enabled:</text>
+    <text x="170" y="860" text-anchor="middle" font-size="14">escalates to HardFault on core 1</text>
+    <line x1="170" y1="874" x2="170" y2="910" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+    <text x="180" y="898" font-size="14" fill="#4b5563">frame and handler fit</text>
+
+    <rect x="20" y="912" width="300" height="56" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/>
+    <text x="170" y="934" text-anchor="middle" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnHardFault</tspan> on core 1:</text>
+    <text x="170" y="954" text-anchor="middle" font-size="14">the app's safe state, then spin</text>
+
+    <line x1="320" y1="846" x2="398" y2="846" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+    <text x="356" y="838" text-anchor="middle" font-size="14" fill="#4b5563">no room</text>
+
+    <rect x="400" y="796" width="300" height="172" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2" stroke-dasharray="3 3"/>
+    <text x="550" y="818" text-anchor="middle" font-size="14" font-weight="bold">Arm rules, not tested on a chip</text>
+    <text x="414" y="842" font-size="14">No push goes below the limit, and SP</text>
+    <text x="414" y="861" font-size="14">is set to it; any push the handler</text>
+    <text x="414" y="880" font-size="14">then makes is a second stack fault</text>
+    <text x="414" y="899" font-size="14">at HardFault priority, with</text>
+    <text x="414" y="918" font-size="14">STKOFHFNMIGN at its reset 0:</text>
+    <text x="414" y="937" font-size="14">lockup. Core 1 stops, maybe before</text>
+    <text x="414" y="956" font-size="14">its safe state runs, until a reset.</text>
+
+    <line x1="170" y1="968" x2="170" y2="998" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+    <line x1="550" y1="968" x2="550" y2="998" stroke="#374151" stroke-width="2" marker-end="url(#c06s-arrow)"/>
+
+    <rect x="20" y="1000" width="680" height="104" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="360" y="1024" text-anchor="middle" font-size="14">Either way nothing below the stack is written, and core 0 runs on.</text>
+    <text x="360" y="1044" text-anchor="middle" font-size="14">The keyer image's core 0 trips CORE1 on its next pass when core 1's fault flag</text>
+    <text x="360" y="1064" text-anchor="middle" font-size="14">is set (left), or after 100 ms with no heartbeat (lockup, right); then it stops</text>
+    <text x="360" y="1084" text-anchor="middle" font-size="14">feeding its 500 ms watchdog, which resets both cores.</text>
+
+    <!-- legend -->
+    <rect x="20" y="1120" width="18" height="14" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="4 3"/>
+    <text x="44" y="1132" font-size="14">open PR (#6, #31)</text>
+    <rect x="200" y="1120" width="18" height="14" fill="#dcfce7" stroke="#166534"/>
+    <text x="224" y="1132" font-size="14">firmware</text>
+    <rect x="320" y="1120" width="18" height="14" fill="#fef3c7" stroke="#92400e"/>
+    <text x="344" y="1132" font-size="14">bootrom</text>
+    <rect x="440" y="1120" width="18" height="14" fill="#fee2e2" stroke="#991b1b"/>
+    <text x="464" y="1132" font-size="14">limit and fault path</text>
+    <rect x="20" y="1146" width="18" height="14" fill="#ffffff" stroke="#374151"/>
+    <text x="44" y="1158" font-size="14">other memory, notes</text>
+    <rect x="200" y="1146" width="18" height="14" fill="#fee2e2" stroke="#991b1b" stroke-dasharray="3 3"/>
+    <text x="224" y="1158" font-size="14">dotted border: analysis from the Arm rules, not tested</text>
+  </g>
+</svg>

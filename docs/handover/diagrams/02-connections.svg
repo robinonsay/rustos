@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1224" width="720" height="1224" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>What the boot code connects to: at build time the application's linker flag, pico2's build.rs and link.ld, the link, the image and the keyer's check_faults.py; at run time the bootrom and the CPU reading BOOT_INFO and VECTOR_TABLE, OnReset and the fault handlers calling the application, and PR #6's multicore using VECTOR_TABLE and enable_fpu</title>
+  <defs>
+    <marker id="c02-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1224" fill="#ffffff"/>
+
+  <text x="24" y="36" font-size="20" font-weight="bold">How the boot code connects</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">rustos master 80bf599; each arrow carries the contract written beside it</text>
+
+  <!-- ================= Build time ================= -->
+  <text x="24" y="100" font-weight="bold" fill="#374151">Build time</text>
+
+  <!-- BT1: application crate -->
+  <rect x="24" y="116" width="316" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="182" y="142" text-anchor="middle" font-weight="bold">Application crate</text>
+  <text x="182" y="166" text-anchor="middle" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.cargo/config.toml</tspan>: the target and</text>
+  <text x="182" y="188" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">-C link-arg=-Tlink.ld</text>
+  <text x="182" y="210" text-anchor="middle" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Cargo.toml</tspan>: pico2 at one commit</text>
+
+  <!-- BT2: pico2 crate -->
+  <rect x="380" y="116" width="316" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="538" y="142" text-anchor="middle" font-weight="bold">pico2 crate (rustos)</text>
+  <text x="538" y="166" text-anchor="middle" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">build.rs</tspan>: puts <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">firmware/pico2/</tspan></text>
+  <text x="538" y="188" text-anchor="middle" font-size="14">on the linker's search path</text>
+  <text x="538" y="210" text-anchor="middle" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">link.ld</tspan>: memory, symbols, ASSERTs</text>
+
+  <line x1="182" y1="224" x2="182" y2="272" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="192" y="254" font-size="14" fill="#4b5563" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">-Tlink.ld</text>
+  <line x1="538" y1="224" x2="538" y2="272" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="548" y="254" font-size="14" fill="#4b5563">finds link.ld</text>
+
+  <!-- BT3: the link -->
+  <rect x="24" y="272" width="672" height="52" rx="8" fill="#f3f4f6" stroke="#374151" stroke-width="2"/>
+  <text x="360" y="304" text-anchor="middle"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">cargo build --release</tspan>: rustc compiles, rust-lld links</text>
+
+  <line x1="172" y1="324" x2="172" y2="364" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+
+  <!-- BT4: the image -->
+  <rect x="24" y="364" width="296" height="88" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="172" y="392" text-anchor="middle" font-weight="bold">The image (ELF)</text>
+  <text x="172" y="416" text-anchor="middle" font-size="14">vector table, IMAGE_DEF,</text>
+  <text x="172" y="438" text-anchor="middle" font-size="14">code, .data image</text>
+
+  <!-- BT5: check_faults.py -->
+  <rect x="392" y="364" width="304" height="88" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/>
+  <text x="544" y="392" text-anchor="middle" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">check_faults.py</text>
+  <text x="544" y="416" text-anchor="middle" font-size="14">keyer CI, cw-message-gateway</text>
+  <text x="544" y="438" text-anchor="middle" font-size="14">first store opens key and PTT</text>
+
+  <line x1="392" y1="412" x2="320" y2="412" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="356" y="400" text-anchor="middle" font-size="14" fill="#4b5563">reads</text>
+
+  <line x1="172" y1="452" x2="172" y2="532" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="182" y="480" font-size="14" fill="#4b5563">flashed; read after reset</text>
+
+  <!-- ================= Run time ================= -->
+  <text x="24" y="516" font-weight="bold" fill="#374151">Run time</text>
+
+  <!-- RT1: bootrom -->
+  <rect x="24" y="532" width="296" height="64" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="172" y="558" text-anchor="middle" font-weight="bold">RP2350 bootrom</text>
+  <text x="172" y="582" text-anchor="middle" font-size="14">first code after every reset</text>
+
+  <!-- RT2: CPU -->
+  <rect x="392" y="532" width="304" height="64" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="544" y="558" text-anchor="middle" font-weight="bold">Cortex-M33 core</text>
+  <text x="544" y="582" text-anchor="middle" font-size="14">on every exception</text>
+
+  <!-- RT3: pico2 runtime -->
+  <rect x="24" y="668" width="672" height="184" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="680" y="694" text-anchor="end" font-weight="bold">pico2 runtime (lib.rs)</text>
+
+  <rect x="40" y="684" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="136" y="708" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">BOOT_INFO</text>
+  <text x="136" y="730" text-anchor="middle" font-size="14">the IMAGE_DEF</text>
+
+  <rect x="264" y="684" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="360" y="708" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">VECTOR_TABLE</text>
+  <text x="360" y="730" text-anchor="middle" font-size="14">68 words in flash</text>
+
+  <rect x="40" y="776" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="136" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnReset</text>
+  <text x="136" y="822" text-anchor="middle" font-size="14">4 steps, then main</text>
+
+  <rect x="264" y="776" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="360" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnHardFault,</text>
+  <text x="360" y="822" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DefaultHandler</text>
+
+  <rect x="488" y="776" width="160" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="568" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">enable_fpu</text>
+  <text x="568" y="822" text-anchor="middle" font-size="14">CPACR, per core</text>
+
+  <!-- bootrom and CPU into the table and block -->
+  <line x1="136" y1="596" x2="136" y2="684" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="126" y="622" text-anchor="end" font-size="14" fill="#4b5563">finds it in</text>
+  <text x="126" y="640" text-anchor="end" font-size="14" fill="#4b5563">the first 4 kB</text>
+  <line x1="292" y1="596" x2="292" y2="684" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="302" y="622" font-size="14" fill="#4b5563">SP and PC</text>
+  <text x="302" y="640" font-size="14" fill="#4b5563">from words 0, 1</text>
+  <line x1="424" y1="596" x2="424" y2="684" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="434" y="622" font-size="14" fill="#4b5563">handler at</text>
+  <text x="434" y="640" font-size="14" fill="#4b5563">VTOR + 4 × n</text>
+
+  <!-- runtime into the application -->
+  <line x1="136" y1="836" x2="136" y2="916" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="146" y="876" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__rustos_main()</text>
+  <line x1="360" y1="836" x2="360" y2="916" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="370" y="898" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__rustos_safe_state()</text>
+
+  <!-- multicore into the runtime -->
+  <line x1="616" y1="916" x2="616" y2="836" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="606" y="872" text-anchor="end" font-size="14" fill="#4b5563">core 1's FPU</text>
+  <path d="M672,916 L672,714 L456,714" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#c02-arrow)"/>
+  <text x="484" y="738" font-size="14" fill="#4b5563">core 1's VTOR</text>
+
+  <!-- Q: application -->
+  <rect x="24" y="916" width="432" height="112" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="240" y="944" text-anchor="middle" font-weight="bold">Application crate</text>
+  <text x="240" y="968" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">entry!(main, safe_state = f)</text>
+  <text x="240" y="990" text-anchor="middle" font-size="14">defines both symbols; it also owns</text>
+  <text x="240" y="1012" text-anchor="middle" font-size="14">the one <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">#[panic_handler]</tspan></text>
+
+  <!-- MC: multicore (PR #6) -->
+  <rect x="488" y="916" width="208" height="112" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="592" y="944" text-anchor="middle" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">multicore</text>
+  <text x="592" y="968" text-anchor="middle" font-size="14">rustos PR #6, open</text>
+  <text x="592" y="990" text-anchor="middle" font-size="14">starts core 1 on the</text>
+  <text x="592" y="1012" text-anchor="middle" font-size="14">same table and handlers</text>
+
+  <!-- K: users -->
+  <rect x="24" y="1060" width="672" height="76" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="360" y="1088" text-anchor="middle" font-weight="bold">Applications in cw-message-gateway, each pinned to one rustos commit</text>
+  <text x="360" y="1116" text-anchor="middle" font-size="14">keyer (main) <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">8c91507</tspan>; decoder (PR #30) <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">80bf599</tspan>; one-Pico image (PR #31) <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">410dffa</tspan></text>
+
+  <!-- legend -->
+  <rect x="24" y="1160" width="18" height="14" fill="#dcfce7" stroke="#166534" stroke-width="2"/><text x="50" y="1172" font-size="14">rustos or application code</text>
+  <rect x="246" y="1160" width="18" height="14" fill="#fef3c7" stroke="#92400e" stroke-width="2"/><text x="272" y="1172" font-size="14">chip hardware</text>
+  <rect x="392" y="1160" width="18" height="14" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/><text x="418" y="1172" font-size="14">safety gate</text>
+  <rect x="540" y="1160" width="18" height="14" fill="#f3f4f6" stroke="#374151" stroke-width="2"/><text x="566" y="1172" font-size="14">build tool</text>
+  <rect x="24" y="1188" width="18" height="14" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="4 3"/><text x="50" y="1200" font-size="14">rustos PR #6, not on master yet</text>
+</svg>

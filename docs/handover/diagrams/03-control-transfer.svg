@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1796" width="720" height="1796" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>The endpoint-0 control transfer: on each SETUP, ControlHandler::setup returns DataIn, DataOut, NoData or Stall, the driver runs the data and status stages, and the device moves between the Default, Address and Configured states</title>
+  <defs>
+    <marker id="a03ct-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1796" fill="#ffffff"/>
+  <text x="24" y="36" font-size="20" font-weight="bold">Endpoint 0: one control transfer</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">api/src/usb/control.rs decides; firmware/pico2/src/usb/mod.rs runs the stages</text>
+  <text x="24" y="80" font-size="14" fill="#4b5563">[Ep0Stage::…] names the driver's stage; master 80bf599</text>
+  <g transform="translate(4,0)">
+    <text x="20" y="112" font-weight="bold">1. A transfer, from SETUP to the end of the status stage</text>
+    <circle cx="360" cy="140" r="7" fill="#374151"/>
+    <line x1="360" y1="147" x2="360" y2="166" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <rect x="270" y="168" width="180" height="56" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="192" text-anchor="middle" font-weight="bold">Idle</text>
+    <text x="360.0" y="214" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[Ep0Stage::Idle]</text>
+    <line x1="360" y1="224" x2="360" y2="272" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="368" y="253" font-size="14">host sends SETUP (8 bytes)</text>
+    <rect x="20" y="274" width="680" height="92" rx="4" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="298" text-anchor="middle" font-weight="bold">SETUP stage</text>
+    <text x="360.0" y="320" text-anchor="middle" font-size="14">driver: clear SETUP_REC, copy the 8 bytes, revoke both EP0 buffers</text>
+    <text x="360.0" y="340" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ControlHandler::setup(&amp;pkt) -&gt; ControlAction</text>
+    <line x1="36" y1="366" x2="36" y2="438" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="44" y="396" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DataIn</text>
+    <text x="44" y="414" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">{len, zlp}</text>
+    <line x1="208" y1="366" x2="208" y2="438" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="216" y="396" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DataOut</text>
+    <text x="216" y="414" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">{len}</text>
+    <line x1="381" y1="366" x2="381" y2="438" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="389" y="396" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">NoData</text>
+    <text x="389" y="414" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">(effect)</text>
+    <line x1="554" y1="366" x2="554" y2="438" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="562" y="396" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Stall</text>
+    <rect x="20" y="440" width="162" height="150" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="101.0" y="466" text-anchor="middle" font-weight="bold">DATA, IN</text>
+    <text x="101.0" y="488" text-anchor="middle" font-size="14">send reply() in</text>
+    <text x="101.0" y="508" text-anchor="middle" font-size="14">packets of ≤ 64 B,</text>
+    <text x="101.0" y="528" text-anchor="middle" font-size="14">DATA1, DATA0, …</text>
+    <text x="101.0" y="548" text-anchor="middle" font-size="14">then a ZLP if zlp</text>
+    <text x="101.0" y="568" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[DataIn]</text>
+    <line x1="36" y1="590" x2="36" y2="658" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="50" y="616" font-size="14">OUT status armed</text>
+    <text x="50" y="634" font-size="14">with the last packet</text>
+    <rect x="20" y="660" width="162" height="100" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="101.0" y="686" text-anchor="middle" font-weight="bold">STATUS, OUT</text>
+    <text x="101.0" y="708" text-anchor="middle" font-size="14">host sends</text>
+    <text x="101.0" y="728" text-anchor="middle" font-size="14">0 bytes, DATA1</text>
+    <text x="101.0" y="748" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[StatusOut]</text>
+    <line x1="36" y1="760" x2="36" y2="938" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <rect x="192" y="440" width="162" height="150" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="273.0" y="466" text-anchor="middle" font-weight="bold">DATA, OUT</text>
+    <text x="273.0" y="488" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_LINE_CODING:</text>
+    <text x="273.0" y="508" text-anchor="middle" font-size="14">one 7-byte packet,</text>
+    <text x="273.0" y="528" text-anchor="middle" font-size="14">DATA1; setup() set</text>
+    <text x="273.0" y="548" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">pending_out</text>
+    <text x="273.0" y="568" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[DataOut]</text>
+    <line x1="208" y1="590" x2="208" y2="658" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="216" y="632" font-size="14">OUT done</text>
+    <rect x="192" y="660" width="162" height="100" rx="4" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="273.0" y="684" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">data_out(bytes)</text>
+    <text x="273.0" y="704" text-anchor="middle" font-size="14">valid line coding:</text>
+    <text x="273.0" y="724" text-anchor="middle" font-size="14">NoData, no effect;</text>
+    <text x="273.0" y="744" text-anchor="middle" font-size="14">invalid: see STALL</text>
+    <line x1="208" y1="760" x2="208" y2="798" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="222" y="784" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">NoData</text>
+    <rect x="192" y="800" width="162" height="100" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="273.0" y="826" text-anchor="middle" font-weight="bold">STATUS, IN</text>
+    <text x="273.0" y="852" text-anchor="middle" font-size="14">0 bytes, DATA1</text>
+    <text x="273.0" y="878" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[StatusIn]</text>
+    <line x1="208" y1="900" x2="208" y2="938" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <rect x="365" y="440" width="162" height="92" rx="4" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="446.0" y="464" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">apply_effect()</text>
+    <text x="446.0" y="484" text-anchor="middle" font-size="14">now; SetAddress</text>
+    <text x="446.0" y="504" text-anchor="middle" font-size="14">waits (see below)</text>
+    <line x1="381" y1="532" x2="381" y2="658" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="389" y="596" font-size="14">arm the</text>
+    <text x="389" y="614" font-size="14">IN status</text>
+    <rect x="365" y="660" width="162" height="100" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="446.0" y="686" text-anchor="middle" font-weight="bold">STATUS, IN</text>
+    <text x="446.0" y="708" text-anchor="middle" font-size="14">0 bytes, DATA1;</text>
+    <text x="446.0" y="728" text-anchor="middle" font-size="14">keeps the Effect</text>
+    <text x="446.0" y="748" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[StatusIn]</text>
+    <line x1="381" y1="760" x2="381" y2="798" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="395" y="780" font-size="14">IN done</text>
+    <rect x="365" y="800" width="162" height="100" rx="4" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="446.0" y="824" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SetAddress(a)?</text>
+    <text x="446.0" y="844" text-anchor="middle" font-size="14">only now write</text>
+    <text x="446.0" y="864" text-anchor="middle" font-size="14">a to ADDR_ENDP</text>
+    <text x="446.0" y="884" text-anchor="middle" font-size="14" fill="#4b5563">(USB 2.0 §9.4.6)</text>
+    <line x1="381" y1="900" x2="381" y2="938" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <rect x="538" y="440" width="162" height="150" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="619.0" y="466" text-anchor="middle" font-weight="bold">STALL</text>
+    <text x="619.0" y="488" text-anchor="middle" font-size="14">EP_STALL_ARM and</text>
+    <text x="619.0" y="508" text-anchor="middle" font-size="14">the STALL bit on</text>
+    <text x="619.0" y="528" text-anchor="middle" font-size="14">both EP0 buffers</text>
+    <text x="619.0" y="548" text-anchor="middle" font-size="14">until next SETUP</text>
+    <text x="619.0" y="568" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">[Idle]</text>
+    <line x1="554" y1="590" x2="554" y2="938" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="562" y="622" font-size="14">the next SETUP</text>
+    <text x="562" y="640" font-size="14">ends it: the</text>
+    <text x="562" y="658" font-size="14">controller clears</text>
+    <text x="562" y="676" font-size="13" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">EP_STALL_ARM;</text>
+    <text x="562" y="694" font-size="13" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">handle_setup</text>
+    <text x="562" y="712" font-size="14">rewrites both</text>
+    <text x="562" y="730" font-size="14">buffer words</text>
+    <rect x="20" y="940" width="680" height="92" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="968" text-anchor="middle" font-weight="bold">Idle: the next SETUP starts a new transfer</text>
+    <text x="360.0" y="990" text-anchor="middle" font-size="14" fill="#4b5563">A SETUP that arrives mid-transfer aborts it (USB 2.0 §8.5.3):</text>
+    <text x="360.0" y="1010" text-anchor="middle" font-size="14" fill="#4b5563">the driver revokes both EP0 buffers and setup() forgets pending_out</text>
+    <text x="20" y="1086" font-weight="bold">2. Device state: ControlHandler::state()</text>
+    <circle cx="60" cy="1145" r="7" fill="#374151"/>
+    <line x1="67" y1="1145" x2="248" y2="1145" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="158" y="1135" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">new(), bus_reset()</text>
+    <text x="158" y="1167" text-anchor="middle" font-size="14">a bus reset, from</text>
+    <text x="158" y="1185" text-anchor="middle" font-size="14">any state</text>
+    <rect x="250" y="1116" width="220" height="58" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="1140" text-anchor="middle" font-weight="bold">Default</text>
+    <text x="360.0" y="1162" text-anchor="middle" font-size="14" fill="#4b5563">address 0, configuration 0</text>
+    <rect x="250" y="1266" width="220" height="58" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="1290" text-anchor="middle" font-weight="bold">Address</text>
+    <text x="360.0" y="1312" text-anchor="middle" font-size="14" fill="#4b5563">address 1..127, config. 0</text>
+    <rect x="250" y="1416" width="220" height="58" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="360.0" y="1440" text-anchor="middle" font-weight="bold">Configured</text>
+    <text x="360.0" y="1462" text-anchor="middle" font-size="14" fill="#4b5563">configuration 1</text>
+    <line x1="320" y1="1174" x2="320" y2="1264" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="312" y="1214" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_ADDRESS(a)</text>
+    <text x="312" y="1232" text-anchor="end" font-size="14">a = 1..127</text>
+    <line x1="320" y1="1324" x2="320" y2="1414" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="312" y="1364" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_CONFIGURATION(1)</text>
+    <text x="312" y="1382" text-anchor="end" font-size="14">data endpoints enabled</text>
+    <line x1="400" y1="1266" x2="400" y2="1176" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="408" y="1214" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_ADDRESS(0)</text>
+    <line x1="400" y1="1416" x2="400" y2="1326" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="408" y="1364" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_CONFIGURATION(0)</text>
+    <text x="408" y="1382" font-size="14">data endpoints disabled</text>
+    <path d="M 250 1282 C 180 1268, 180 1322, 248 1308" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="186" y="1292" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_ADDRESS(a)</text>
+    <text x="186" y="1310" text-anchor="end" font-size="14">again, a = 1..127</text>
+    <path d="M 250 1432 C 180 1418, 180 1472, 248 1458" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#a03ct-arrow)"/>
+    <text x="186" y="1442" text-anchor="end" font-size="13" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">SET_CONFIGURATION(1)</text>
+    <text x="186" y="1460" text-anchor="end" font-size="14">again: a new session</text>
+    <rect x="20" y="1518" width="680" height="212" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+    <text x="36" y="1544" font-size="14" font-weight="bold">Accepted, but the state does not change</text>
+    <text x="36" y="1566" font-size="14">• SET_ADDRESS(0) in Default; SET_CONFIGURATION(0) in Address</text>
+    <text x="36" y="1596" font-size="14" font-weight="bold">Answered with STALL instead (the state does not change)</text>
+    <text x="36" y="1618" font-size="14">• SET_ADDRESS while Configured, with a &gt; 127, wIndex ≠ 0 or a data stage</text>
+    <text x="36" y="1638" font-size="14">• SET_CONFIGURATION in Default, with a value other than 0 or 1,</text>
+    <text x="50" y="1656" font-size="14">wIndex ≠ 0 or a data stage</text>
+    <text x="36" y="1676" font-size="14">• Standard interface requests, and halt or GET_STATUS on a data</text>
+    <text x="50" y="1694" font-size="14">endpoint (0x81, 0x02, 0x82): before Configured</text>
+    <text x="36" y="1714" font-size="14">• Vendor and reserved request types, and every request not listed on the page</text>
+    <rect x="20" y="1748" width="30" height="22" rx="18" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="58" y="1764" font-size="14">a state or stage (rounded)</text>
+    <rect x="270" y="1748" width="30" height="22" rx="4" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+    <text x="308" y="1764" font-size="14">a step the code takes (square)</text>
+    <circle cx="545" cy="1759" r="7" fill="#374151"/>
+    <text x="560" y="1764" font-size="14">start</text>
+  </g>
+</svg>

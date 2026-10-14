@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 960" width="720" height="960" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>The states of Launch::step on rustos PR #6: before each 0 it drains the FIFO from core 1 and waits until it has stayed empty for 100 microseconds, then sends the word and awaits its echo; a matching echo moves to the next word, a wrong echo starts over at the first 0, and the echo of the entry point is Launched</title>
+  <defs>
+    <marker id="a03ls-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="960" fill="#ffffff"/>
+  <text x="24" y="36" font-size="20" font-weight="bold">Launch::step, one call at a time</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">api/src/multicore.rs on rustos PR #6 at 410dffa (open, not on master)</text>
+  <text x="24" y="80" font-size="14" fill="#4b5563">Words in order: 0, 0, 1, vector table, stack pointer, entry point</text>
+  <text x="24" y="100" font-size="14" fill="#4b5563">Every call returns Pending until the one that reaches Launched.</text>
+
+  <g transform="translate(4,0)">
+    <!-- start -->
+    <circle cx="190" cy="126" r="7" fill="#374151"/>
+    <line x1="190" y1="133" x2="190" y2="158" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="208" y="148" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Launch::new(vt, sp, entry)</text>
+
+    <!-- Drain -->
+    <rect x="40" y="160" width="300" height="124" rx="18" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="190" y="186" text-anchor="middle" font-weight="bold">Drain</text>
+    <text x="190" y="208" text-anchor="middle" font-size="14">the word to send is a 0: take up to</text>
+    <text x="190" y="228" text-anchor="middle" font-size="14">DRAIN_MAX (16) words from the</text>
+    <text x="190" y="248" text-anchor="middle" font-size="14">FIFO from core 1</text>
+    <text x="190" y="270" text-anchor="middle" font-size="14" fill="#4b5563">still not empty after 16: stay</text>
+
+    <!-- Drain <-> Quiet wait -->
+    <line x1="90" y1="286" x2="90" y2="378" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="98" y="324" font-size="14">FIFO empty: start</text>
+    <text x="98" y="342" font-size="14">the quiet timer, wake()</text>
+    <line x1="290" y1="378" x2="290" y2="286" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="298" y="324" font-size="14">a word arrives:</text>
+    <text x="298" y="342" font-size="14">timer restarts</text>
+
+    <!-- Quiet wait -->
+    <rect x="40" y="380" width="300" height="104" rx="18" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="190" y="406" text-anchor="middle" font-weight="bold">Quiet wait</text>
+    <text x="190" y="428" text-anchor="middle" font-size="14">the FIFO from core 1 must stay</text>
+    <text x="190" y="448" text-anchor="middle" font-size="14">empty for QUIET_US (100 µs);</text>
+    <text x="190" y="468" text-anchor="middle" font-size="14" fill="#4b5563">until then: stay</text>
+
+    <!-- Quiet wait -> Send -->
+    <line x1="342" y1="432" x2="438" y2="432" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="390" y="404" text-anchor="middle" font-size="14">quiet for</text>
+    <text x="390" y="422" text-anchor="middle" font-size="14">100 µs</text>
+
+    <!-- Send -->
+    <rect x="440" y="380" width="240" height="104" rx="18" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="560" y="406" text-anchor="middle" font-weight="bold">Send</text>
+    <text x="560" y="428" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">try_send(word)</text>
+    <text x="560" y="448" text-anchor="middle" font-size="14">FIFO to core 1 full:</text>
+    <text x="560" y="468" text-anchor="middle" font-size="14" fill="#4b5563">stay, try again next call</text>
+
+    <!-- Send <-> Await echo -->
+    <line x1="500" y1="486" x2="500" y2="578" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="492" y="524" text-anchor="end" font-size="14">taken:</text>
+    <text x="492" y="542" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">sent = true</text>
+    <line x1="620" y1="578" x2="620" y2="486" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="628" y="516" font-size="14">match,</text>
+    <text x="628" y="534" font-size="14">next</text>
+    <text x="628" y="552" font-size="14">word ≠ 0</text>
+
+    <!-- Await echo -->
+    <rect x="440" y="580" width="240" height="90" rx="18" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="560" y="606" text-anchor="middle" font-weight="bold">Await echo</text>
+    <text x="560" y="628" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">try_receive()</text>
+    <text x="560" y="650" text-anchor="middle" font-size="14" fill="#4b5563">nothing yet: stay</text>
+
+    <!-- Await echo -> Drain (start over, or the second 0) -->
+    <path d="M 438 640 L 20 640 L 20 200 L 38 200" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="36" y="606" font-size="14">match on the first 0 (the next word is a 0),</text>
+    <text x="36" y="624" font-size="14">or a wrong echo: start over at the first 0</text>
+
+    <!-- Await echo -> Launched -->
+    <line x1="560" y1="672" x2="560" y2="758" stroke="#374151" stroke-width="2" marker-end="url(#a03ls-arrow)"/>
+    <text x="568" y="708" font-size="14">echo of the</text>
+    <text x="568" y="726" font-size="14">entry point</text>
+
+    <!-- Launched -->
+    <rect x="440" y="760" width="240" height="80" rx="18" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="560" y="786" text-anchor="middle" font-weight="bold">Launched</text>
+    <text x="560" y="808" text-anchor="middle" font-size="14">every later call returns</text>
+    <text x="560" y="828" text-anchor="middle" font-size="14">Launched again</text>
+
+    <!-- notes beside Launched -->
+    <text x="40" y="700" font-size="14" fill="#4b5563">One call does a bounded drain and one send,</text>
+    <text x="40" y="718" font-size="14" fill="#4b5563">or one receive. The caller bounds the whole</text>
+    <text x="40" y="736" font-size="14" fill="#4b5563">launch by its own clock (Rp2350Core1::launch:</text>
+    <text x="40" y="754" font-size="14" fill="#4b5563">LaunchError::NoAnswer when time is up).</text>
+    <text x="40" y="790" font-size="14" fill="#4b5563">Only for a core 1 just reset into the bootrom:</text>
+    <text x="40" y="808" font-size="14" fill="#4b5563">one that is running other code, or is part way</text>
+    <text x="40" y="826" font-size="14" fill="#4b5563">through an earlier launch, may never echo.</text>
+
+    <!-- legend -->
+    <rect x="40" y="874" width="30" height="22" rx="10" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="80" y="890" font-size="14">a state of Launch (rustos PR #6 only, not on master)</text>
+    <circle cx="55" cy="924" r="7" fill="#374151"/>
+    <text x="80" y="929" font-size="14">start: a new Launch</text>
+  </g>
+</svg>
