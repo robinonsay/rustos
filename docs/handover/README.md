@@ -65,8 +65,8 @@ Rules the pages follow:
 
 | Colour | Fill and border | Means |
 |---|---|---|
-| Green | `#dcfce7`, `#166534` | Firmware: rustos's `pico2` crate and application code that runs on the chip |
-| Blue | `#dbeafe`, `#1e40af` | Host code. In this set: the portable `api` crate and other code that builds and runs its tests on a computer |
+| Green | `#dcfce7`, `#166534` | Firmware: rustos's `api` and `pico2` crates and application code compiled into a chip image (`api` also builds and runs its tests on a computer) |
+| Blue | `#dbeafe`, `#1e40af` | Host code: code that runs only on a computer. In this set, the host test runs (07's driver-anatomy figure) |
 | Amber | `#fef3c7`, `#92400e` | Hardware: the chip, its bootrom and memory, the board, a radio |
 | Red | `#fee2e2`, `#991b1b` | A safety limit, gate or rule (never loosened) |
 | Grey | `#f3f4f6`, `#374151` | Outside rustos: the host computer, a person, a build tool |

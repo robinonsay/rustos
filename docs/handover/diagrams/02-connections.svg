@@ -74,23 +74,23 @@
   <text x="680" y="694" text-anchor="end" font-weight="bold">pico2 runtime (lib.rs)</text>
 
   <rect x="40" y="684" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="136" y="708" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">BOOT_INFO</text>
+  <text x="136" y="708" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">BOOT_INFO</text>
   <text x="136" y="730" text-anchor="middle" font-size="14">the IMAGE_DEF</text>
 
   <rect x="264" y="684" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="360" y="708" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">VECTOR_TABLE</text>
+  <text x="360" y="708" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">VECTOR_TABLE</text>
   <text x="360" y="730" text-anchor="middle" font-size="14">68 words in flash</text>
 
   <rect x="40" y="776" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="136" y="800" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnReset</text>
+  <text x="136" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnReset</text>
   <text x="136" y="822" text-anchor="middle" font-size="14">4 steps, then main</text>
 
   <rect x="264" y="776" width="192" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="360" y="800" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnHardFault,</text>
+  <text x="360" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">OnHardFault,</text>
   <text x="360" y="822" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">DefaultHandler</text>
 
   <rect x="488" y="776" width="160" height="60" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="568" y="800" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">enable_fpu</text>
+  <text x="568" y="800" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">enable_fpu</text>
   <text x="568" y="822" text-anchor="middle" font-size="14">CPACR, per core</text>
 
   <!-- bootrom and CPU into the table and block -->

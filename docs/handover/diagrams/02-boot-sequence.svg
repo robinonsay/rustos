@@ -69,23 +69,23 @@
   <text x="680" y="656" text-anchor="end" font-size="14" fill="#4b5563" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">lib.rs:436-445</text>
 
   <rect x="40" y="672" width="640" height="40" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="56" y="697" font-size="15" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">1 enable_fpu</text>
+  <text x="56" y="697" font-size="16" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">1 enable_fpu</text>
   <text x="236" y="697" font-size="14">FPU on: <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">CPACR |= 0x00F00000</tspan>, then dsb, isb</text>
 
   <rect x="40" y="720" width="640" height="40" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="56" y="745" font-size="15" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">2 reset_vtor</text>
+  <text x="56" y="745" font-size="16" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">2 reset_vtor</text>
   <text x="236" y="745" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">VTOR</tspan> = address of <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">VECTOR_TABLE</tspan>, then dsb, isb</text>
 
   <rect x="40" y="768" width="640" height="40" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="56" y="793" font-size="15" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">3 reset_data</text>
+  <text x="56" y="793" font-size="16" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">3 reset_data</text>
   <text x="236" y="793" font-size="14">copy .data from <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__sidata</tspan> (flash) to <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__sdata</tspan> (RAM)</text>
 
   <rect x="40" y="816" width="640" height="40" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="56" y="841" font-size="15" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">4 reset_bss</text>
+  <text x="56" y="841" font-size="16" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">4 reset_bss</text>
   <text x="236" y="841" font-size="14">zero .bss from <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__sbss</tspan> to <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">__ebss</tspan></text>
 
   <rect x="40" y="864" width="640" height="40" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
-  <text x="56" y="889" font-size="15" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">5 __rustos_main</text>
+  <text x="56" y="889" font-size="16" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-weight="bold">5 __rustos_main</text>
   <text x="236" y="889" font-size="14">call the application; it never returns</text>
 
   <line x1="248" y1="920" x2="248" y2="948" stroke="#374151" stroke-width="2" marker-end="url(#b02-arrow)"/>

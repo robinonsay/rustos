@@ -7,8 +7,8 @@
   </defs>
   <rect x="0" y="0" width="720" height="942" fill="#ffffff"/>
 
-  <text x="24" y="34" font-size="20" font-weight="bold">rustos in layers</text>
-  <text x="24" y="58" font-size="14" fill="#4b5563">Each arrow points from code to the code it uses. api and pico2 depend on no external crate.</text>
+  <text x="24" y="36" font-size="20" font-weight="bold">rustos in layers</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">Each arrow points from code to the code it uses. api and pico2 depend on no external crate.</text>
 
   <!-- Applications band -->
   <rect x="16" y="76" width="688" height="180" rx="10" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
@@ -53,7 +53,7 @@
   <text x="564" y="478" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">usb.poll()</text>
 
   <!-- api -->
-  <rect x="24" y="316" width="500" height="138" rx="8" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <rect x="24" y="316" width="500" height="138" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
   <text x="40" y="342"><tspan font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">api</tspan><tspan dx="8" font-size="14" fill="#4b5563">crate api/: portable, builds and tests on a computer</tspan></text>
   <text x="40" y="368" font-size="14" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">common</text>
   <text x="112" y="368" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ErrorType, Read&lt;T&gt;, Write&lt;T&gt;</text>
@@ -93,7 +93,6 @@
   <!-- legend -->
   <text x="24" y="922" font-size="14" font-weight="bold">Legend</text>
   <rect x="88" y="910" width="18" height="14" fill="#dcfce7" stroke="#166534"/><text x="112" y="922" font-size="14">firmware</text>
-  <rect x="190" y="910" width="18" height="14" fill="#dbeafe" stroke="#1e40af"/><text x="214" y="922" font-size="14">portable, host-tested</text>
-  <rect x="370" y="910" width="18" height="14" fill="#fef3c7" stroke="#92400e"/><text x="394" y="922" font-size="14">hardware</text>
-  <rect x="476" y="910" width="18" height="14" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="4 3"/><text x="500" y="922" font-size="14">open PR, not merged</text>
+  <rect x="200" y="910" width="18" height="14" fill="#fef3c7" stroke="#92400e"/><text x="224" y="922" font-size="14">hardware</text>
+  <rect x="316" y="910" width="18" height="14" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="4 3"/><text x="340" y="922" font-size="14">open PR, not merged</text>
 </svg>

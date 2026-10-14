@@ -24,23 +24,23 @@
   <text x="242" y="268" text-anchor="middle" font-size="14" fill="#4b5563">to the end of 4 MB</text>
   <!-- .data load image -->
   <rect x="148" y="348" width="188" height="52" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="242" y="370" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.data image</text>
+  <text x="242" y="370" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.data image</text>
   <text x="242" y="390" text-anchor="middle" font-size="14">initial values (LMA)</text>
   <!-- .rodata -->
   <rect x="148" y="400" width="188" height="52" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="242" y="422" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.rodata</text>
+  <text x="242" y="422" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.rodata</text>
   <text x="242" y="442" text-anchor="middle" font-size="14">constants, strings</text>
   <!-- .text -->
   <rect x="148" y="452" width="188" height="144" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="242" y="516" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.text</text>
+  <text x="242" y="516" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.text</text>
   <text x="242" y="538" text-anchor="middle" font-size="14">code, run in place</text>
   <!-- .boot_info -->
   <rect x="148" y="596" width="188" height="52" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="242" y="618" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.boot_info</text>
+  <text x="242" y="618" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.boot_info</text>
   <text x="242" y="638" text-anchor="middle" font-size="14">IMAGE_DEF, 20 bytes</text>
   <!-- .vector_table -->
   <rect x="148" y="648" width="188" height="68" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="242" y="676" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.vector_table</text>
+  <text x="242" y="676" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.vector_table</text>
   <text x="242" y="698" text-anchor="middle" font-size="14">68 words, 272 bytes</text>
 
   <!-- FLASH address labels -->
@@ -64,11 +64,11 @@
   <text x="602" y="316" text-anchor="middle" font-size="14" fill="#4b5563">(no heap)</text>
   <!-- .stack reservation -->
   <rect x="508" y="348" width="188" height="64" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="602" y="374" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.stack, 8 kB</text>
+  <text x="602" y="374" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.stack, 8 kB</text>
   <text x="602" y="396" text-anchor="middle" font-size="14">reservation only</text>
   <!-- .bss -->
   <rect x="508" y="412" width="188" height="208" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="602" y="436" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.bss</text>
+  <text x="602" y="436" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.bss</text>
   <text x="602" y="456" text-anchor="middle" font-size="14">zeroed by reset_bss:</text>
   <text x="602" y="474" text-anchor="middle" font-size="14">board singleton flag,</text>
   <text x="602" y="492" text-anchor="middle" font-size="14">driver statics,</text>
@@ -82,7 +82,7 @@
   <text x="602" y="643" text-anchor="middle" font-size="14" fill="#4b5563">alignment gap, often 0</text>
   <!-- .data -->
   <rect x="508" y="656" width="188" height="60" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
-  <text x="602" y="680" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.data</text>
+  <text x="602" y="680" text-anchor="middle" font-size="16" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">.data</text>
   <text x="602" y="702" text-anchor="middle" font-size="14">mutable statics (VMA)</text>
 
   <!-- RAM address labels -->

@@ -95,9 +95,9 @@ The pad register `PADS_BANK0` `GPIOn`, reset `0x116`: `ISO` bit 8 (reset 1), `OD
 
 The driver is the hardware half of a split. The chip-independent logic (descriptors, the endpoint-0 request state machine, CDC-ACM line coding, the ZLP rule and the byte rings) lives in `api::usb` and is host-tested; `Rp2350Usb` moves packets between the controller's DPRAM and that logic and applies the effects it asks for ([`firmware/pico2/src/usb/mod.rs:1-8`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/usb/mod.rs#L1-L8)). [03 The api crate](03-api-crate.md) describes the logic; this section describes the hardware half.
 
-![The USB serial port in layers: host, RP2350 USB controller and DPRAM, the chip-specific pico2 driver, the portable api modules for enumeration, class requests and the two byte rings, and the application on top](diagrams/03-usb-stack.svg)
+![The USB serial port in layers, from the USB host at the top down through the RP2350 USB controller and DPRAM, the chip-specific pico2 driver and the portable api modules (enumeration, class requests, the two byte rings) to the application at the bottom](diagrams/03-usb-stack.svg)
 
-*Figure (from page 03): this page's `usb/mod.rs` and `usb/hw.rs` are the pico2 layer; the `api::usb` modules above it are host-tested.*
+*Figure (from page 03): this page's `usb/mod.rs` and `usb/hw.rs` are the pico2 layer; the `api::usb` modules below it are host-tested.*
 
 **Controller set-up** ([`firmware/pico2/src/usb/mod.rs:36-94`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/usb/mod.rs#L36-L94), code at [`firmware/pico2/src/usb/mod.rs:369-406`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/usb/mod.rs#L369-L406)):
 
