@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1420" width="720" height="1420" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>The USB serial port in layers, from the USB host at the top down through the RP2350 USB controller and DPRAM, the chip-specific pico2 driver and the portable api modules (enumeration, class requests, the two byte rings) to the application at the bottom</title>
+  <defs>
+    <marker id="a03us-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1420" fill="#ffffff"/>
+  <text x="20" y="34" font-size="20" font-weight="bold">The USB serial port, in layers</text>
+  <text x="20" y="58" font-size="14" fill="#4b5563">Left: endpoint 0 (enumeration, class requests). Right: endpoint 2 (the byte stream).</text>
+  <text x="20" y="78" font-size="14" fill="#4b5563">rustos master 80bf599</text>
+
+  <!-- host -->
+  <rect x="20" y="96" width="680" height="70" rx="8" fill="#f3f4f6" stroke="#374151" stroke-width="2"/>
+  <text x="360" y="124" text-anchor="middle" font-weight="bold">USB host: a computer</text>
+  <text x="360" y="146" text-anchor="middle" font-size="14">sees a serial port: /dev/ttyACM0, /dev/cu.usbmodem*, or a COM port</text>
+
+  <!-- endpoint 0 path: one straight column at x=302 -->
+  <line x1="302" y1="168" x2="302" y2="222" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <text x="290" y="192" text-anchor="end" font-size="14">EP0 control</text>
+  <text x="290" y="210" text-anchor="end" font-size="14">transfers</text>
+  <line x1="535" y1="168" x2="535" y2="222" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <text x="549" y="192" font-size="14">EP2 bulk OUT</text>
+  <text x="549" y="210" font-size="14">and IN packets</text>
+
+  <!-- controller -->
+  <rect x="20" y="224" width="680" height="96" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="360" y="250" text-anchor="middle" font-weight="bold">RP2350 USB controller (USBCTRL) and its 4 kB DPRAM</text>
+  <text x="360" y="272" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">0x000 SETUP · 0x100 EP0 · 0x180 EP1 IN · 0x1c0 EP2 OUT · 0x200 EP2 IN</text>
+  <text x="360" y="292" text-anchor="middle" font-size="14" fill="#4b5563">64 B each; EP0 IN and OUT share 0x100; AVAILABLE hands a buffer over</text>
+  <line x1="302" y1="322" x2="302" y2="392" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <line x1="535" y1="322" x2="535" y2="392" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+
+  <!-- chip-specific frame -->
+  <rect x="12" y="350" width="696" height="318" rx="6" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="12" y="350" width="216" height="28" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <text x="24" y="369" font-size="14" font-weight="bold">chip-specific: pico2::usb</text>
+  <rect x="20" y="394" width="680" height="70" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="360" y="420" text-anchor="middle" font-weight="bold">hw.rs: register and DPRAM layout</text>
+  <text x="360" y="442" text-anchor="middle" font-size="14">write_buffer_control: AVAILABLE/STALL ≥ 1 clk_usb cycle after length and PID</text>
+  <line x1="302" y1="466" x2="302" y2="510" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <line x1="535" y1="466" x2="535" y2="510" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <rect x="20" y="512" width="330" height="142" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="536" text-anchor="middle" font-weight="bold">mod.rs: endpoint 0</text>
+  <text x="185" y="558" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">handle_setup, run_action</text>
+  <text x="185" y="578" text-anchor="middle" font-size="14">Ep0Stage: Idle, DataIn, StatusOut,</text>
+  <text x="185" y="598" text-anchor="middle" font-size="14">DataOut, StatusIn(effect)</text>
+  <text x="185" y="618" text-anchor="middle" font-size="14">applies each Effect; DATA0/1</text>
+  <text x="185" y="638" text-anchor="middle" font-size="14">toggles; address after status</text>
+  <rect x="370" y="512" width="330" height="142" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="535" y="536" text-anchor="middle" font-weight="bold">mod.rs: endpoint 2</text>
+  <text x="535" y="558" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">service_rx, service_tx</text>
+  <text x="535" y="578" text-anchor="middle" font-size="14">arm OUT only with 64 B free</text>
+  <text x="535" y="598" text-anchor="middle" font-size="14">one IN packet of ≤ 64 B at a time</text>
+  <text x="535" y="618" text-anchor="middle" font-size="14">ZLP: api bulk_in_needs_zlp</text>
+  <text x="535" y="638" text-anchor="middle" font-size="14">DATA0/1 toggles per packet</text>
+
+  <!-- portable frame -->
+  <rect x="12" y="722" width="696" height="430" rx="6" fill="none" stroke="#374151" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="12" y="722" width="276" height="28" rx="6" fill="#ffffff" stroke="#374151" stroke-width="1.5"/>
+  <text x="24" y="741" font-size="14" font-weight="bold">portable: api::usb (host-tested)</text>
+  <line x1="302" y1="656" x2="302" y2="764" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)" marker-start="url(#a03us-arrow)"/>
+  <text x="294" y="690" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">setup(&amp;pkt),</text>
+  <text x="294" y="708" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">data_out(bytes)</text>
+  <text x="310" y="690" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ControlAction,</text>
+  <text x="310" y="708" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">reply()</text>
+  <line x1="450" y1="656" x2="450" y2="764" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)"/>
+  <text x="436" y="744" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">push_slice</text>
+  <line x1="620" y1="764" x2="620" y2="656" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)"/>
+  <text x="612" y="750" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">pop_slice</text>
+  <rect x="20" y="766" width="330" height="100" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="790" text-anchor="middle" font-weight="bold">control.rs: ControlHandler</text>
+  <text x="185" y="812" text-anchor="middle" font-size="14">device state, request dispatch,</text>
+  <text x="185" y="832" text-anchor="middle" font-size="14">STALLs, an Effect for the driver,</text>
+  <text x="185" y="852" text-anchor="middle" font-size="14">the reply bytes and the ZLP flag</text>
+  <line x1="185" y1="866" x2="185" y2="890" stroke="#374151" stroke-width="2"/>
+  <text x="193" y="883" font-size="14" fill="#4b5563">uses all four below</text>
+  <rect x="20" y="890" width="330" height="52" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="912" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">setup.rs</text>
+  <text x="185" y="934" text-anchor="middle" font-size="14">decodes the 8-byte SETUP packet</text>
+  <rect x="20" y="950" width="330" height="52" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="972" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">descriptor.rs</text>
+  <text x="185" y="994" text-anchor="middle" font-size="14">device, configuration, string bytes</text>
+  <rect x="20" y="1010" width="330" height="52" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="1032" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">cdc_acm.rs</text>
+  <text x="185" y="1054" text-anchor="middle" font-size="14">line coding, DTR and RTS</text>
+  <rect x="20" y="1070" width="330" height="72" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="185" y="1092" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">usb/mod.rs</text>
+  <text x="185" y="1113" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">control_in_needs_zlp,</text>
+  <text x="185" y="1132" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">bulk_in_needs_zlp</text>
+  <rect x="370" y="766" width="160" height="100" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="450" y="790" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ring.rs</text>
+  <text x="450" y="812" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ByteRing&lt;512&gt;</text>
+  <text x="450" y="832" text-anchor="middle" font-size="14">rx: bytes from</text>
+  <text x="450" y="852" text-anchor="middle" font-size="14">the host</text>
+  <rect x="540" y="766" width="160" height="100" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="620" y="790" text-anchor="middle" font-size="15" font-weight="bold" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ring.rs</text>
+  <text x="620" y="812" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ByteRing&lt;512&gt;</text>
+  <text x="620" y="832" text-anchor="middle" font-size="14">tx: bytes for</text>
+  <text x="620" y="852" text-anchor="middle" font-size="14">the host</text>
+
+  <!-- application -->
+  <line x1="450" y1="868" x2="450" y2="1184" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)"/>
+  <text x="436" y="1174" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">read(&amp;mut buf)</text>
+  <line x1="620" y1="1186" x2="620" y2="868" stroke="#374151" stroke-width="2" marker-end="url(#a03us-arrow)"/>
+  <text x="612" y="1174" text-anchor="end" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">write(&amp;data)</text>
+  <rect x="20" y="1186" width="680" height="120" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="360" y="1212" text-anchor="middle" font-weight="bold">The application (for example the keyer box firmware)</text>
+  <text x="360" y="1234" text-anchor="middle" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">usb.poll() at least once per ms; usb.read(); usb.write()</text>
+  <text x="360" y="1256" text-anchor="middle" font-size="14">also: is_configured(), line_coding(), dtr(), rts(), link_epoch()</text>
+  <rect x="136" y="1266" width="448" height="28" rx="6" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="360" y="1285" text-anchor="middle" font-size="14">room() on rustos PR #6 (open): bytes write() would take now</text>
+
+  <!-- legend -->
+  <rect x="20" y="1326" width="22" height="16" fill="#f3f4f6" stroke="#374151"/>
+  <text x="50" y="1340" font-size="14">external (host)</text>
+  <rect x="190" y="1326" width="22" height="16" fill="#fef3c7" stroke="#92400e"/>
+  <text x="220" y="1340" font-size="14">hardware</text>
+  <rect x="330" y="1326" width="22" height="16" fill="#dcfce7" stroke="#166534"/>
+  <text x="360" y="1340" font-size="14">firmware code</text>
+  <rect x="490" y="1326" width="22" height="16" fill="none" stroke="#374151" stroke-dasharray="4 3"/>
+  <text x="520" y="1340" font-size="14">crate boundary</text>
+  <rect x="20" y="1354" width="22" height="16" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="4 3"/>
+  <text x="50" y="1368" font-size="14">not on master yet (rustos PR #6, open)</text>
+  <text x="20" y="1404" font-size="14" fill="#4b5563">The rings belong to Rp2350Usb; read() and write() reach them through it.</text>
+</svg>

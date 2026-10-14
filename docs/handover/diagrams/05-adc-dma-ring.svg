@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1436" width="720" height="1436" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>ADC to RAM: one pin, free-running at a fixed rate, fills an eight-entry FIFO; an endless DMA channel copies each result into a 16 kB ring of 8192 samples that wraps; read() copies from its cursor up to the channel's WRITE_ADDR, refills read slots with the sentinel 0xFFFF, and reports an overrun when the guard slot 512 ahead of the channel holds a sample</title>
+  <defs>
+    <marker id="a05-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <marker id="a05-arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#166534"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1436" fill="#ffffff"/>
+
+  <text x="24" y="36" font-size="20" font-weight="bold">ADC to RAM: free-running sampler, DMA ring, read cursor</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">One pin into a 16 kB ring, no interrupts (rustos 80bf599; not yet run on hardware)</text>
+
+  <!-- 1. pipeline -->
+  <text x="24" y="90" font-size="14" font-weight="bold" fill="#374151">1. The pipeline: pin, converter, FIFO, DMA channel, RAM</text>
+
+  <rect x="24" y="102" width="672" height="62" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="44" y="126" font-weight="bold">GPIO26 pad (an ADC input: GPIO26-29 only, else a build error)</text>
+  <text x="44" y="150" font-size="14">FUNCSEL 0x1f; IE 0, OD 1, both pulls off; ISO cleared last. IE 0 avoids erratum E9.</text>
+
+  <line x1="360" y1="164" x2="360" y2="188" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="372" y="182" font-size="14" fill="#4b5563">analog voltage</text>
+
+  <rect x="24" y="190" width="672" height="100" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="44" y="214" font-weight="bold">ADC: 12-bit, clk_adc 48 MHz, 96 cycles (2 µs) per conversion</text>
+  <text x="44" y="238" font-size="14">CS = EN | AINSEL (N − 26); START_MANY set last, after the DMA (free-running)</text>
+  <text x="44" y="258" font-size="14">DIV: a conversion every 1 + INT + FRAC/256 cycles; 32 kHz gives INT 1499, FRAC 0</text>
+  <text x="44" y="278" font-size="14">Accepted rates 1 000 to 480 000 Hz (INT 47 999 down to 99), else RateOutOfRange</text>
+
+  <line x1="360" y1="290" x2="360" y2="316" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="372" y="309" font-size="14" fill="#4b5563">one 12-bit result per conversion</text>
+
+  <rect x="24" y="318" width="672" height="80" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="44" y="342" font-weight="bold">FIFO: 8 results</text>
+  <text x="44" y="364" font-size="14">FCS = EN | ERR (error flag into bit 15) | DREQ_EN | THRESH 1</text>
+  <text x="44" y="386" font-size="14" fill="#991b1b">Full when a result arrives: FCS.OVER, result lost; read() returns FifoOverflow</text>
+
+  <line x1="360" y1="398" x2="360" y2="424" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="372" y="417" font-size="14" fill="#4b5563">DREQ_ADC while the FIFO holds a result</text>
+
+  <rect x="24" y="426" width="672" height="140" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+  <text x="44" y="450" font-weight="bold">DMA channel C (one of 16; Rp2350Dma hands each out once)</text>
+  <text x="44" y="474" font-size="14">READ_ADDR = ADC FIFO, not incremented; WRITE_ADDR = ring, +2 bytes per sample</text>
+  <text x="44" y="494" font-size="14">Halfwords; TREQ_SEL 48 (DREQ_ADC): one transfer each time the FIFO has a result</text>
+  <text x="44" y="514" font-size="14">TRANS_COUNT = MODE 0xf (ENDLESS) with count 1: the channel never stops</text>
+  <text x="44" y="534" font-size="14">RING_SEL = write, RING_SIZE = 14: only the low 14 address bits change (16 kB wrap)</text>
+  <text x="44" y="554" font-size="14" fill="#991b1b">A bus error sets CTRL.AHB_ERROR and halts it; read() returns DmaError</text>
+
+  <line x1="360" y1="566" x2="360" y2="592" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="372" y="585" font-size="14" fill="#4b5563">one halfword per sample, at slot w</text>
+
+  <!-- 2. ring -->
+  <rect x="24" y="594" width="672" height="440" rx="8" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+  <text x="44" y="620" font-weight="bold">2. The ring in SRAM: AdcRing, 8192 samples, 16 kB, aligned to 16 kB</text>
+
+  <text x="44" y="646" font-size="14" font-weight="bold" fill="#4b5563">Normal: reading keeps up</text>
+  <text x="44" y="672" font-size="14" fill="#4b5563">slot 0</text>
+  <text x="180" y="672" text-anchor="middle" font-size="14" font-weight="bold" fill="#166534">read</text>
+  <text x="420" y="672" text-anchor="middle" font-size="14" font-weight="bold">w = WRITE_ADDR</text>
+  <text x="676" y="672" text-anchor="end" font-size="14" fill="#4b5563">slot 8191</text>
+  <line x1="180" y1="678" x2="180" y2="700" stroke="#166534" stroke-width="2" marker-end="url(#a05-arrow-green)"/>
+  <line x1="420" y1="678" x2="420" y2="700" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <rect x="44" y="702" width="136" height="36" fill="#f3f4f6" stroke="#374151" stroke-width="1"/>
+  <rect x="180" y="702" width="240" height="36" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+  <rect x="420" y="702" width="256" height="36" fill="#f3f4f6" stroke="#374151" stroke-width="1"/>
+  <text x="112" y="725" text-anchor="middle" font-size="14">0xFFFF, read</text>
+  <text x="300" y="725" text-anchor="middle" font-size="14">unread samples</text>
+  <text x="575" y="725" text-anchor="middle" font-size="14">0xFFFF, awaiting a sample</text>
+  <line x1="460" y1="696" x2="460" y2="744" stroke="#991b1b" stroke-width="3"/>
+  <text x="460" y="762" text-anchor="middle" font-size="14" fill="#991b1b">guard slot w + 512: must be 0xFFFF</text>
+  <path d="M660,740 C660,808 60,808 60,742" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="360" y="826" text-anchor="middle" font-size="14" fill="#4b5563">after slot 8191 the channel wraps to slot 0</text>
+
+  <text x="44" y="862" font-size="14" font-weight="bold" fill="#991b1b">Overrun: reading fell 7 680 samples or more behind (not to scale)</text>
+  <text x="260" y="888" text-anchor="middle" font-size="14" font-weight="bold">w</text>
+  <text x="330" y="888" text-anchor="middle" font-size="14" font-weight="bold" fill="#166534">read</text>
+  <line x1="260" y1="894" x2="260" y2="916" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <line x1="330" y1="894" x2="330" y2="916" stroke="#166534" stroke-width="2" marker-end="url(#a05-arrow-green)"/>
+  <rect x="44" y="918" width="216" height="36" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+  <rect x="260" y="918" width="70" height="36" fill="#f3f4f6" stroke="#374151" stroke-width="1"/>
+  <rect x="330" y="918" width="346" height="36" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+  <text x="152" y="941" text-anchor="middle" font-size="14">unread samples</text>
+  <text x="540" y="941" text-anchor="middle" font-size="14">unread samples</text>
+  <line x1="400" y1="912" x2="400" y2="960" stroke="#991b1b" stroke-width="3"/>
+  <text x="400" y="978" text-anchor="middle" font-size="14" font-weight="bold" fill="#991b1b">guard slot w + 512 holds a sample: Overrun</text>
+  <text x="44" y="1000" font-size="14">resync: all slots but the 512 starting at the channel's position go to 0xFFFF;</text>
+  <text x="44" y="1018" font-size="14">reading restarts there. If the channel moved 512 or more meanwhile, clear again.</text>
+
+  <line x1="360" y1="1034" x2="360" y2="1058" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+
+  <!-- 3. read -->
+  <rect x="24" y="1060" width="672" height="120" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="44" y="1084" font-weight="bold">read(&amp;mut out): never waits; checks in this order</text>
+  <text x="44" y="1108" font-size="14">1. Halted, or CTRL.AHB_ERROR set: DmaError (and on every later call)</text>
+  <text x="44" y="1128" font-size="14">2. FCS.OVER set: clear it, return FifoOverflow; the ring is untouched</text>
+  <text x="44" y="1148" font-size="14">3. w = WRITE_ADDR, Acquire fence; guard slot not 0xFFFF: resync, Overrun</text>
+  <text x="44" y="1168" font-size="14">4. Copy min(distance(read, w), out.len()) samples, 0xFFFF behind each; Ok(n)</text>
+
+  <line x1="360" y1="1180" x2="360" y2="1204" stroke="#374151" stroke-width="2" marker-end="url(#a05-arrow)"/>
+  <text x="372" y="1198" font-size="14" fill="#4b5563">samples, oldest first</text>
+
+  <rect x="24" y="1206" width="672" height="86" rx="8" fill="#ede9fe" stroke="#5b21b6" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="44" y="1230" font-weight="bold">Decoder firmware (gateway PR #30, open; also PR #31, draft)</text>
+  <text x="44" y="1254" font-size="14">stream_from_handle(gpio26, dma.ch0, ring, 32 000), then read() in a loop;</text>
+  <text x="44" y="1276" font-size="14">on PR #31, core 1 calls read() after core 0 has set SECCFG_CH0</text>
+
+  <g font-size="14">
+    <text x="24" y="1322">At 32 kHz the ring holds 256 ms; Overrun comes after a 240 ms lag (7 680 samples);</text>
+    <text x="24" y="1342">the guard is 16 ms (1.07 ms at 480 kHz). A sample: bits 11:0 value, bit 15 error flag.</text>
+  </g>
+
+  <!-- legend -->
+  <text x="24" y="1384" font-size="14" font-weight="bold">Legend</text>
+  <rect x="90" y="1372" width="18" height="14" fill="#fef3c7" stroke="#92400e"/><text x="114" y="1384" font-size="14">chip hardware, samples</text>
+  <rect x="300" y="1372" width="18" height="14" fill="#dcfce7" stroke="#166534"/><text x="324" y="1384" font-size="14">rustos firmware</text>
+  <rect x="460" y="1372" width="18" height="14" fill="#ede9fe" stroke="#5b21b6" stroke-dasharray="3 2"/><text x="484" y="1384" font-size="14">open or draft PR</text>
+  <rect x="90" y="1400" width="18" height="14" fill="#f3f4f6" stroke="#374151"/><text x="114" y="1412" font-size="14">slot holding the sentinel 0xFFFF</text>
+  <line x1="390" y1="1400" x2="390" y2="1414" stroke="#991b1b" stroke-width="3"/><text x="402" y="1412" font-size="14" fill="#991b1b">error path, guard slot</text>
+</svg>

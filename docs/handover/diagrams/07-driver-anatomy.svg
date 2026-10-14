@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1660" width="720" height="1660" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-size="16" fill="#111827">
+  <title>The life of a rustos driver value, using the PWM driver: the board's DeviceHandle, the constructor's three reset steps, the owned driver, the factory that programs a slice and routes a pin, the pin value that implements the api traits, and the off path, with where unsafe code, host tests and build-time checks sit</title>
+  <defs>
+    <marker id="d07-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="720" height="1660" fill="#ffffff"/>
+
+  <text x="24" y="36" font-size="20" font-weight="bold">Anatomy of a rustos driver</text>
+  <text x="24" y="60" font-size="14" fill="#4b5563">The PWM driver's own steps; ownership moves down the left column</text>
+
+  <!-- A: board -->
+  <rect x="24" y="80" width="408" height="92" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="106" font-weight="bold">Board singleton (common/board.rs)</text>
+  <text x="40" y="130" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350::take() -&gt; Option&lt;Rp2350&gt;</text>
+  <text x="40" y="154" font-size="14" fill="#4b5563">define_board! makes every handle once per boot</text>
+
+  <line x1="228" y1="172" x2="228" y2="214" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="198" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">board.pwm: DeviceHandle&lt;Rp2350Pwm&gt;</text>
+
+  <!-- B: constructor -->
+  <rect x="24" y="216" width="408" height="340" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="242" font-weight="bold">Constructor (runs once)</text>
+  <text x="40" y="266" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Pwm::new(handle, &amp;clocks)</text>
+
+  <rect x="40" y="282" width="376" height="80" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="305">1. Release shared blocks only</text>
+  <text x="52" y="328" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">clr_reset_reg(!RESET_IO_PADS)</text>
+  <text x="52" y="350" font-size="14" fill="#4b5563">then <tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">wait_for_reset_done</tspan> · Table 534, p504</text>
+
+  <rect x="40" y="372" width="376" height="80" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="395">2. Undo what a warm reset left</text>
+  <text x="52" y="418" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">disconnect_pwm_pins()</text>
+  <text x="52" y="440" font-size="14" fill="#4b5563">pins whose FUNCSEL is PWM → null function</text>
+
+  <rect x="40" y="462" width="376" height="80" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="485">3. Reset its own block fully</text>
+  <text x="52" y="508" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">cycle_reset(RESET_PWM)</text>
+  <text x="52" y="530" font-size="14" fill="#4b5563">PWM is bit 16 · Table 534, p504</text>
+
+  <!-- proof of order -->
+  <rect x="472" y="232" width="224" height="88" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="488" y="258" font-weight="bold">Proof of order</text>
+  <text x="488" y="282" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">&amp;Rp2350Clocks</text>
+  <text x="488" y="302" font-size="14" fill="#4b5563">clocks configured first</text>
+  <line x1="472" y1="272" x2="434" y2="272" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+
+  <!-- unsafe note -->
+  <rect x="472" y="336" width="224" height="196" rx="8" fill="#ffffff" stroke="#374151" stroke-width="2"/>
+  <text x="488" y="362" font-weight="bold">Where unsafe sits</text>
+  <text x="488" y="386" font-size="14">Register access sits in</text>
+  <text x="488" y="406" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">unsafe {}</tspan> blocks inside</text>
+  <text x="488" y="426" font-size="14">safe methods.</text>
+  <text x="488" y="454" font-size="14">A helper that needs a</text>
+  <text x="488" y="474" font-size="14">caller's promise is an</text>
+  <text x="488" y="494" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">unsafe fn</tspan> with a</text>
+  <text x="488" y="514" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace"># Safety</tspan> section.</text>
+
+  <line x1="228" y1="556" x2="228" y2="598" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="582" font-size="14">returns Self, or Result if bring-up can fail</text>
+
+  <!-- C: driver value -->
+  <rect x="24" y="600" width="408" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="626" font-weight="bold">Owned driver value</text>
+  <text x="40" y="650" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350Pwm { claimed, running }</text>
+  <text x="40" y="672" font-size="14" fill="#4b5563">zero-sized unless it must remember what</text>
+  <text x="40" y="692" font-size="14" fill="#4b5563">the hardware cannot report</text>
+
+  <line x1="228" y1="708" x2="228" y2="750" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="734" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">pwm.square_from_handle(pin, 700)?</text>
+
+  <!-- D: factory -->
+  <rect x="24" y="752" width="408" height="318" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="778" font-weight="bold">Factory (once per pin)</text>
+  <text x="40" y="802" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">-&gt; Result&lt;Rp2350PwmSquare&lt;N&gt;, PwmError&gt;</text>
+
+  <rect x="40" y="818" width="376" height="58" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="841">1. Check the request</text>
+  <text x="52" y="863" font-size="14" fill="#4b5563">every error but NoWrap, before any write</text>
+
+  <rect x="40" y="886" width="376" height="80" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="909">2. First pin on its slice: start it</text>
+  <text x="52" y="932" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">start_slice()</text>
+  <text x="52" y="954" font-size="14" fill="#4b5563">DIV, TOP, CC = 0; wait for a wrap, else NoWrap</text>
+
+  <rect x="40" y="976" width="376" height="80" rx="6" fill="#ffffff" stroke="#166534" stroke-width="2"/>
+  <text x="52" y="999">3. Route the pin, ISO last</text>
+  <text x="52" y="1022" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">connect_pin(N)</text>
+  <text x="52" y="1044" font-size="14" fill="#4b5563">pad, FUNCSEL = 4, then ISO · §9.7, p594</text>
+
+  <!-- pin handle -->
+  <rect x="472" y="800" width="224" height="88" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="488" y="826" font-weight="bold">Pin handle</text>
+  <text x="488" y="850" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">board.pins.gpio18</text>
+  <text x="488" y="870" font-size="14" fill="#4b5563">consumed by the factory</text>
+  <line x1="472" y1="844" x2="434" y2="844" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+
+  <line x1="228" y1="1070" x2="228" y2="1112" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="1096" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Ok(Rp2350PwmSquare&lt;18&gt;)</text>
+
+  <!-- E: pin value -->
+  <rect x="24" y="1114" width="408" height="108" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="1140" font-weight="bold">Owned pin value</text>
+  <text x="40" y="1164" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Rp2350PwmSquare&lt;18&gt;</text>
+  <text x="40" y="1186" font-size="14" fill="#4b5563">PIN_EXISTS is a const assert: a pin the</text>
+  <text x="40" y="1206" font-size="14" fill="#4b5563">package lacks fails the build</text>
+
+  <line x1="228" y1="1222" x2="228" y2="1264" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="1248" font-size="14">implements</text>
+
+  <!-- F: api trait impls -->
+  <rect x="24" y="1266" width="408" height="96" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="40" y="1292" font-weight="bold">api trait impls (pwm.rs)</text>
+  <text x="40" y="1316" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">ErrorType + Write&lt;bool&gt;</text>
+  <text x="40" y="1340" font-size="14" fill="#4b5563">Error = Infallible: nothing can fail now</text>
+
+  <!-- host tests -->
+  <rect x="472" y="1266" width="224" height="112" rx="8" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+  <text x="488" y="1292" font-weight="bold">Host tests</text>
+  <text x="488" y="1314" font-size="14">logic with no registers</text>
+  <text x="488" y="1334" font-size="14">lives in the api crate</text>
+  <text x="488" y="1358" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">cargo test</text>
+
+  <line x1="228" y1="1362" x2="228" y2="1404" stroke="#374151" stroke-width="2" marker-end="url(#d07-arrow)"/>
+  <text x="240" y="1388" font-size="14">dropped, or a panic or fault</text>
+
+  <!-- G: off path -->
+  <rect x="24" y="1406" width="408" height="174" rx="8" fill="#fee2e2" stroke="#991b1b" stroke-width="2"/>
+  <text x="40" y="1432" font-weight="bold">Turn the output off</text>
+  <text x="40" y="1456" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">Drop: write(false), its CC half = 0</text>
+  <text x="40" y="1480" font-size="14">on a panic or fault, the application's</text>
+  <text x="40" y="1500" font-size="14">safe state calls</text>
+  <text x="40" y="1522" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">unsafe fn silence_all()</text>
+  <text x="40" y="1544" font-size="14" fill="#4b5563">is_reset_done first (Table 536, p506),</text>
+  <text x="40" y="1564" font-size="14" fill="#4b5563">then every slice's CC = 0</text>
+
+  <!-- build-time checks -->
+  <rect x="472" y="1406" width="224" height="132" rx="8" fill="#dcfce7" stroke="#166534" stroke-width="2"/>
+  <text x="488" y="1432" font-weight="bold">Build-time checks</text>
+  <text x="488" y="1456" font-size="14">pico2 arithmetic is a</text>
+  <text x="488" y="1478" font-size="14"><tspan font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">const fn</tspan> checked by</text>
+  <text x="488" y="1500" font-size="14" font-family="Menlo, Consolas, 'DejaVu Sans Mono', monospace">const _: () = ..</text>
+  <text x="488" y="1522" font-size="14">when the crate builds</text>
+
+  <!-- legend -->
+  <text x="24" y="1614" font-size="14" font-weight="bold">Legend</text>
+  <rect x="24" y="1626" width="18" height="14" fill="#dcfce7" stroke="#166534"/><text x="48" y="1638" font-size="14">firmware code</text>
+  <rect x="164" y="1626" width="18" height="14" fill="#dbeafe" stroke="#1e40af"/><text x="188" y="1638" font-size="14">runs on the host</text>
+  <rect x="330" y="1626" width="18" height="14" fill="#fee2e2" stroke="#991b1b"/><text x="354" y="1638" font-size="14">safety: output off</text>
+  <rect x="512" y="1626" width="18" height="14" fill="#ffffff" stroke="#374151"/><text x="536" y="1638" font-size="14">note</text>
+</svg>
