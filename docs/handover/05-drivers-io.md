@@ -205,7 +205,7 @@ The ADC is a 12-bit converter (9.2 effective bits) on its own 48 MHz clock, `clk
 
 *Figure (from page 08): which firmware image uses which driver. This page's five drivers are the GPIO, USB, PWM, ADC and DMA rows.*
 
-**Outside rustos.** Apart from rustos's own template (`templates/pico2`, a GPIO blinky: [`templates/pico2/src/main.rs:42-50`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/templates/pico2/src/main.rs#L42-L50)), the drivers' users are cw-message-gateway's three Pico 2 firmware images. What each image does with them:
+**Outside rustos.** Apart from rustos's own template (`templates/pico2`, a GPIO blinky: [`templates/pico2/src/main.rs:42-50`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/templates/pico2/src/main.rs#L42-L50)), the drivers' users are cw-message-gateway's three Pico 2 firmware images. The gateway's handover pages describe them: the keyer box on [08 Keyer box: firmware and protocol](https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/08-keyer-box-firmware.md), and the decoder box and the one-Pico image on [11 Decoder box and the one-Pico image](https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/11-decoder-box-one-pico.md). What each image does with these drivers:
 
 | Driver | Keyer box (gateway `main`) | Decoder box (PR #30, open) | One-Pico keyer (PR #31, draft) |
 |---|---|---|---|
@@ -528,7 +528,7 @@ use pico2::dma::Rp2350Dma;
 use pico2::adc::{AdcError, AdcRing, Rp2350Adc, SAMPLE_ERROR, SAMPLE_VALUE};
 ```
 
-The pins with a board function are named for it, not `gpioN`: `smps_ps` (GPIO23), `vbus_sense` (24), `led` (25) and `vsys_adc` (29) ([`firmware/pico2/src/common/board.rs:65-70`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/common/board.rs#L65-L70), [`firmware/pico2/src/common/board.rs:126-132`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/common/board.rs#L126-L132)); [04 Drivers: core](04-drivers-core.md) lists every field. The application template that builds a UF2 is described on [07 Writing a driver](07-writing-a-driver.md).
+The pins with a board function are named for it, not `gpioN`: `smps_ps` (GPIO23), `vbus_sense` (24), `led` (25) and `vsys_adc` (29) ([`firmware/pico2/src/common/board.rs:65-70`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/common/board.rs#L65-L70), [`firmware/pico2/src/common/board.rs:126-132`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/firmware/pico2/src/common/board.rs#L126-L132)); [04 Drivers: core](04-drivers-core.md) lists every field. The application template is described on [01 Overview](01-overview.md) and [02 Boot and runtime](02-boot-runtime.md). It builds an ELF, which `cargo run --release` loads with picotool ([`templates/pico2/.cargo/config.toml:13`](https://github.com/robinonsay/rustos/blob/80bf5998a60a41b3741041062ff7e9c59caf95b2/templates/pico2/.cargo/config.toml#L13)); a UF2 for drag-and-drop comes from `picotool uf2 convert` ([01 Overview](01-overview.md)).
 
 ### Outputs and an input
 
