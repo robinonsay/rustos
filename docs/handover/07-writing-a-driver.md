@@ -627,7 +627,7 @@ The full list for the repository is on [09 Work left and known issues](09-work-l
 - The project's memory notes on the rustos pin, the audit and the bench (point-in-time notes, checked against the code, the PR descriptions and the project files above).
 - The other handover pages this one links: [02](02-boot-runtime.md), [03](03-api-crate.md), [04](04-drivers-core.md), [05](05-drivers-io.md), [06](06-multicore.md), [08](08-changes-for-cw-gateway.md), [09](09-work-left-known-issues.md), and cw-message-gateway's [08][gw-08], [13][gw-13], [14][gw-14] and [17][gw-17].
 
-[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/08-keyer-box-firmware.md
-[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/13-safety-rules.md
-[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/14-audit-bench-flashing.md
-[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/17-glossary.md
+[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/08-keyer-box-firmware.md
+[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/13-safety-rules.md
+[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/14-audit-bench-flashing.md
+[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/17-glossary.md

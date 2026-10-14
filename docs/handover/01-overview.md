@@ -555,10 +555,10 @@ The full list, with what each item waits on: [09 Work left and known issues](09-
 - cw-message-gateway at `44185fa` (main): `firmware/pico2-keyer/Cargo.toml`, `.cargo/config.toml`, `build.sh`, `src/main.rs` (bring-up and safe state), `rust-toolchain.toml`, `check_faults.py` (header), `.github/workflows/ci.yml` (firmware job), `docs/keyer.md` (wiring, NR7Y key switch, the direct-wire NO-GO); at `3efaf84` (PR #30): `firmware/pico2-decoder/Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `src/main.rs`, `crates/cw/Cargo.toml`, `crates/decoder-core/Cargo.toml`; at `bc5062a` (PR #31): `firmware/pico2-keyer/Cargo.toml`, `Cargo.lock`, `src/main.rs`, `src/core1.rs` (imports); `git show eef8c12:firmware/pico2-keyer/Cargo.toml` and `git diff c985211 8c91507 -- api firmware` (empty).
 - Project files: `handover/outline.md`, `bench/quansheng.md` (stage 2 status only), the Pico 2 datasheet text (`docs/extracted/pico-2-datasheet.md`, VSYS). Sibling pages [02](02-boot-runtime.md) and [09](09-work-left-known-issues.md) for the items this page summarises; [03](03-api-crate.md) for the macOS enumeration record; cw-message-gateway handover pages 13 (rules 7.1 and 7.2) and 11 (flashing) for the board warning. Project memory notes: `MEMORY.md`, `rustos-template-cargo-error.md`, `pico-decoder-prs.md`, `flash-files.md` (checked against the code above).
 
-[gw-02]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/02-codebase-build-ci.md
-[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/08-keyer-box-firmware.md
-[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/11-decoder-box-one-pico.md
-[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/13-safety-rules.md
-[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/14-audit-bench-flashing.md
-[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/16-work-left-known-bugs.md
-[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/17-glossary.md
+[gw-02]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/02-codebase-build-ci.md
+[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/08-keyer-box-firmware.md
+[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/11-decoder-box-one-pico.md
+[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/13-safety-rules.md
+[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/14-audit-bench-flashing.md
+[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/16-work-left-known-bugs.md
+[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/17-glossary.md
