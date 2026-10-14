@@ -656,8 +656,8 @@ The full list for rustos is [09 Work left and known issues](09-work-left-known-i
 - Project file `audit/report.md` (the safety audit), §3, the PR #31 entry at `8d5fcf6`, for its reading of a core 0 stack overflow. Project files are not in either repository.
 - Project notes `MEMORY.md` (the project's memory notes, working notes kept outside both repositories), for which keyer image has been flashed and the PR states. Checked against the code where the code says anything.
 
-[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/08-keyer-box-firmware.md
-[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/11-decoder-box-one-pico.md
-[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/13-safety-rules.md
-[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/14-audit-bench-flashing.md
-[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/17-glossary.md
+[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/08-keyer-box-firmware.md
+[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/11-decoder-box-one-pico.md
+[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/13-safety-rules.md
+[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/14-audit-bench-flashing.md
+[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/17-glossary.md

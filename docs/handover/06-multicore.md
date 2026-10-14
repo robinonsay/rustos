@@ -486,8 +486,8 @@ The rustos work list as a whole is on [09 Work left and known issues](09-work-le
 - Project files: the design note `design/spec-pico-decoder.md` §7 (the core split and fault rules); the safety audit's `audit/report.md` (the PR #31 entries) and `audit/req-on-air-bench-ruling.md` §3; the project notes `pico-decoder-prs.md` and `one-pico-keyer-audit.md`.
 - Sibling pages: [02 Boot and runtime](02-boot-runtime.md), [03 The api crate](03-api-crate.md), [04 Drivers: core](04-drivers-core.md), [05 Drivers: GPIO, USB, PWM, ADC, DMA](05-drivers-io.md), [07 Writing a driver](07-writing-a-driver.md), [08 Changes made for cw-message-gateway](08-changes-for-cw-gateway.md), [09 Work left and known issues](09-work-left-known-issues.md); cw-message-gateway's [11 Decoder box and the one-Pico image][gw-11], [13 Safety rules][gw-13], [14 Audit, bench and flashing][gw-14], [16 Work left and known bugs][gw-16] and [17 Glossary][gw-17].
 
-[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/11-decoder-box-one-pico.md
-[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/13-safety-rules.md
-[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/14-audit-bench-flashing.md
-[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/16-work-left-known-bugs.md
-[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/17-glossary.md
+[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/11-decoder-box-one-pico.md
+[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/13-safety-rules.md
+[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/14-audit-bench-flashing.md
+[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/16-work-left-known-bugs.md
+[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/17-glossary.md

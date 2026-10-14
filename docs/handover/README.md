@@ -58,7 +58,7 @@ Rules the pages follow:
 - **Code that exists only on an open PR is labelled in the sentence**, for example "(rustos PR #6, open, not on master)", and cited at that PR's head.
 - **Project files are not public.** The safety audit, the bench records and the design notes live in Robin's project files, not in either repository. The pages name them in plain text, for example "`audit/report.md` §3 (project files)", and restate what they say.
 - **Some "Sources" sections name project memory notes** (`MEMORY.md` and others). Those are working notes of the Claude sessions that did the cw-message-gateway work; they are not in either repository, so the pages restate what they took from them, and where a note and the code disagree the code wins.
-- **Links to the other repository's handover set** use the docs branch, `claude/handover-docs-us00cn`, the one moving link allowed.
+- **Links to the other repository's handover set** use its default branch, cw-message-gateway `main`, where that set merged; the one moving link allowed.
 - **Pages link sibling pages, not headings on them**, because headings may change.
 
 **Diagram colours.** Every figure in this set and in the cw-message-gateway set uses the same colours, and each figure with more than one colour has its own legend:
@@ -206,12 +206,12 @@ The two tools are in [`tools/`](tools/). Run both from the repository root.
 - cw-message-gateway at `44185fa`: `firmware/pico2-keyer/Cargo.toml`, `src/main.rs`, `check_faults.py`, `crates/keyer-core/src/lib.rs`, `docs/keyer.md`, `.github/workflows/ci.yml`; at `3efaf84`: `firmware/pico2-decoder/Cargo.toml`; at `bc5062a`: `firmware/pico2-keyer/Cargo.toml`, `check_core1.py`.
 - GitHub REST API on 2026-10-14: rustos PR #6 (open, head `410dffa`, base `80bf599`, mergeable) and `master` (`80bf599`); cw-message-gateway's open PRs (#30 at `3efaf84`, #31 draft at `bc5062a`).
 - `docs/handover/tools/citecheck.py` and `svgcheck.cjs` (their usage notes), and the writers' brief for this handover set.
-- The cw-message-gateway handover set on the docs branch: [13 Safety rules][gw-13], [14 Audit, bench and flashing][gw-14], [16 Work left and known bugs][gw-16], [17 Glossary][gw-17].
+- The cw-message-gateway handover set on its `main` branch: [13 Safety rules][gw-13], [14 Audit, bench and flashing][gw-14], [16 Work left and known bugs][gw-16], [17 Glossary][gw-17].
 
-[gw-readme]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/README.md
-[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/08-keyer-box-firmware.md
-[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/11-decoder-box-one-pico.md
-[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/13-safety-rules.md
-[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/14-audit-bench-flashing.md
-[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/16-work-left-known-bugs.md
-[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/claude/handover-docs-us00cn/docs/handover/17-glossary.md
+[gw-readme]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/README.md
+[gw-08]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/08-keyer-box-firmware.md
+[gw-11]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/11-decoder-box-one-pico.md
+[gw-13]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/13-safety-rules.md
+[gw-14]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/14-audit-bench-flashing.md
+[gw-16]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/16-work-left-known-bugs.md
+[gw-17]: https://github.com/robinonsay/cw-message-gateway/blob/main/docs/handover/17-glossary.md
