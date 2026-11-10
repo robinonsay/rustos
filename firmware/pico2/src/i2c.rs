@@ -826,6 +826,31 @@ impl<const I: usize> ErrorType for Rp2350I2c<I> {
     type Error = I2cError;
 }
 
+/// Classifies each [`I2cError`] in the chip-independent vocabulary, so a
+/// device driver generic over [`api::i2c::I2c`] can report it.
+impl api::error::Error for I2cError {
+    fn kind(&self) -> api::error::ErrorKind {
+        // Shorter name for the variants.
+        use api::error::ErrorKind;
+        match self {
+            // An argument the controller cannot use.
+            I2cError::FrequencyOutOfRange { .. }
+            | I2cError::InvalidAddress(_)
+            | I2cError::EmptyTransfer => ErrorKind::InvalidInput,
+            // Nobody answered at that address.
+            I2cError::AddressNack => ErrorKind::NotFound,
+            // The device answered but refused the data.
+            I2cError::DataNack => ErrorKind::Write,
+            // Another controller has the bus.
+            I2cError::ArbitrationLost => ErrorKind::Busy,
+            // Any other abort the controller reported.
+            I2cError::Aborted(_) => ErrorKind::Hardware,
+            // The bus stalled.
+            I2cError::Timeout => ErrorKind::Timeout,
+        }
+    }
+}
+
 /// The portable trait: each method is one transfer through
 /// `Rp2350I2c::transfer`.
 impl<const I: usize> I2c for Rp2350I2c<I> {

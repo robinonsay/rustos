@@ -632,6 +632,27 @@ impl<const I: usize> ErrorType for Rp2350Uart<I> {
     type Error = UartError;
 }
 
+/// Classifies each [`UartError`] in the chip-independent vocabulary, so
+/// code generic over a byte stream can tell "nothing yet" from a fault.
+impl api::error::Error for UartError {
+    fn kind(&self) -> api::error::ErrorKind {
+        // Shorter name for the variants.
+        use api::error::ErrorKind;
+        match self {
+            // The configuration asked for was not usable.
+            UartError::BaudOutOfRange { .. } => ErrorKind::InvalidInput,
+            // Empty receive FIFO or full transmit FIFO: try again later.
+            UartError::WouldBlock => ErrorKind::WouldBlock,
+            // A character arrived damaged and was discarded.
+            UartError::Framing | UartError::Parity => ErrorKind::InvalidData,
+            // The line itself misbehaved: held low, or a DMA bus fault.
+            UartError::Break | UartError::DmaError => ErrorKind::Hardware,
+            // Characters arrived faster than they were read and were lost.
+            UartError::RingOverrun => ErrorKind::Overrun,
+        }
+    }
+}
+
 impl<const I: usize> Read<u8> for Rp2350Uart<I> {
     /// One received character; [`UartError::WouldBlock`] if none is
     /// waiting; or the error that character carried.
