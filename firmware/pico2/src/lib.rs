@@ -85,7 +85,7 @@
 //!   `VTOR`. Portable to any Armv8-M chip.
 //! * **RP2350 chip support** — `BOOT_INFO`, [`common::reg`],
 //!   [`common::reset`], [`gpio`], [`clocks`], [`timer`], [`watchdog`],
-//!   [`usb`], [`pwm`], [`dma`], [`adc`], [`uart`], [`i2c`], [`spi`]. Portable to any RP2350 board, and notably
+//!   [`usb`], [`pwm`], [`dma`], [`adc`], [`uart`], [`uart_dma`], [`i2c`], [`spi`]. Portable to any RP2350 board, and notably
 //!   *not* Arm-specific: RP2350 can boot RISC-V Hazard3 cores instead, driving
 //!   these same registers (p14).
 //! * **Pico 2 board support** — [`common::board`], which declares exactly the
@@ -116,6 +116,7 @@ pub mod pwm;
 pub mod dma;
 pub mod adc;
 pub mod uart;
+pub mod uart_dma;
 pub mod i2c;
 pub mod spi;
 

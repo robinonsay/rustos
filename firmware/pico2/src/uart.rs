@@ -84,19 +84,22 @@ const _: () = assert!(CLK_PERI_HZ as u64 * 3 <= CLK_SYS_HZ as u64 * 5);
 
 /// The PL011 registers this driver uses, at their offsets from
 /// [Table 1027, p970–971](../../../docs/rp2350-datasheet.pdf#page=970).
+///
+/// `pub(crate)` so the DMA driver, [`crate::uart_dma`], can name `UARTDR`
+/// as a DMA address and set `UARTDMACR`.
 #[repr(C)]
-struct Uart {
+pub(crate) struct Uart {
     /// `0x000` `UARTDR` (Table 1028, p971–972): bits 7:0 data, 8 `FE`,
     /// 9 `PE`, 10 `BE`, 11 `OE`. A read pops the receive FIFO; a write
     /// pushes the transmit FIFO.
-    dr: u32,
+    pub(crate) dr: u32,
     /// `0x004` `UARTRSR`/`UARTECR` (Table 1029, p972). Not used: the same
     /// error bits arrive with each character in `UARTDR`.
     _rsr: u32,
     /// `0x008`–`0x014`: not in the register list.
     _reserved0: [u32; 4],
     /// `0x018` `UARTFR` (Table 1030, p972–973): FIFO and busy flags.
-    fr: u32,
+    pub(crate) fr: u32,
     /// `0x01c`: not in the register list.
     _reserved1: u32,
     /// `0x020` `UARTILPR` (Table 1031, p973): IrDA only, not used.
@@ -112,6 +115,12 @@ struct Uart {
     lcr_h: u32,
     /// `0x030` `UARTCR` (Table 1035, p975–976): enables.
     cr: u32,
+    /// `0x034`–`0x044`: `UARTIFLS`, `UARTIMSC`, `UARTRIS`, `UARTMIS`,
+    /// `UARTICR`; not used (Tables 1036–1040, p976–979).
+    _reserved34: [u32; 5],
+    /// `0x048` `UARTDMACR` (Table 1041, p979): `RXDMAE` bit 0, `TXDMAE`
+    /// bit 1, `DMAONERR` bit 2. Reset 0. Used by [`crate::uart_dma`].
+    pub(crate) dmacr: u32,
 }
 
 // The offsets above, checked against Table 1027 (p970–971).
@@ -120,6 +129,7 @@ const _: () = assert!(core::mem::offset_of!(Uart, ibrd) == 0x024);
 const _: () = assert!(core::mem::offset_of!(Uart, fbrd) == 0x028);
 const _: () = assert!(core::mem::offset_of!(Uart, lcr_h) == 0x02c);
 const _: () = assert!(core::mem::offset_of!(Uart, cr) == 0x030);
+const _: () = assert!(core::mem::offset_of!(Uart, dmacr) == 0x048);
 
 /// `UARTDR.DATA`, bits 7:0 (Table 1028, p972).
 const DR_DATA: u32 = 0xff;
@@ -134,9 +144,9 @@ const DR_OE: u32 = 1 << 11;
 
 /// `UARTFR.BUSY`, bit 3: transmitting, or the TX FIFO is not empty
 /// (Table 1030, p973).
-const FR_BUSY: u32 = 1 << 3;
+pub(crate) const FR_BUSY: u32 = 1 << 3;
 /// `UARTFR.RXFE`, bit 4, reset 1: receive FIFO empty (Table 1030, p973).
-const FR_RXFE: u32 = 1 << 4;
+pub(crate) const FR_RXFE: u32 = 1 << 4;
 /// `UARTFR.TXFF`, bit 5: transmit FIFO full (Table 1030, p973).
 const FR_TXFF: u32 = 1 << 5;
 
@@ -360,6 +370,15 @@ pub enum UartError {
     /// Table 1028, p971): a break, or a disconnected cable. The 0
     /// character the PL011 loads for a break was discarded.
     Break,
+    /// DMA driver only ([`crate::uart_dma`]): reading fell so far behind
+    /// that the receive ring wrapped and characters were overwritten
+    /// before they were read. Everything in the ring was discarded; the
+    /// next read returns characters from now on.
+    RingOverrun,
+    /// DMA driver only: a DMA channel received a bus error and halted
+    /// (`CTRL.AHB_ERROR`, Table 1150, p1125). No more characters move in
+    /// that direction; every later call reports this.
+    DmaError,
 }
 
 /// Receive errors counted since the last [`Rp2350Uart::take_line_errors`].
@@ -410,10 +429,12 @@ impl<const I: usize, const TX: usize, const RX: usize> UartPins<I, TX, RX> {
 /// handles, so in safe code at most one driver exists per UART and nothing
 /// else drives its pins. Nothing here waits except [`flush`](Self::flush).
 pub struct Rp2350Uart<const I: usize> {
-    /// The divisor in use, for [`baud`](Self::baud).
-    divisor: BaudDivisor,
+    /// The divisor in use, for [`baud`](Self::baud). `pub(crate)` so
+    /// [`crate::uart_dma`] can carry it over.
+    pub(crate) divisor: BaudDivisor,
     /// Receive errors since the last [`take_line_errors`](Self::take_line_errors).
-    errors: LineErrors,
+    /// `pub(crate)` so [`crate::uart_dma`] can carry the counts over.
+    pub(crate) errors: LineErrors,
 }
 
 impl<const I: usize> Rp2350Uart<I> {
@@ -421,8 +442,8 @@ impl<const I: usize> Rp2350Uart<I> {
     const INSTANCE_EXISTS: () = assert!(I < 2, "RP2350 has UART0 and UART1 only");
 
     /// This instance's registers: `UART0_BASE` or `UART1_BASE`
-    /// (§2.2.4, p32–33).
-    const fn regs() -> *mut Uart {
+    /// (§2.2.4, p32–33). `pub(crate)` for [`crate::uart_dma`].
+    pub(crate) const fn regs() -> *mut Uart {
         // I is 0 or 1, checked by INSTANCE_EXISTS in `new`.
         (if I == 0 { RegAddr::UART0 } else { RegAddr::UART1 }) as usize as *mut Uart
     }
@@ -569,30 +590,37 @@ impl<const I: usize> Rp2350Uart<I> {
         Some(unsafe { (&raw const (*regs).dr).read_volatile() })
     }
 
-    /// Sort one FIFO entry into data or an error, counting errors. An
-    /// overrun is counted but its character is data (§12.1.3.2.4, p963).
+    /// Sort one FIFO entry into data or an error, counting errors.
     fn classify(&mut self, entry: u32) -> Result<u8, UartError> {
-        // OE: characters were lost before this one; this one is good.
-        if entry & DR_OE != 0 {
-            self.errors.overruns = self.errors.overruns.saturating_add(1);
-        }
-        // BE first: a break also fails the stop-bit check, so FE is
-        // likely set with it, and the break is the more useful report.
-        if entry & DR_BE != 0 {
-            self.errors.breaks = self.errors.breaks.saturating_add(1);
-            Err(UartError::Break)
-        } else if entry & DR_FE != 0 {
-            // FE: no valid stop bit.
-            self.errors.framing = self.errors.framing.saturating_add(1);
-            Err(UartError::Framing)
-        } else if entry & DR_PE != 0 {
-            // PE: parity mismatch.
-            self.errors.parity = self.errors.parity.saturating_add(1);
-            Err(UartError::Parity)
-        } else {
-            // Bits 7:0 are the character.
-            Ok((entry & DR_DATA) as u8)
-        }
+        // Shared with the DMA driver, which sees the same 12-bit entries.
+        classify(entry, &mut self.errors)
+    }
+}
+
+/// Sort one receive-FIFO entry (Table 1024, p964) into a character or an
+/// error, counting errors in `errors`. An overrun is counted but its
+/// character is data (§12.1.3.2.4, p963). Used by both drivers.
+pub(crate) fn classify(entry: u32, errors: &mut LineErrors) -> Result<u8, UartError> {
+    // OE: characters were lost before this one; this one is good.
+    if entry & DR_OE != 0 {
+        errors.overruns = errors.overruns.saturating_add(1);
+    }
+    // BE first: a break also fails the stop-bit check, so FE is
+    // likely set with it, and the break is the more useful report.
+    if entry & DR_BE != 0 {
+        errors.breaks = errors.breaks.saturating_add(1);
+        Err(UartError::Break)
+    } else if entry & DR_FE != 0 {
+        // FE: no valid stop bit.
+        errors.framing = errors.framing.saturating_add(1);
+        Err(UartError::Framing)
+    } else if entry & DR_PE != 0 {
+        // PE: parity mismatch.
+        errors.parity = errors.parity.saturating_add(1);
+        Err(UartError::Parity)
+    } else {
+        // Bits 7:0 are the character.
+        Ok((entry & DR_DATA) as u8)
     }
 }
 

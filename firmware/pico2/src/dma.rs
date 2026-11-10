@@ -8,10 +8,13 @@
 //! let ch0 = dma.ch0;                      // hand a channel to a driver, e.g. crate::adc
 //! ```
 //!
-//! This module only resets the block and hands out the channels. A channel
-//! is used by the driver it is given to, which programs it for one job;
-//! [`crate::adc`] runs one endlessly from the ADC's sample FIFO into a ring
-//! buffer in RAM.
+//! This module resets the block, hands out the channels, and holds the
+//! few register helpers drivers share (`start`, `ctrl`, `remaining`,
+//! `write_addr`, `abort`). A channel is used by the driver it is given to,
+//! which programs it for one job: [`crate::adc`] runs one endlessly from
+//! the ADC's sample FIFO into a ring buffer in RAM, and
+//! [`crate::uart_dma`] runs two per UART, one endlessly from the receive
+//! FIFO into a ring and one from a transmit ring into the transmit FIFO.
 //!
 //! # The block
 //!
@@ -128,6 +131,11 @@ pub(crate) const CTRL_EN: u32 = 1 << 0;
 pub(crate) const CTRL_DATA_SIZE_SHIFT: u32 = 2;
 /// `CTRL.DATA_SIZE` value for halfwords.
 pub(crate) const DATA_SIZE_HALFWORD: u32 = 1;
+/// `CTRL.DATA_SIZE` value for bytes (Table 1150, p1126).
+pub(crate) const DATA_SIZE_BYTE: u32 = 0;
+/// `CTRL.INCR_READ`, bit 4: the read address advances by the transfer
+/// size after each read (Table 1150, p1126).
+pub(crate) const CTRL_INCR_READ: u32 = 1 << 4;
 /// `CTRL.INCR_WRITE`, bit 6: the write address advances by the transfer
 /// size after each write (Table 1150, p1126).
 pub(crate) const CTRL_INCR_WRITE: u32 = 1 << 6;
@@ -138,6 +146,9 @@ pub(crate) const CTRL_RING_SIZE_SHIFT: u32 = 8;
 /// `CTRL.RING_SEL`, bit 12: 1 applies `RING_SIZE` to the write address
 /// (Table 1150, p1126).
 pub(crate) const CTRL_RING_SEL_WRITE: u32 = 1 << 12;
+/// `CTRL.RING_SEL` = 0: `RING_SIZE` applies to the read address, "If 0,
+/// read addresses are wrapped" (Table 1150, p1126).
+pub(crate) const CTRL_RING_SEL_READ: u32 = 0;
 /// `CTRL.CHAIN_TO`, bits 16:13. It "resets to 0, so channels 1 and above
 /// will chain to channel 0 by default"; a channel's own number disables
 /// chaining (Table 1150, p1126).
@@ -149,6 +160,10 @@ pub(crate) const CTRL_TREQ_SEL_SHIFT: u32 = 17;
 /// `WRITE_ERROR` (bit 29). "The channel halts when it encounters any bus
 /// error" (Table 1150, p1125).
 pub(crate) const CTRL_AHB_ERROR: u32 = 1 << 31;
+/// `CTRL.BUSY`, bit 26 (read-only): set when the channel is triggered and
+/// "remains set until the transfer count reaches zero, or the channel is
+/// aborted" (Table 1150, p1125; §12.6.3, p1097).
+pub(crate) const CTRL_BUSY: u32 = 1 << 26;
 
 /// `TRANS_COUNT.MODE`, bits 31:28 (Table 1149, p1124).
 pub(crate) const TRANS_COUNT_MODE_SHIFT: u32 = 28;
@@ -157,10 +172,33 @@ pub(crate) const TRANS_COUNT_MODE_SHIFT: u32 = 28;
 /// never triggering other channels or raising interrupts, until an ABORT is
 /// raised" (Table 1149, p1124).
 pub(crate) const MODE_ENDLESS: u32 = 0xf;
+/// `TRANS_COUNT.MODE` value `NORMAL`: "the transfer count decrements with
+/// each transfer until 0" and the channel stops (Table 1149, p1124).
+pub(crate) const MODE_NORMAL: u32 = 0x0;
+/// `TRANS_COUNT.COUNT`, bits 27:0. "When the channel is active, reading
+/// this register shows the number of transfers remaining, updating
+/// automatically each time a write transfer completes" (Table 1149, p1124).
+pub(crate) const TRANS_COUNT_COUNT_MASK: u32 = 0x0fff_ffff;
 
 /// `DREQ_ADC`, the ADC's data request: number 48 in the system DREQ table
 /// (Table 1145, p1099).
 pub(crate) const DREQ_ADC: u32 = 48;
+
+/// `DREQ_UARTn_TX`: 28 for UART0, 30 for UART1 (Table 1145, p1099).
+pub(crate) const fn dreq_uart_tx(instance: usize) -> u32 {
+    // DREQ_UART0_TX = 28, and each instance adds a TX/RX pair.
+    28 + 2 * instance as u32
+}
+
+/// `DREQ_UARTn_RX`: 29 for UART0, 31 for UART1 (Table 1145, p1099).
+pub(crate) const fn dreq_uart_rx(instance: usize) -> u32 {
+    // DREQ_UART0_RX = 29, one above its TX.
+    29 + 2 * instance as u32
+}
+
+// The four UART cells of Table 1145 (p1099).
+const _: () = assert!(dreq_uart_tx(0) == 28 && dreq_uart_rx(0) == 29);
+const _: () = assert!(dreq_uart_tx(1) == 30 && dreq_uart_rx(1) == 31);
 
 /// `DMA` — bit 2 of `RESETS.RESET` (Table 534, p504).
 const RESET_DMA: u32 = 1 << 2;
@@ -261,6 +299,72 @@ impl Rp2350Dma {
             ch15: Rp2350DmaChannel::new(),
         }
     }
+}
+
+/// Program channel `ch` and start it: `READ_ADDR`, `WRITE_ADDR` and
+/// `TRANS_COUNT` first, then `CTRL_TRIG`, whose write "starts the channel"
+/// ([§12.6.3.1, p1097](../../../docs/rp2350-datasheet.pdf#page=1097)).
+/// `ctrl` must have [`CTRL_EN`] set, or the trigger is ignored (same page).
+///
+/// Device-nGnRE ordering keeps these four writes in program order at the
+/// DMA ([Armv8-M ARM §B7.12.2, p239](../../../docs/DDI0553B_z_armv8m_arm.pdf#page=239)),
+/// but it does not order them after earlier writes to *normal* memory
+/// (rule RNDHC, same page). A caller that has just filled a buffer the
+/// channel will read must put a [`fence`](core::sync::atomic::fence)
+/// before this call.
+///
+/// # Safety
+///
+/// `ch` < [`CHANNELS`], the caller owns the channel and it is idle
+/// (`BUSY` = 0), and the addresses and count describe memory and
+/// registers the channel may access for the whole transfer.
+pub(crate) unsafe fn start(ch: usize, read_addr: u32, write_addr: u32, trans_count: u32, ctrl: u32) {
+    // This channel's register group (Table 1146, p1110).
+    let regs = unsafe { &raw mut (*dma()).ch[ch] };
+    unsafe {
+        // Where the channel reads from (Table 1147, p1123).
+        (&raw mut (*regs).read_addr).write_volatile(read_addr);
+        // Where it writes to (Table 1148, p1124).
+        (&raw mut (*regs).write_addr).write_volatile(write_addr);
+        // MODE and COUNT (Table 1149, p1124).
+        (&raw mut (*regs).trans_count).write_volatile(trans_count);
+        // CTRL through the trigger alias: this write starts the channel.
+        (&raw mut (*regs).ctrl_trig).write_volatile(ctrl);
+    }
+}
+
+/// Channel `ch`'s `CTRL` register, for `BUSY` and `AHB_ERROR` (Table
+/// 1150, p1125). Reading `CTRL_TRIG` does not trigger anything; only
+/// writes do (§12.6.3.1, p1097).
+///
+/// # Safety
+///
+/// `ch` < [`CHANNELS`].
+pub(crate) unsafe fn ctrl(ch: usize) -> u32 {
+    // One volatile read of the live register.
+    unsafe { (&raw const (*dma()).ch[ch].ctrl_trig).read_volatile() }
+}
+
+/// Transfers channel `ch` still has to do in its current sequence: the
+/// live `TRANS_COUNT.COUNT` (Table 1149, p1124).
+///
+/// # Safety
+///
+/// `ch` < [`CHANNELS`].
+pub(crate) unsafe fn remaining(ch: usize) -> u32 {
+    // Bits 27:0; MODE (31:28) masked off.
+    unsafe { (&raw const (*dma()).ch[ch].trans_count).read_volatile() & TRANS_COUNT_COUNT_MASK }
+}
+
+/// The address channel `ch` writes next: the live `WRITE_ADDR`, which
+/// "updates automatically each time a write completes" (Table 1148, p1124).
+///
+/// # Safety
+///
+/// `ch` < [`CHANNELS`].
+pub(crate) unsafe fn write_addr(ch: usize) -> u32 {
+    // One volatile read of the live register.
+    unsafe { (&raw const (*dma()).ch[ch].write_addr).read_volatile() }
 }
 
 /// Stop channel `ch` for good, whatever it is doing, and wait until it has
