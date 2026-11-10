@@ -33,6 +33,15 @@
 //! for it and the pipe counts them, and the next run reports them as
 //! [`IpcStats::pipe_drops`] and as an error to the scheduler.
 //!
+//! # When this side falls behind
+//!
+//! A thread that stalls — on a slow write, say — leaves the other side's
+//! messages piling up in the queue, and its next run would publish them
+//! all at once, more than its own pipes may hold.
+//! [`with_max_inbound`](IpcApp::with_max_inbound) caps how many a run
+//! publishes; the rest wait in the queue for the next run, so the backlog
+//! reaches the local pipes at a rate their consumers can keep up with.
+//!
 //! # Loops
 //!
 //! A message id must cross in one direction only. If both sides forwarded
@@ -113,6 +122,8 @@ pub struct IpcApp<'a, T, const N: usize> {
     stats: IpcStats,
     /// Every this many runs, publish the stats as made by the function.
     report: Option<(u32, ReportFn<T>)>,
+    /// The most messages from the other side one run publishes.
+    max_inbound: usize,
 }
 
 impl<'a, T, const N: usize> IpcApp<'a, T, N> {
@@ -124,7 +135,16 @@ impl<'a, T, const N: usize> IpcApp<'a, T, N> {
         rx: Consumer<'a, (Mid, T)>,
         bus: &'a dyn Publisher<T>,
     ) -> Self {
-        Self { outbound, tx, rx, bus, stats: IpcStats::default(), report: None }
+        Self { outbound, tx, rx, bus, stats: IpcStats::default(), report: None, max_inbound: usize::MAX }
+    }
+
+    /// Publish at most `max` messages from the other side per run, leaving
+    /// the rest in the queue (see
+    /// [When this side falls behind](self#when-this-side-falls-behind)).
+    /// `max` of 0 is taken as 1.
+    pub fn with_max_inbound(mut self, max: usize) -> Self {
+        self.max_inbound = max.max(1);
+        self
     }
 
     /// Also publish the stats on the local bus every `runs` runs, as the
@@ -164,9 +184,13 @@ impl<'a, T: Clone, const N: usize> App for IpcApp<'a, T, N> {
             dropped = dropped.wrapping_add(pipe.take_dropped());
         }
         self.stats.pipe_drops = self.stats.pipe_drops.wrapping_add(dropped);
-        // Inbound: publish everything the other side sent.
+        // Inbound: publish what the other side sent, up to the cap.
         let mut looped = 0u32;
-        while let Some((mid, msg)) = self.rx.dequeue() {
+        let mut taken = 0;
+        while taken < self.max_inbound
+            && let Some((mid, msg)) = self.rx.dequeue()
+        {
+            taken += 1;
             // An id that also goes outbound would come straight back.
             if self.outbound.iter().any(|p| p.mid() == mid) {
                 looped = looped.wrapping_add(1);
@@ -316,5 +340,31 @@ mod tests {
         assert!(status.is_empty());
         app.on_process().unwrap();
         assert_eq!(status.pop(), Some(2));
+    }
+
+    #[test]
+    fn a_capped_side_publishes_a_backlog_a_few_at_a_time() {
+        let mut q: Queue<(Mid, u32), 8> = Queue::new();
+        let mut back: Queue<(Mid, u32), 2> = Queue::new();
+        let (mut far_tx, rx) = q.split();
+        let (tx, _) = back.split();
+        let inbox: Pipe<u32, 2> = Pipe::new(B_TO_A);
+        let bus: ArrayBroker<'_, u32, 1> = ArrayBroker::new();
+        bus.subscribe(&inbox).unwrap();
+        let pipes: [&Pipe<u32, 2>; 0] = [];
+        let mut app = IpcApp::new(&pipes, tx, rx, &bus).with_max_inbound(2);
+        // Five waiting; a pipe of two, emptied after every run, loses none.
+        for m in 0..5 {
+            far_tx.enqueue((B_TO_A, m)).unwrap();
+        }
+        let mut got = heapless::Vec::<u32, 8>::new();
+        for _ in 0..3 {
+            app.on_process().unwrap();
+            while let Some(m) = inbox.pop() {
+                got.push(m).unwrap();
+            }
+        }
+        assert_eq!(&got[..], &[0, 1, 2, 3, 4]);
+        assert_eq!(inbox.take_dropped(), 0);
     }
 }
