@@ -94,6 +94,33 @@ pub enum RegAddr {
     /// register layout as `PLL_SYS`. Base from §8.6.5, p581.
     PLL_USB = 0x4005_8000,
 
+    /// `UART0` — the first PL011 UART. See [`crate::uart`]. Base from the
+    /// APB address map, [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33),
+    /// repeated in [§12.1.8, p970](../../../../docs/rp2350-datasheet.pdf#page=970).
+    UART0 = 0x4007_0000,
+
+    /// `UART1` — the second PL011 UART, same layout as `UART0`. Base from
+    /// [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33).
+    UART1 = 0x4007_8000,
+
+    /// `SPI0` — the first PL022 SPI controller. See [`crate::spi`]. Base
+    /// from [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33),
+    /// repeated in [§12.3.5, p1058](../../../../docs/rp2350-datasheet.pdf#page=1058).
+    SPI0 = 0x4008_0000,
+
+    /// `SPI1` — the second PL022, same layout as `SPI0`. Base from
+    /// [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33).
+    SPI1 = 0x4008_8000,
+
+    /// `I2C0` — the first DW_apb_i2c controller. See [`crate::i2c`]. Base
+    /// from [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33),
+    /// repeated in [§12.2.17, p1006](../../../../docs/rp2350-datasheet.pdf#page=1006).
+    I2C0 = 0x4009_0000,
+
+    /// `I2C1` — the second DW_apb_i2c, same layout as `I2C0`. Base from
+    /// [§2.2.4, p33](../../../../docs/rp2350-datasheet.pdf#page=33).
+    I2C1 = 0x4009_8000,
+
     /// `ADC` — the analogue-to-digital converter: control, result, sample
     /// FIFO and pacing divider. Its registers answer only while `clk_adc`
     /// runs. See [`crate::adc`]. Base from §12.4.7, p1071.

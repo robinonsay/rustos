@@ -27,10 +27,16 @@
 //!   `clocks` ([`Rp2350Clocks`]), `timer` ([`Rp2350Timer`]), `systick`
 //!   ([`Rp2350SysTick`]), `watchdog` ([`Rp2350Watchdog`]), `usb`
 //!   ([`Rp2350Usb`]), `pwm` ([`Rp2350Pwm`]), `dma` ([`Rp2350Dma`]) and `adc`
-//!   ([`Rp2350Adc`]). Those drivers except DMA also take a `&Rp2350Clocks`
-//!   (and USB a `&Rp2350Timer`), so the type system enforces the bring-up
-//!   order: clocks first, then timer, SysTick, watchdog, PWM and the ADC,
-//!   then USB. An ADC stream also takes a channel from the DMA.
+//!   ([`Rp2350Adc`]), and one handle per serial-bus instance: `uart0`/`uart1`
+//!   ([`Rp2350Uart<0>`](Rp2350Uart)/`<1>`), `i2c0`/`i2c1`
+//!   ([`Rp2350I2c`]) and `spi0`/`spi1` ([`Rp2350Spi`]). Those drivers
+//!   except DMA also take a `&Rp2350Clocks` (and USB a `&Rp2350Timer`), so
+//!   the type system enforces the bring-up order: clocks first, then
+//!   timer, SysTick, watchdog, PWM, the ADC and the serial buses, then USB.
+//!   An ADC stream also takes a channel from the DMA. The serial-bus
+//!   drivers also take the `PinHandle` of every pin they use, and only
+//!   compile with pins that can carry their signals (RP2350 datasheet
+//!   Table 644; see `common::pinmux`).
 //! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
 //!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
@@ -86,10 +92,13 @@ use api::define_board;
 use crate::adc::Rp2350Adc;
 use crate::clocks::Rp2350Clocks;
 use crate::dma::Rp2350Dma;
+use crate::i2c::Rp2350I2c;
 use crate::gpio::gpio::Rp2350Gpio;
 use crate::pwm::Rp2350Pwm;
+use crate::spi::Rp2350Spi;
 use crate::systick::Rp2350SysTick;
 use crate::timer::Rp2350Timer;
+use crate::uart::Rp2350Uart;
 use crate::usb::Rp2350Usb;
 use crate::watchdog::Rp2350Watchdog;
 
@@ -141,6 +150,16 @@ define_board!{
             pwm: Rp2350Pwm,
             dma: Rp2350Dma,
             adc: Rp2350Adc,
+            // Serial buses, one handle per hardware instance. The const
+            // parameter is the instance number, so `Rp2350Uart<0>` and
+            // `Rp2350Uart<1>` are distinct types with distinct handles.
+            // Base addresses: §2.2.4 (p32–33) of docs/rp2350-datasheet.pdf.
+            uart0: Rp2350Uart<0>,  // UART0, 0x4007_0000 (§12.1, p959)
+            uart1: Rp2350Uart<1>,  // UART1, 0x4007_8000
+            i2c0: Rp2350I2c<0>,    // I2C0,  0x4009_0000 (§12.2, p981)
+            i2c1: Rp2350I2c<1>,    // I2C1,  0x4009_8000
+            spi0: Rp2350Spi<0>,    // SPI0,  0x4008_0000 (§12.3, p1044)
+            spi1: Rp2350Spi<1>,    // SPI1,  0x4008_8000
         }
     }
 }

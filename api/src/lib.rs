@@ -71,6 +71,11 @@
 //!   request state machine and a byte FIFO. Pure computation, unit-tested on
 //!   the host down to the exact bytes; the RP2350 register driver that uses
 //!   it lives in `pico2::usb`.
+//! * [`i2c`] and [`spi`] — controller traits for the two synchronous serial
+//!   buses: whole I2C transfers addressed to a 7-bit device address, and
+//!   full-duplex SPI byte transfers. A UART needs no trait of its own: it
+//!   is a byte stream, so it implements [`common::Read<u8>`](common::Read)
+//!   and [`common::Write<u8>`](common::Write).
 //!
 //! ## Design notes
 //!
@@ -92,3 +97,5 @@ pub mod gpio;
 pub mod device;
 pub mod usb;
 pub mod time;
+pub mod i2c;
+pub mod spi;

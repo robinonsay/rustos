@@ -9,6 +9,7 @@
 pub mod reg;
 pub mod reset;
 pub mod board;
+pub(crate) mod pinmux;
 
 /// Number of GPIO pins usable on this board: **30**.
 ///
