@@ -87,6 +87,25 @@ pub enum Pull {
 /// pull floats; see [`Pull`] for how to choose.
 pub trait GpioPinIn<const N: usize>: Read<bool> {}
 
+/// An input whose edges the hardware latches, so that a poll learns an
+/// edge happened since the last poll even if the pin is back at its old
+/// level by then.
+///
+/// What a polled system uses to catch a short pulse, such as a GPS
+/// receiver's pulse per second: sampling the level would need a poll
+/// inside every pulse, while the latch only needs one poll between
+/// pulses. The edge is known to within one poll
+/// interval: it happened after the previous poll and before this one.
+pub trait EdgeLatch {
+    /// `true` if a rising edge was latched since the last call; clears the
+    /// latch. Several edges between two calls read as one.
+    fn take_rising(&mut self) -> bool;
+
+    /// `true` if a falling edge was latched since the last call; clears
+    /// the latch.
+    fn take_falling(&mut self) -> bool;
+}
+
 /// A pin configured as a push-pull output.
 ///
 /// **Push-pull** means the pin is actively driven in both directions: one

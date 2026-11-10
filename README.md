@@ -78,6 +78,10 @@ serial port — descriptors, the endpoint-0 request state machine, CDC-ACM
 line coding, a byte ring buffer — unit-tested on the host. Its `multicore`
 module is the bootrom's handshake for starting the second core, as a state
 machine that never waits, tested on the host against a model of that core.
+Its `time` module tags every time with the clock it came from, and has a
+`DisciplinedClock`: a free-running counter read as mission elapsed time and
+steered to a reference such as GPS UTC, shareable between cores without
+locks, with exactly one `Discipliner` allowed to steer it.
 The crate
 contains no register addresses and no dependency on any other crate in the
 workspace, so it compiles for your host machine as well as for the
@@ -105,7 +109,8 @@ without hardware.
 - `common/board.rs`, which instantiates `api`'s `define_board!` macro as the
   `Rp2350` board type with the Pico 2's pin map;
 - a GPIO driver (`Rp2350Gpio`, producing `Rp2350GpioIn` / `Rp2350GpioOut`
-  pins) implementing the `api` traits;
+  pins) implementing the `api` traits, inputs with their hardware edge
+  latch (`EdgeLatch`) for catching short pulses by polling;
 - `clocks` (`Rp2350Clocks`): crystal, both PLLs, and the `clk_ref`,
   `clk_sys`, `clk_peri` and `clk_usb` generators (`clk_adc` is started by
   `adc`);

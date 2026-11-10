@@ -40,7 +40,7 @@ use crate::gpio::{IoBank, PadsBank, Sio};
 use crate::common::reg::RegAddr;
 use api::common::{ErrorType, Read, Write};
 use api::device::{DeviceHandle, PinHandle};
-use api::gpio::{Gpio, GpioPinIn, GpioPinOut, Pull};
+use api::gpio::{EdgeLatch, Gpio, GpioPinIn, GpioPinOut, Pull};
 
 /// Something went wrong configuring a GPIO pin.
 pub enum GpioError
@@ -338,6 +338,49 @@ impl<const N: usize> Read<bool> for Rp2350GpioIn<N>
             let in_reg = &raw const (*sio_addr).gpio_in;
             return Ok(((in_reg.read_volatile() & (1 << N))) == 1 << N)
         }
+    }
+}
+
+/// `INTR` event bit for a rising edge, within a pin's 4-bit field
+/// (§9.5: level-low, level-high, edge-low, edge-high).
+const EDGE_HIGH: usize = 3;
+/// `INTR` event bit for a falling edge.
+const EDGE_LOW: usize = 2;
+
+impl<const N: usize> Rp2350GpioIn<N> {
+    /// Take one of pin `N`'s latched edge bits from the raw `INTR`
+    /// registers: read it and, if set, write 1 to clear it.
+    ///
+    /// `INTR` latches edges whether or not any interrupt is enabled (it is
+    /// the raw status, before `INTE` masks it), so polling it needs no
+    /// interrupt set-up. Its edge bits are write-1-to-clear, so the clear
+    /// touches only this pin's bit: no read-modify-write, and no race with
+    /// the other core polling a different pin.
+    fn take_edge(event: usize) -> bool {
+        let io_addr = RegAddr::IO_BANK0 as usize as *mut IoBank;
+        let bit = 1u32 << ((N % 8) * 4 + event);
+        unsafe {
+            let intr = &raw mut (*io_addr).intr[N / 8];
+            let latched = intr.read_volatile() & bit != 0;
+            if latched {
+                intr.write_volatile(bit);
+            }
+            latched
+        }
+    }
+}
+
+/// Edges latched in the raw `INTR` registers of `IO_BANK0` (§9.5). The pad's
+/// input buffer is on (see [`configure_gpio_pin_in`]), which edge detection
+/// needs. An edge latched before the pin was configured may still be
+/// there: the first call can report it.
+impl<const N: usize> EdgeLatch for Rp2350GpioIn<N> {
+    fn take_rising(&mut self) -> bool {
+        Self::take_edge(EDGE_HIGH)
+    }
+
+    fn take_falling(&mut self) -> bool {
+        Self::take_edge(EDGE_LOW)
     }
 }
 

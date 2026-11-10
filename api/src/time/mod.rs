@@ -24,7 +24,13 @@
 
 use core::{marker::PhantomData, ops::{Add, Mul, Sub}};
 
-use crate::common::num::Number;
+pub mod civil;
+pub mod discipline;
+
+pub use civil::{Civil, Met, Utc};
+pub use discipline::{
+    DisciplineConfig, DisciplineState, DisciplineStatus, DisciplinedClock, Discipliner, PulseOutcome,
+};
 
 /// Identifies a clock, for use as the `C` in [`Time<C>`].
 ///
@@ -227,6 +233,32 @@ pub trait Clock
     type ThisTime: ClockId;
     /// Reads the current time.
     fn now(&self) -> Time<Self::ThisTime>;
+}
+
+/// A [`Clock`] steered to a reference clock, which can say what its
+/// readings are on that reference.
+///
+/// The usual case is a free-running counter disciplined by a GPS
+/// receiver: [`Clock::now`] gives mission elapsed time, never stepped, and
+/// [`to_reference`](Self::to_reference) gives UTC once the receiver has
+/// supplied one. [`DisciplinedClock`] is the implementation; who may steer
+/// it is that type's business, not this trait's, so code that only reads
+/// time takes a `C: Disciplined` and cannot steer.
+pub trait Disciplined: Clock {
+    /// The clock this one is steered to.
+    type Reference: ClockId;
+
+    /// `t`, a reading of this clock, on the reference clock; `None` until
+    /// the correlation between the two is known.
+    fn to_reference(&self, t: Time<Self::ThisTime>) -> Option<Time<Self::Reference>>;
+
+    /// The reference time now, if known.
+    fn reference_now(&self) -> Option<Time<Self::Reference>> {
+        self.to_reference(self.now())
+    }
+
+    /// How the steering is going, for telemetry.
+    fn status(&self) -> DisciplineStatus<Self::ThisTime, Self::Reference>;
 }
 
 /// A [`Clock`] that can also wait for a time on itself: what a scheduler
