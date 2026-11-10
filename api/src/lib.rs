@@ -17,7 +17,9 @@
 //! enforcement above the hardware — the job of [`device`].
 //!
 //! There are no register addresses and no dependency on any other crate in
-//! the workspace. An `unsafe fn` is one whose preconditions the compiler
+//! the workspace; the one external dependency is
+//! [`heapless`](https://docs.rs/heapless/0.9.3/heapless/), for the
+//! fixed-capacity queues of [`sb`]. An `unsafe fn` is one whose preconditions the compiler
 //! cannot verify: the caller must wrap the call in an `unsafe` block and is
 //! responsible for the obligations listed in the function's `# Safety`
 //! section. The only `unsafe fn`s this crate exposes are
@@ -88,6 +90,9 @@
 //!   (`on_start`, `on_process`, `on_exit`), LibJuno's `APP_API_T` in Rust.
 //! * [`sch`] — the [`sch::Scheduler`] trait and [`sch::TdmSch`], a
 //!   time-division-multiplexed cyclic executive, LibJuno's `SCH_API_T`.
+//! * [`sb`] — the software bus: apps publish messages by id, and each
+//!   subscriber drains its own fixed-size [`sb::Pipe`]. LibJuno's
+//!   `JUNO_SB_BROKER_API_T`.
 //!
 //! ## Design notes
 //!
@@ -117,3 +122,4 @@ pub mod watchdog;
 pub mod error;
 pub mod app;
 pub mod sch;
+pub mod sb;
