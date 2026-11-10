@@ -4,7 +4,7 @@ use core::cell::RefCell;
 
 use heapless::Vec;
 
-use super::{Broker, Mid, SbError, Subscriber};
+use super::{Broker, Mid, Publisher, SbError, Subscriber};
 
 /// A [`Broker`] that holds up to `S` subscribers. LibJuno's
 /// `BROKER_ROOT_T<MsgT, PipeN, RegCapacity>` (`broker_api.hpp`) and
@@ -85,7 +85,9 @@ impl<'a, T, const S: usize> Broker<'a, T> for ArrayBroker<'a, T, S> {
         // unchanged on failure.
         registry.push(sub).map_err(|_| SbError::RegistryFull)
     }
+}
 
+impl<T, const S: usize> Publisher<T> for ArrayBroker<'_, T, S> {
     fn publish(&self, mid: Mid, msg: &T) -> Result<usize, SbError> {
         // A shared borrow: a subscriber may publish again from inside
         // `deliver` (a forwarder, say), but may not subscribe.
@@ -113,6 +115,7 @@ impl<'a, T, const S: usize> Broker<'a, T> for ArrayBroker<'a, T, S> {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {

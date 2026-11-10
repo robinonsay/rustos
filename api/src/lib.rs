@@ -93,6 +93,11 @@
 //! * [`sb`] — the software bus: apps publish messages by id, and each
 //!   subscriber drains its own fixed-size [`sb::Pipe`]. LibJuno's
 //!   `JUNO_SB_BROKER_API_T`.
+//! * [`multicore`] — starting a second core: the launch handshake of the
+//!   RP2350 bootrom as a state machine that never blocks, over a
+//!   [`multicore::Mailbox`] the chip crate supplies, tested on the host
+//!   against a model of the other core; the RP2350 driver that uses it is
+//!   `pico2::multicore`.
 //!
 //! ## Design notes
 //!
@@ -123,3 +128,4 @@ pub mod error;
 pub mod app;
 pub mod sch;
 pub mod sb;
+pub mod multicore;

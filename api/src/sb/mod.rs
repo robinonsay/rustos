@@ -15,7 +15,7 @@
 //! | [`Mid`] | `JUNO_SB_MID_T` | message id, `u32` |
 //! | [`Pipe`] | `JUNO_SB_PIPE_T` / `PIPE_ROOT_T` | a FIFO tagged with one [`Mid`] |
 //! | [`Subscriber`] | (the pipe's `Enqueue`) | anything a broker can deliver to |
-//! | [`Broker`] | `JUNO_SB_BROKER_API_T` | `Publish`, `RegisterSubscriber` |
+//! | [`Broker`], [`Publisher`] | `JUNO_SB_BROKER_API_T` | `RegisterSubscriber`; `Publish` |
 //! | [`ArrayBroker`] | `JUNO_SB_BROKER_ROOT_T` / `BROKER_ROOT_T` | a broker with a fixed-size registry |
 //!
 //! Storage is fixed at compile time, with no heap: a pipe's queue is a
@@ -32,14 +32,15 @@
 //! Each thread of execution — the main loop of one core, say — owns its
 //! own broker. Moving a message between threads is a job for whatever IPC
 //! the platform has (a hardware FIFO, a DMA ring, an RTOS queue): receive
-//! it on the destination thread, then publish it there.
+//! it on the destination thread, then publish it there. [`IpcApp`] does
+//! exactly that over a pair of lock-free queues.
 //!
 //! # Differences from LibJuno
 //!
 //! * **A full pipe does not stop the fan-out.** LibJuno's `Publish` returns
 //!   at the first pipe that will not take the message, so later subscribers
 //!   never see it. Here every matching subscriber is offered the message,
-//!   and [`Broker::publish`] reports how many refused
+//!   and [`Publisher::publish`] reports how many refused
 //!   ([`SbError::Undelivered`]): one slow consumer cannot starve the rest,
 //!   the same rule the scheduler applies to failing apps.
 //! * **A pipe counts what it dropped** ([`Pipe::take_dropped`]), so the
@@ -62,7 +63,7 @@
 //! ```ignore
 //! use api::app::App;
 //! use api::error::ErrorKind;
-//! use api::sb::{ArrayBroker, Broker, Mid, Pipe};
+//! use api::sb::{ArrayBroker, Broker, Mid, Pipe, Publisher};
 //!
 //! const ENGINE_CMD: Mid = 0x1800;
 //!
@@ -97,9 +98,11 @@
 //! ```
 
 pub mod broker;
+pub mod ipc;
 pub mod pipe;
 
 pub use broker::ArrayBroker;
+pub use ipc::{IpcApp, IpcError, IpcStats, ReportFn};
 pub use pipe::Pipe;
 
 use crate::error::{Error, ErrorKind};
@@ -129,14 +132,35 @@ pub trait Subscriber<T> {
     fn deliver(&self, msg: &T) -> Result<(), SbError>;
 }
 
+/// The publishing half of a broker: what an app that only produces
+/// messages needs. LibJuno's `Publish` (`broker_api.h`).
+///
+/// Split from [`Broker`] because it needs no subscriber lifetime: an app
+/// holds a `&dyn Publisher<T>` however long the broker's subscribers live,
+/// where a `&'a dyn Broker<'a, T>` would tie its borrow to them, which a
+/// broker with a destructor cannot satisfy.
+pub trait Publisher<T> {
+    /// Offer `msg` to every subscriber of `mid`, in the order they
+    /// subscribed. Returns how many accepted it; no subscribers is
+    /// `Ok(0)`, not an error, since a message nobody wants yet is normal
+    /// while a system starts.
+    ///
+    /// # Errors
+    ///
+    /// [`SbError::Undelivered`] if any subscriber refused the message. All
+    /// the others still got it.
+    fn publish(&self, mid: Mid, msg: &T) -> Result<usize, SbError>;
+}
+
 /// A publish/subscribe broker: LibJuno's `JUNO_SB_BROKER_API_T`
-/// (`broker_api.h`), carrying messages of type `T`.
+/// (`broker_api.h`), carrying messages of type `T`. Publishing is the
+/// [`Publisher`] supertrait.
 ///
 /// `'a` is how long the subscribers it holds must live; it must not
 /// outlive them, which the borrow checker enforces where LibJuno's
 /// "the pipe must remain valid" (`broker_api.hpp`, `RegisterSubscriber`)
 /// was a comment.
-pub trait Broker<'a, T> {
+pub trait Broker<'a, T>: Publisher<T> {
     /// Register `sub` to receive every later message published with its
     /// [`mid`](Subscriber::mid). LibJuno's `RegisterSubscriber`.
     ///
@@ -145,19 +169,8 @@ pub trait Broker<'a, T> {
     /// * [`SbError::RegistryFull`] if no more subscribers fit.
     /// * [`SbError::AlreadySubscribed`] if `sub` is already registered.
     /// * [`SbError::Busy`] if called from inside a delivery of this
-    ///   broker's own [`publish`](Self::publish).
+    ///   broker's own [`publish`](Publisher::publish).
     fn subscribe(&self, sub: &'a dyn Subscriber<T>) -> Result<(), SbError>;
-
-    /// Offer `msg` to every subscriber of `mid`, in the order they
-    /// subscribed. LibJuno's `Publish`. Returns how many accepted it; no
-    /// subscribers is `Ok(0)`, not an error, since a message nobody wants
-    /// yet is normal while a system starts.
-    ///
-    /// # Errors
-    ///
-    /// [`SbError::Undelivered`] if any subscriber refused the message. All
-    /// the others still got it.
-    fn publish(&self, mid: Mid, msg: &T) -> Result<usize, SbError>;
 }
 
 /// What can go wrong on the software bus.

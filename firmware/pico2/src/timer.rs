@@ -169,7 +169,11 @@ const RESET_TIMER0: u32 = 1 << 23;
 ///
 /// All methods take `&self` and only read the counter, so one
 /// `Rp2350Timer` can be shared by reference with every part of the
-/// application that needs time.
+/// application that needs time. It is `Clone` for the same reason: a copy
+/// reads the same counter, so a second core can be handed one of its own
+/// (the read is safe from either core; see [`now`](Self::now)). Only
+/// [`new`](Self::new) touches the hardware's configuration.
+#[derive(Clone)]
 pub struct Rp2350Timer {
     _private: (),
 }

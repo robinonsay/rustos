@@ -36,7 +36,9 @@
 //!   An ADC stream also takes a channel from the DMA. The serial-bus
 //!   drivers also take the `PinHandle` of every pin they use, and only
 //!   compile with pins that can carry their signals (RP2350 datasheet
-//!   Table 644; see `common::pinmux`).
+//!   Table 644; see `common::pinmux`). `core1` ([`Rp2350Core1`]) is the
+//!   right to start the second core, once; its `launch` takes a
+//!   `&Rp2350Timer` for its time limit.
 //! * **`Rp2350`** — the board struct, holding `pins: Rp2350Pins` and the
 //!   device handle fields.
 //! * **`Rp2350::take() -> Option<Rp2350>`** — the singleton constructor. It
@@ -94,6 +96,7 @@ use crate::clocks::Rp2350Clocks;
 use crate::dma::Rp2350Dma;
 use crate::i2c::Rp2350I2c;
 use crate::gpio::gpio::Rp2350Gpio;
+use crate::multicore::Rp2350Core1;
 use crate::pwm::Rp2350Pwm;
 use crate::spi::Rp2350Spi;
 use crate::systick::Rp2350SysTick;
@@ -160,6 +163,8 @@ define_board!{
             i2c1: Rp2350I2c<1>,    // I2C1,  0x4009_8000
             spi0: Rp2350Spi<0>,    // SPI0,  0x4008_0000 (§12.3, p1044)
             spi1: Rp2350Spi<1>,    // SPI1,  0x4008_8000
+            // The right to start the second core (§5.3).
+            core1: Rp2350Core1,
         }
     }
 }
