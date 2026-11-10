@@ -99,6 +99,17 @@ impl<C: ClockId> Time<C>
         Self::new((ticks / hz) as u32, fraction as u32)
     }
 
+    /// The span from `earlier` to `self`, or `None` if `earlier` is
+    /// actually later: the checked form of `self - earlier`, for when the
+    /// order of two readings is not certain.
+    pub const fn checked_sub(self, earlier: Self) -> Option<Duration> {
+        // Integer subtraction fails exactly when the span would be negative.
+        match self.to_fixed().checked_sub(earlier.to_fixed()) {
+            Some(fixed) => Some(Duration { fixed }),
+            None => None,
+        }
+    }
+
     /// Returns the time in seconds as an `f32`.
     ///
     /// The result is the nearest `f32` to the exact value. An `f32` holds
@@ -150,6 +161,55 @@ impl <C: ClockId> Mul for Time<C>
         let product = (self.to_fixed() as u128 * rhs.to_fixed() as u128) >> Self::FRAC_BITS;
         debug_assert!(product <= u64::MAX as u128, "Time multiplication overflow");
         Self::from_fixed(product as u64)
+    }
+}
+
+/// The span between two times on the same clock: `later - earlier`.
+///
+/// The result is a [`Duration`], not a `Time`: the difference of two
+/// points is a length, not another point on clock `C`. Both operands being
+/// `Time<C>` means a reading from one clock cannot be subtracted from a
+/// reading of another. If `rhs` is later than `self` the span would be
+/// negative, which follows the integer rules: a panic in debug builds and
+/// wrap-around in release builds; [`Time::checked_sub`] returns `None`
+/// instead. On a clock that wraps (such as a 24-bit
+/// counter), take differences of the raw counts instead.
+impl<C: ClockId> Sub for Time<C>
+{
+    type Output = Duration;
+
+    fn sub(self, rhs: Self) -> Duration {
+        // Same 32.32 layout, so the difference is integer subtraction.
+        Duration { fixed: self.to_fixed() - rhs.to_fixed() }
+    }
+}
+
+/// The time `rhs` after `self`, on the same clock: a deadline is
+/// `clock.now() + timeout`.
+///
+/// Going past 2^32 s follows the integer rules: a panic in debug builds and
+/// wrap-around in release builds.
+impl<C: ClockId> Add<Duration> for Time<C>
+{
+    type Output = Time<C>;
+
+    fn add(self, rhs: Duration) -> Time<C> {
+        // Same 32.32 layout, so this is integer addition.
+        Self::from_fixed(self.to_fixed() + rhs.fixed)
+    }
+}
+
+/// The time `rhs` before `self`, on the same clock.
+///
+/// Going back past clock `C`'s epoch follows the integer rules: a panic in
+/// debug builds and wrap-around in release builds.
+impl<C: ClockId> Sub<Duration> for Time<C>
+{
+    type Output = Time<C>;
+
+    fn sub(self, rhs: Duration) -> Time<C> {
+        // Same 32.32 layout, so this is integer subtraction.
+        Self::from_fixed(self.to_fixed() - rhs.fixed)
     }
 }
 
@@ -477,6 +537,52 @@ mod tests {
         assert_eq!(b.checked_sub(a), None);
         assert_eq!(Duration::MAX.checked_add(Duration::new(0, 1)), None);
         assert!(b < a);
+    }
+
+    #[test]
+    fn time_minus_time_is_the_span_between_them() {
+        // 3.5 s - 1.25 s = 2.25 s.
+        let span = t(3, HALF) - t(1, 1 << 30);
+        assert_eq!(span, Duration::new(2, 1 << 30));
+        // A time minus itself is no time at all.
+        assert_eq!(t(7, 12345) - t(7, 12345), Duration::ZERO);
+    }
+
+    #[test]
+    fn time_minus_time_borrows_from_the_seconds() {
+        // 2.0 s - 1.5 s = 0.5 s: the fraction borrows a second.
+        assert_eq!(t(2, 0) - t(1, HALF), Duration::new(0, HALF));
+    }
+
+    #[test]
+    fn time_minus_duration_moves_back_along_the_clock() {
+        assert_eq!(parts(t(10, 0) - Duration::from_millis(1500)), (8, HALF));
+        assert_eq!(parts(t(5, 7) - Duration::ZERO), (5, 7));
+    }
+
+    #[test]
+    fn time_plus_duration_moves_forward_along_the_clock() {
+        // 8.5 s + 1.5 s = 10 s: the fraction carries into the seconds.
+        assert_eq!(parts(t(8, HALF) + Duration::from_millis(1500)), (10, 0));
+        // Adding then subtracting the same span is the identity.
+        let d = Duration::from_micros(123_456);
+        assert_eq!(t(4, 99) + d - d, t(4, 99));
+        // And the span between a deadline and its start is the timeout.
+        assert_eq!((t(4, 99) + d) - t(4, 99), d);
+    }
+
+    #[test]
+    fn checked_sub_reports_the_wrong_order() {
+        assert_eq!(t(3, 0).checked_sub(t(1, HALF)), Some(Duration::new(1, HALF)));
+        assert_eq!(t(1, 0).checked_sub(t(1, 0)), Some(Duration::ZERO));
+        assert_eq!(t(1, 0).checked_sub(t(1, 1)), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn subtracting_a_later_time_panics_in_debug() {
+        // Debug builds check integer overflow, so a negative span panics.
+        let _ = t(1, 0) - t(2, 0);
     }
 
     #[test]
