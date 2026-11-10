@@ -91,3 +91,4 @@ pub mod common;
 pub mod gpio;
 pub mod device;
 pub mod usb;
+pub mod time;

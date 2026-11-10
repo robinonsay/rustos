@@ -47,6 +47,7 @@
 /// nonvolatile program memory.
 /// 
 pub mod ring;
+pub mod num;
 
 pub trait ErrorType {
     /// The error reported by every fallible operation on this type.

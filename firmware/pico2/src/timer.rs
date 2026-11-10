@@ -59,6 +59,7 @@
 //! (one more than the number printed in the page footer).
 
 use api::device::DeviceHandle;
+use api::time::{Clock, ClockId, Time};
 
 use crate::clocks::{Rp2350Clocks, CLK_REF_HZ};
 use crate::common::reg::RegAddr;
@@ -249,5 +250,29 @@ impl Rp2350Timer {
     /// [`delay_us`](Self::delay_us).
     pub fn delay_ms(&self, ms: u32) {
         self.delay_us(ms as u64 * 1000);
+    }
+}
+
+/// The `TIMER0` microsecond count, as a [`ClockId`] for
+/// [`Time<Timer0Clock>`](Time). Its epoch is the moment
+/// [`Rp2350Timer::new`] reset the timer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Timer0Clock;
+
+impl ClockId for Timer0Clock {
+    const NAME: &'static str = "TIMER0";
+}
+
+/// The timer as a portable [`Clock`].
+///
+/// The inherent [`Rp2350Timer::now`] keeps returning raw microseconds, and
+/// `timer.now()` still names it; reach this one as `Clock::now(&timer)` or
+/// through a `C: Clock` bound. The reading is the same count converted to
+/// seconds, truncated to 2^-32 s.
+impl Clock for Rp2350Timer {
+    type ThisTime = Timer0Clock;
+
+    fn now(&self) -> Time<Timer0Clock> {
+        Time::from_ticks(Rp2350Timer::now(self), 1_000_000)
     }
 }

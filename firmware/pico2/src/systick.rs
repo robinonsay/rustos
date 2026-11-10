@@ -46,6 +46,7 @@
 //! (one more than the number printed in the page footer).
 
 use api::device::DeviceHandle;
+use api::time::{Clock, ClockId, Time};
 
 use crate::clocks::{Rp2350Clocks, CLK_SYS_HZ};
 
@@ -114,5 +115,31 @@ impl Rp2350SysTick {
         let st = SYSTICK_BASE as *const SysTick;
         let current = unsafe { (&raw const (*st).cvr).read_volatile() } & CYCLES_MASK;
         CYCLES_MASK - current
+    }
+}
+
+/// The SysTick `clk_sys` cycle count, as a [`ClockId`] for
+/// [`Time<SysTickClock>`](Time). It has no fixed epoch: the count wraps to
+/// 0 every 2^24 cycles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SysTickClock;
+
+impl ClockId for SysTickClock {
+    const NAME: &'static str = "SYSTICK";
+}
+
+/// The SysTick counter as a portable [`Clock`].
+///
+/// The reading is [`Rp2350SysTick::cycles`] converted to seconds at
+/// [`CLK_SYS_HZ`], so it **wraps back to 0 every 2^24 / 150 MHz, about
+/// 111.8 ms**. Two readings can only be compared when they are known to be
+/// less than one wrap apart, and even then a later reading can be the
+/// smaller one. For elapsed time, take the difference of two
+/// [`cycles`](Rp2350SysTick::cycles) readings modulo 2^24 instead.
+impl Clock for Rp2350SysTick {
+    type ThisTime = SysTickClock;
+
+    fn now(&self) -> Time<SysTickClock> {
+        Time::from_ticks(self.cycles() as u64, CLK_SYS_HZ)
     }
 }
