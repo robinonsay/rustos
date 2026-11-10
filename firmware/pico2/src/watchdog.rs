@@ -201,7 +201,12 @@
 //! Page numbers in this crate are PDF page indices of the RP2350 datasheet
 //! (one more than the number printed in the page footer).
 
+use api::common::ErrorType;
 use api::device::DeviceHandle;
+// Aliased: in this module `Watchdog` names the register layout and
+// `ResetReason` this driver's own, more detailed, reset reason.
+use api::time::Duration;
+use api::watchdog::{ResetReason as PortableReason, Watchdog as WatchdogTrait};
 
 use crate::clocks::{Rp2350Clocks, CLK_REF_HZ, CLK_SYS_HZ};
 use crate::common::reg::RegAddr;
@@ -632,3 +637,106 @@ unsafe fn configure_reset_scope() {
         auxctrl.write_volatile(auxctrl.read_volatile() | AUXCTRL_POWMAN_CLK_TO_LPOSC);
     }
 }
+
+// --- Portable interface --------------------------------------------------
+
+/// Map this driver's [`ResetReason`] onto the chip-independent
+/// [`api::watchdog::ResetReason`]. Pure, so the mapping can be checked by
+/// reading; the causes are those of `POWMAN.CHIP_RESET` (Table 488,
+/// p468–471) and `WATCHDOG.REASON` (Table 1249, p1195), classified as in
+/// the [module documentation](self#why-did-the-chip-reset).
+pub const fn portable_reason(reason: ResetReason) -> PortableReason {
+    match reason {
+        // HAD_POR: power was applied.
+        ResetReason::ChipReset(ChipResetCause::PowerOn) => PortableReason::PowerOn,
+        // HAD_BOR: the core supply dropped below the brown-out threshold.
+        ResetReason::ChipReset(ChipResetCause::Brownout) => PortableReason::Brownout,
+        // HAD_RUN_LOW: the RUN pin, the board's reset input.
+        ResetReason::ChipReset(ChipResetCause::RunPin) => PortableReason::ExternalPin,
+        // HAD_DP_RESET_REQ, HAD_RESCUE, HAD_HZD_SYS_RESET_REQ: a debugger.
+        ResetReason::ChipReset(ChipResetCause::DebuggerReset)
+        | ResetReason::ChipReset(ChipResetCause::DebuggerRescue)
+        | ResetReason::ChipReset(ChipResetCause::RiscvDebuggerReset) => PortableReason::Debugger,
+        // HAD_GLITCH_DETECT: the supply glitch detector, a fault detector.
+        ResetReason::ChipReset(ChipResetCause::GlitchDetector) => PortableReason::Fault,
+        // HAD_SWCORE_PD: the switched core was powered down and back up.
+        ResetReason::ChipReset(ChipResetCause::SwitchedCorePowerDown) => PortableReason::Wake,
+        // A chip-level watchdog reset this driver never configures: timeout
+        // or trigger cannot be told apart, so no portable reason fits.
+        ResetReason::ChipReset(ChipResetCause::WatchdogChipLevel) => PortableReason::Unknown,
+        // No CHIP_RESET flag set.
+        ResetReason::ChipReset(ChipResetCause::Unknown) => PortableReason::Unknown,
+        // REASON.TIMER with this driver's marker: the application stopped feeding.
+        ResetReason::WatchdogTimeout => PortableReason::WatchdogTimeout,
+        // REASON.FORCE (force_reset), or TIMER without the marker (the
+        // bootrom's reboot routine): a deliberate reset by software.
+        ResetReason::WatchdogForced(_) => PortableReason::Software,
+    }
+}
+
+/// Starting and feeding cannot fail: [`Rp2350Watchdog::start`] clamps the
+/// timeout to what `LOAD` holds instead of rejecting it.
+impl ErrorType for Rp2350Watchdog {
+    type Error = core::convert::Infallible;
+}
+
+/// The portable watchdog interface. Each method is the inherent one of the
+/// same name (in microseconds, the counter's unit); see those for the
+/// register-level detail. A [`Duration`] is converted to microseconds
+/// rounding **up**, so the watchdog never fires earlier than asked, and
+/// whole microseconds convert back to a `Duration` exactly enough that
+/// the round trip is unchanged.
+impl WatchdogTrait for Rp2350Watchdog {
+    fn max_timeout(&self) -> Duration {
+        // 24-bit LOAD, in µs (Table 1248, p1195): about 16.8 s.
+        Duration::from_micros(MAX_TIMEOUT_US as u64)
+    }
+
+    fn start(&mut self, timeout: Duration) -> Result<Duration, Self::Error> {
+        // Whole µs, rounded up; anything above LOAD's range is clamped to
+        // it before narrowing, and the inherent start clamps 0 up to 1.
+        let us = timeout.as_micros_ceil().min(MAX_TIMEOUT_US as u64) as u32;
+        // The value actually loaded, back as a Duration.
+        Ok(Duration::from_micros(Rp2350Watchdog::start(self, us) as u64))
+    }
+
+    fn feed(&mut self) {
+        // Rewrites LOAD; a no-op before start.
+        Rp2350Watchdog::feed(self)
+    }
+
+    fn is_running(&self) -> bool {
+        // CTRL.ENABLE (Table 1247, p1194).
+        Rp2350Watchdog::is_running(self)
+    }
+
+    fn time_remaining(&self) -> Option<Duration> {
+        // CTRL.TIME (µs, Table 1247, p1194) is only meaningful while counting.
+        if Rp2350Watchdog::is_running(self) {
+            Some(Duration::from_micros(Rp2350Watchdog::time_remaining_us(self) as u64))
+        } else {
+            None
+        }
+    }
+
+    fn reset_reason(&self) -> PortableReason {
+        // Captured by `new`, mapped by `portable_reason`.
+        portable_reason(Rp2350Watchdog::reset_reason(self))
+    }
+
+    fn force_reset(&mut self) -> ! {
+        // CTRL.TRIGGER: the next boot sees REASON.FORCE, i.e. Software.
+        Rp2350Watchdog::force_reset(self)
+    }
+}
+
+// The mapping, checked for the cases that matter most to an application.
+const _: () = assert!(matches!(portable_reason(ResetReason::WatchdogTimeout), PortableReason::WatchdogTimeout));
+const _: () = assert!(matches!(
+    portable_reason(ResetReason::WatchdogForced(ForcedBy::Trigger)),
+    PortableReason::Software
+));
+const _: () = assert!(matches!(
+    portable_reason(ResetReason::ChipReset(ChipResetCause::PowerOn)),
+    PortableReason::PowerOn
+));

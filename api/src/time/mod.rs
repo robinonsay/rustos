@@ -22,7 +22,7 @@
 //! Unsegmented Time Code with 4 coarse and 4 fine octets. Seconds wrap after
 //! 2^32 s, about 136 years.
 
-use core::{marker::PhantomData, ops::{Add, Mul}};
+use core::{marker::PhantomData, ops::{Add, Mul, Sub}};
 
 use crate::common::num::Number;
 
@@ -169,6 +169,175 @@ pub trait Clock
     fn now(&self) -> Time<Self::ThisTime>;
 }
 
+/// A length of time, such as a timeout or a period, as 32.32 fixed-point
+/// seconds.
+///
+/// A [`Time<C>`] is a *point* on clock `C`; a `Duration` is a *span*, and
+/// is not tied to any clock: 100 ms is 100 ms whichever clock measures it.
+/// It uses the same layout as `Time` (see the [module documentation](self)):
+/// whole seconds in the upper 32 bits, units of 2^-32 s in the lower 32,
+/// so spans up to about 136 years with about 233 ps resolution.
+///
+/// Conversions from a whole count of some unit ([`from_micros`] and
+/// friends) truncate to whole 2^-32 s units, like [`Time::from_ticks`], and
+/// saturate at [`Duration::MAX`] instead of wrapping. Conversions back to
+/// a count say how they round: [`as_micros`] down, [`as_micros_ceil`] up.
+/// A count converted in and back out with `_ceil` is unchanged, because
+/// one microsecond is far more than one 2^-32 s unit.
+///
+/// [`from_micros`]: Self::from_micros
+/// [`as_micros`]: Self::as_micros
+/// [`as_micros_ceil`]: Self::as_micros_ceil
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Duration {
+    /// 32.32 fixed-point seconds.
+    fixed: u64,
+}
+
+impl Duration {
+    /// No time at all.
+    pub const ZERO: Duration = Duration { fixed: 0 };
+
+    /// The longest span: 2^32 s less one 2^-32 s unit.
+    pub const MAX: Duration = Duration { fixed: u64::MAX };
+
+    /// One second in fixed-point units: 2^32.
+    const ONE_SECOND: u64 = 1 << 32;
+
+    /// `seconds` whole seconds plus `subseconds` units of 2^-32 s.
+    pub const fn new(seconds: u32, subseconds: u32) -> Self {
+        // Same packing as Time::to_fixed.
+        Self { fixed: ((seconds as u64) << 32) | subseconds as u64 }
+    }
+
+    /// `ticks` periods of a `ticks_per_second` counter, truncated to whole
+    /// 2^-32 s units and saturating at [`Duration::MAX`]. Panics if
+    /// `ticks_per_second` is 0.
+    pub const fn from_ticks(ticks: u64, ticks_per_second: u32) -> Self {
+        // As u64 for the arithmetic below.
+        let hz = ticks_per_second as u64;
+        // Whole seconds; above u32::MAX the span does not fit.
+        let seconds = ticks / hz;
+        if seconds > u32::MAX as u64 {
+            return Self::MAX;
+        }
+        // The remainder is below hz < 2^32, so the shift cannot overflow.
+        let fraction = ((ticks % hz) << 32) / hz;
+        // Both parts fit 32 bits.
+        Self::new(seconds as u32, fraction as u32)
+    }
+
+    /// `secs` whole seconds. Always exact.
+    pub const fn from_secs(secs: u32) -> Self {
+        // No fraction.
+        Self::new(secs, 0)
+    }
+
+    /// `millis` milliseconds, truncated to whole 2^-32 s units.
+    pub const fn from_millis(millis: u64) -> Self {
+        // A millisecond counter runs at 1000 Hz.
+        Self::from_ticks(millis, 1_000)
+    }
+
+    /// `micros` microseconds, truncated to whole 2^-32 s units.
+    pub const fn from_micros(micros: u64) -> Self {
+        // A microsecond counter runs at 1 MHz.
+        Self::from_ticks(micros, 1_000_000)
+    }
+
+    /// Whole seconds, the fraction discarded.
+    pub const fn as_secs(&self) -> u32 {
+        // The upper 32 bits.
+        (self.fixed >> 32) as u32
+    }
+
+    /// This span in periods of a `ticks_per_second` counter, rounded down.
+    pub const fn as_ticks(&self, ticks_per_second: u32) -> u64 {
+        // 64.64 product in u128, back to whole ticks by dropping 32 bits.
+        // fixed < 2^64 and the rate < 2^32, so the product is below 2^96
+        // and the result below 2^64: it always fits a u64.
+        ((self.fixed as u128 * ticks_per_second as u128) >> 32) as u64
+    }
+
+    /// This span in periods of a `ticks_per_second` counter, rounded up: the
+    /// fewest ticks that last at least this long.
+    pub const fn as_ticks_ceil(&self, ticks_per_second: u32) -> u64 {
+        // Add one unit less than a tick before dropping the fraction. The
+        // product is at most (2^64 − 1)(2^32 − 1), so adding 2^32 − 1 still
+        // leaves it below 2^96: the result always fits a u64.
+        ((self.fixed as u128 * ticks_per_second as u128 + (Self::ONE_SECOND as u128 - 1)) >> 32) as u64
+    }
+
+    /// Whole milliseconds, rounded down.
+    pub const fn as_millis(&self) -> u64 {
+        // A millisecond counter runs at 1000 Hz.
+        self.as_ticks(1_000)
+    }
+
+    /// Whole microseconds, rounded down.
+    pub const fn as_micros(&self) -> u64 {
+        // A microsecond counter runs at 1 MHz.
+        self.as_ticks(1_000_000)
+    }
+
+    /// Microseconds, rounded up: the fewest whole microseconds that last
+    /// at least this long. What a timeout should be converted with, so it
+    /// never fires early.
+    pub const fn as_micros_ceil(&self) -> u64 {
+        // A microsecond counter runs at 1 MHz.
+        self.as_ticks_ceil(1_000_000)
+    }
+
+    /// `self + rhs`, or `None` if the sum exceeds [`Duration::MAX`].
+    pub const fn checked_add(self, rhs: Self) -> Option<Self> {
+        // Fixed-point addition is integer addition.
+        match self.fixed.checked_add(rhs.fixed) {
+            Some(fixed) => Some(Self { fixed }),
+            None => None,
+        }
+    }
+
+    /// `self - rhs`, or `None` if `rhs` is longer than `self`.
+    pub const fn checked_sub(self, rhs: Self) -> Option<Self> {
+        // A span cannot be negative.
+        match self.fixed.checked_sub(rhs.fixed) {
+            Some(fixed) => Some(Self { fixed }),
+            None => None,
+        }
+    }
+
+    /// `self - rhs`, or [`Duration::ZERO`] if `rhs` is longer.
+    pub const fn saturating_sub(self, rhs: Self) -> Self {
+        // Clamp at zero instead of failing.
+        Self { fixed: self.fixed.saturating_sub(rhs.fixed) }
+    }
+}
+
+/// The sum of two spans. Overflow past [`Duration::MAX`] follows the
+/// integer rules, as for [`Time`]: a panic in debug builds, wrap-around in
+/// release builds. Use [`Duration::checked_add`] where that matters.
+impl Add for Duration {
+    type Output = Duration;
+
+    fn add(self, rhs: Self) -> Duration {
+        // Integer addition of the fixed-point values.
+        Duration { fixed: self.fixed + rhs.fixed }
+    }
+}
+
+/// The difference of two spans. A negative result follows the integer
+/// rules: a panic in debug builds, wrap-around in release builds. Use
+/// [`Duration::checked_sub`] or [`Duration::saturating_sub`] where that
+/// matters.
+impl Sub for Duration {
+    type Output = Duration;
+
+    fn sub(self, rhs: Self) -> Duration {
+        // Integer subtraction of the fixed-point values.
+        Duration { fixed: self.fixed - rhs.fixed }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,6 +432,51 @@ mod tests {
         let time = Time::<Test>::from_ticks(149_999_999, 150_000_000);
         assert_eq!(time.seconds, 0);
         assert!(time.to_f64() < 1.0 && time.to_f64() > 0.999_999_99);
+    }
+
+    #[test]
+    fn duration_units_convert_exactly_where_they_can() {
+        assert_eq!(Duration::from_secs(3).as_micros(), 3_000_000);
+        assert_eq!(Duration::from_millis(1500), Duration::new(1, HALF));
+        assert_eq!(Duration::from_millis(250).as_millis(), 250);
+        assert_eq!(Duration::new(2, HALF).as_secs(), 2);
+    }
+
+    #[test]
+    fn duration_micros_round_trip_with_ceil() {
+        // Every count in and back out unchanged, including the awkward ones.
+        for us in [0, 1, 3, 999_999, 1_000_000, 16_777_215, 123_456_789] {
+            assert_eq!(Duration::from_micros(us).as_micros_ceil(), us);
+        }
+        // Rounding down loses the last microsecond for non-exact values.
+        assert_eq!(Duration::from_micros(1).as_micros(), 0);
+    }
+
+    #[test]
+    fn duration_ceil_rounds_up_a_partial_unit() {
+        // One 2^-32 s unit is a tiny fraction of a microsecond.
+        assert_eq!(Duration::new(0, 1).as_micros_ceil(), 1);
+        assert_eq!(Duration::new(0, 1).as_micros(), 0);
+        assert_eq!(Duration::ZERO.as_micros_ceil(), 0);
+    }
+
+    #[test]
+    fn duration_saturates_instead_of_wrapping() {
+        assert_eq!(Duration::from_micros(u64::MAX), Duration::MAX);
+        // The largest possible tick count fits: (2^32 − 2^-32) s × (2^32 − 1) Hz.
+        assert_eq!(Duration::MAX.as_ticks_ceil(u32::MAX), 0xffff_ffff_0000_0000);
+        assert_eq!(Duration::from_secs(1).saturating_sub(Duration::from_secs(2)), Duration::ZERO);
+    }
+
+    #[test]
+    fn duration_arithmetic() {
+        let a = Duration::from_millis(1500);
+        let b = Duration::from_millis(500);
+        assert_eq!(a + b, Duration::from_secs(2));
+        assert_eq!(a - b, Duration::from_secs(1));
+        assert_eq!(b.checked_sub(a), None);
+        assert_eq!(Duration::MAX.checked_add(Duration::new(0, 1)), None);
+        assert!(b < a);
     }
 
     #[test]

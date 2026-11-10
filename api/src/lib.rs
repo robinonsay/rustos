@@ -76,6 +76,12 @@
 //!   full-duplex SPI byte transfers. A UART needs no trait of its own: it
 //!   is a byte stream, so it implements [`common::Read<u8>`](common::Read)
 //!   and [`common::Write<u8>`](common::Write).
+//! * [`pwm`] — a factory that turns a pin into a PWM output, and the
+//!   output's duty cycle in whole hardware steps.
+//! * [`adc`] — a stream of samples from one input at a fixed rate, and a
+//!   chip-independent [`adc::Sample`].
+//! * [`watchdog`] — start, feed and force a reset, and a chip-independent
+//!   [`watchdog::ResetReason`] for why the last reset happened.
 //!
 //! ## Design notes
 //!
@@ -99,3 +105,6 @@ pub mod usb;
 pub mod time;
 pub mod i2c;
 pub mod spi;
+pub mod pwm;
+pub mod adc;
+pub mod watchdog;

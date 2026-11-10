@@ -143,6 +143,8 @@
 
 use core::sync::atomic::{Ordering, fence};
 
+use api::adc::{AdcStream, Sample};
+use api::common::ErrorType;
 use api::device::{DeviceHandle, PinHandle};
 
 use crate::clocks::{CLK_ADC_HZ, Rp2350Clocks, start_clk_adc};
@@ -604,6 +606,15 @@ impl Rp2350AdcStream {
     ///   [`GUARD_SAMPLES`] samples behind (240 ms at 32 kHz); the ring is
     ///   cleared and reading starts again from the newest sample.
     pub fn read(&mut self, out: &mut [u16]) -> Result<usize, AdcError> {
+        // Store each FIFO entry as it is, error bit included.
+        self.read_with(out.len(), |i, raw| out[i] = raw)
+    }
+
+    /// The body of [`read`](Self::read), shared with the portable
+    /// [`AdcStream::read`]: the same checks, then up to `max` samples
+    /// handed to `store` as (index, raw FIFO entry), oldest first. One
+    /// routine, so both views see exactly the same samples and errors.
+    fn read_with(&mut self, max: usize, mut store: impl FnMut(usize, u16)) -> Result<usize, AdcError> {
         let dma = dma::dma();
         let adc = adc();
         unsafe {
@@ -625,11 +636,15 @@ impl Rp2350AdcStream {
                 self.resync();
                 return Err(AdcError::Overrun);
             }
-            let n = ring_distance(self.read, written).min(out.len());
-            for sample in out.iter_mut().take(n) {
+            // Samples waiting, limited to what the caller can take.
+            let n = ring_distance(self.read, written).min(max);
+            for i in 0..n {
+                // The oldest unread slot.
                 let slot = self.ring.add(self.read);
-                *sample = slot.read_volatile();
+                // Hand its sample over, then mark the slot empty again.
+                store(i, slot.read_volatile());
                 slot.write_volatile(SENTINEL);
+                // Advance, wrapping.
                 self.read = (self.read + 1) % RING_SAMPLES;
             }
             Ok(n)
@@ -761,5 +776,66 @@ unsafe fn connect_pin(pin: usize) {
         pad.write_volatile((current & !(PAD_IE | PAD_PUE | PAD_PDE)) | PAD_OD);
         let current = pad.read_volatile();
         pad.write_volatile(current & !PAD_ISO);
+    }
+}
+
+// --- Portable interface --------------------------------------------------
+
+/// Converter resolution: "12-bit with 9.2 ENOB"
+/// ([§12.4, p1064](../../../docs/rp2350-datasheet.pdf#page=1064)).
+pub const RESOLUTION_BITS: u8 = 12;
+
+/// `ADC_AVDD` on the Pico 2, the voltage of code 4095: the ADC input range
+/// is 0 to `ADC_AVDD` (Table 1437,
+/// [p1338](../../../docs/rp2350-datasheet.pdf#page=1338)), and on the Pico 2
+/// "ADC_VREF is the ADC power supply (and reference) voltage, and is
+/// generated on Pico 2 by filtering the 3.3V supply"
+/// ([Pico 2 datasheet, p10](../../../docs/pico-2-datasheet.pdf#page=10)),
+/// through "an R-C filter (201Ω into 2.2μF)"
+/// ([p16](../../../docs/pico-2-datasheet.pdf#page=16)). Nominal: the filter
+/// resistor drops a little, and a board that changes `ADC_VREF` (p16–17
+/// describes how) must say so here.
+pub const ADC_AVDD_MICROVOLTS: u32 = 3_300_000;
+
+// FIFO.VAL is 12 bits wide (Table 1123, p1073), matching the resolution.
+const _: () = assert!(SAMPLE_VALUE as u32 == (1 << RESOLUTION_BITS) - 1);
+
+/// [`Rp2350AdcStream::read`]'s errors, through the portable trait too.
+impl ErrorType for Rp2350AdcStream {
+    type Error = AdcError;
+}
+
+/// The portable sample stream: the same ring and the same errors as
+/// [`Rp2350AdcStream::read`], with each FIFO entry turned into a
+/// [`Sample`]: invalid if `SAMPLE_ERROR` (bit 15) is set, else the code in
+/// bits 11:0 (`FIFO`, Table 1123, p1073).
+impl AdcStream for Rp2350AdcStream {
+    fn sample_rate_hz(&self) -> u32 {
+        // The pacing divider's average rate, to the nearest hertz.
+        self.rate_hz()
+    }
+
+    fn resolution_bits(&self) -> u8 {
+        // 12-bit converter (§12.4, p1064).
+        RESOLUTION_BITS
+    }
+
+    fn full_scale_microvolts(&self) -> u32 {
+        // ADC_AVDD on this board (Pico 2 datasheet, p10).
+        ADC_AVDD_MICROVOLTS
+    }
+
+    fn read(&mut self, out: &mut [Sample]) -> Result<usize, AdcError> {
+        // Same routine as the raw read; only the conversion differs.
+        self.read_with(out.len(), |i, raw| {
+            out[i] = if raw & SAMPLE_ERROR != 0 {
+                // "always discard samples that contain conversion errors"
+                // (§12.4.3.4, p1070): keep its place, not its value.
+                Sample::INVALID
+            } else {
+                // The 12-bit result.
+                Sample::new(raw & SAMPLE_VALUE)
+            };
+        })
     }
 }

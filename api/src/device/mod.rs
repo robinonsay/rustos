@@ -17,7 +17,7 @@
 //! [`define_board!`](crate::define_board), the macro a chip-support crate
 //! invokes to declare which pins and peripherals its board actually has and
 //! to generate the one place handles are created.
-
+pub mod driver;
 use core::marker::PhantomData;
 
 /// Ownership of physical pin `N`, as a zero-sized value.

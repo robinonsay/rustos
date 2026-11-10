@@ -68,8 +68,11 @@
 //! period is 2*h* × *d* with *d* = 16 × `DIV_INT` + `DIV_FRAC`:
 //!
 //! 1. *d* = the smallest divider for which the nearest whole number of
-//!    counts still fits `TOP` = 2*h* − 1 ≤ `0xffff` — that is, *h* ≤
-//!    32 768 — but at least 16 (`DIV` = 1.0).
+//!    counts still fits `TOP` = 2*h* − 1 ≤ `0xfffd` — that is, *h* ≤
+//!    32 767 — but at least 16 (`DIV` = 1.0). One count short of the
+//!    16-bit `TOP` maximum, so that a full period, `TOP` + 1 ≤ `0xfffe`,
+//!    still fits the 16-bit compare value: `CC` = `TOP` + 1 is the
+//!    always-high duty (see [Duty](#duty)).
 //! 2. *h* = that nearest whole number of counts.
 //!
 //! The smallest divider gives the largest *h*, so the period is rounded to
@@ -151,6 +154,27 @@
 //! write sets, takes the output enable from the selected peripheral (Table
 //! 650, p608).
 //!
+//! # Duty
+//!
+//! Through the portable [`PwmPin`] trait a pin takes any duty from 0 to
+//! [`max_duty`](PwmPin::max_duty) = `TOP` + 1 counts. "A CC value of 0
+//! produces a 0% output: the output signal is always low. A CC value of
+//! TOP + 1 (equal to the period when not phase-corrected) produces a 100%
+//! output", and both are "toggle-free"
+//! ([§12.5.2.2, p1078](../../../docs/rp2350-datasheet.pdf#page=1078)).
+//! [`Write::write`] is the same mechanism with two levels: `true` is
+//! [`SquareConfig::compare_level`], 50 %, and `false` is 0.
+//!
+//! A new duty is written in **one store** to the `+0x1000` atomic XOR
+//! alias, the old value XOR the new one, shifted to this channel's half
+//! (§2.1.3, p27). The register goes straight from the old value to the new
+//! one, the other channel's half is XORed with zeros and so untouched, and
+//! like every `CC` change it takes effect at the next wrap (see
+//! [Double buffering](#double-buffering-whole-cycles-only)). This needs the
+//! driver to know the half's current value, which it does: it is the only
+//! writer once the pin is configured. [`Rp2350Pwm::silence_all`] breaks
+//! that, which is why its contract says no owner runs again after it.
+//!
 //! # Turning a tone off
 //!
 //! Always by `CC` = 0 with the slice left running, never by stopping the
@@ -172,8 +196,8 @@
 //! 31:16, Table 1134, p1088). A 16-bit store cannot update one half: the
 //! RP2350 treats narrow writes to IO registers as 32-bit and replicates the
 //! value across the bus (§2.1.5, p28). Each pin therefore writes only its
-//! own half through the atomic set and clear aliases (§2.1.3, p27; `PWM` is
-//! not on that section's list of exceptions): a single store, with no
+//! own half through the atomic XOR alias (§2.1.3, p27; `PWM` is not on
+//! that section's list of exceptions; see [Duty](#duty)): a single store, with no
 //! read-modify-write that could lose the other channel's update, even from
 //! an interrupt handler or the other core.
 //!
@@ -199,6 +223,8 @@
 //! (one more than the number printed in the page footer).
 
 use api::common::{ErrorType, Write};
+// The trait is imported as `PwmFactory`: `Pwm` here names the register layout.
+use api::pwm::{Pwm as PwmFactory, PwmPin};
 use api::device::{DeviceHandle, PinHandle};
 
 use crate::clocks::{CLK_SYS_HZ, Rp2350Clocks};
@@ -272,10 +298,12 @@ const fn pwm() -> *mut Pwm {
     RegAddr::PWM as usize as *mut Pwm
 }
 
-/// The atomic **set** alias (`+0x2000`, §2.1.3, p27): a write sets exactly
-/// the bits written and leaves the others alone.
-const fn pwm_set() -> *mut Pwm {
-    (RegAddr::PWM as usize + 0x2000) as *mut Pwm
+/// The atomic **XOR** alias (`+0x1000`, §2.1.3, p27): a write flips
+/// exactly the bits written and leaves the others alone. Used to change a
+/// channel's duty in one store; see [Duty](self#duty).
+const fn pwm_xor() -> *mut Pwm {
+    // Same register layout, one alias up.
+    (RegAddr::PWM as usize + 0x1000) as *mut Pwm
 }
 
 /// The atomic **clear** alias (`+0x3000`, §2.1.3, p27): a write clears
@@ -288,8 +316,6 @@ const fn pwm_clr() -> *mut Pwm {
 const CSR_EN: u32 = 1 << 0;
 /// `CHn_DIV.INT` starts at bit 4 (Table 1132, p1087).
 const DIV_INT_SHIFT: u32 = 4;
-/// One channel's half of `CHn_CC`, before shifting (Table 1134, p1088).
-const CC_HALF_MASK: u32 = 0xffff;
 /// `CHn_CC.B` starts at bit 16 (Table 1134, p1088).
 const CC_B_SHIFT: u32 = 16;
 
@@ -387,9 +413,11 @@ const DIV_MIN: u64 = 16;
 /// `DIV_INT` = 0 would mean 256, with `DIV_FRAC` required to be 0
 /// (§12.5.2.6, p1082); this driver never needs it.
 const DIV_MAX: u64 = 255 * 16 + 15;
-/// Largest half-period in counts: `TOP` = 2 × 32 768 − 1 = `0xffff`, the
-/// widest the 16-bit `TOP` allows (§12.5.2.1, p1076).
-const MAX_HALF_PERIOD: u64 = 32_768;
+/// Largest half-period in counts: `TOP` = 2 × 32 767 − 1 = `0xfffd`. The
+/// 16-bit `TOP` (§12.5.2.1, p1076) would allow 32 768, but then a full
+/// period, 65 536 counts, would not fit the 16-bit `CC` (Table 1134,
+/// p1088), and 100 % duty could not be expressed.
+const MAX_HALF_PERIOD: u64 = 32_767;
 
 /// One slice's period settings for a 50 % square wave, as computed by
 /// [`for_frequency`](Self::for_frequency). See "Period and divider" in the
@@ -419,8 +447,8 @@ impl SquareConfig {
         // A period of 2h counts at d sixteenths of a cycle per count lasts
         // 2h * d / 16 cycles, so h * d * hz should equal 8 * clk_hz.
         let target = 8 * clk_hz as u64;
-        // Smallest d whose nearest h fits: round(target / (hz * d)) <= 32768
-        // exactly when target / (hz * d) < 32768.5, i.e. when
+        // Smallest d whose nearest h fits: round(target / (hz * d)) <= 32767
+        // exactly when target / (hz * d) < 32767.5, i.e. when
         // d > 2 * target / (65537 * hz).
         let mut d = 2 * target / ((2 * MAX_HALF_PERIOD + 1) * hz) + 1;
         if d < DIV_MIN {
@@ -458,7 +486,7 @@ impl SquareConfig {
     }
 
     /// One period in sixteenths of a `clk_sys` cycle: (`TOP` + 1) × `DIV`
-    /// × 16 (§12.5.2.6, p1081–1082). At most 65 536 × 4095, so it fits.
+    /// × 16 (§12.5.2.6, p1081–1082). At most 65 534 × 4095, so it fits.
     pub const fn period_sixteenths(&self) -> u32 {
         self.period_counts() * self.divider_sixteenths()
     }
@@ -573,6 +601,14 @@ pub enum PwmError {
     NoWrap {
         /// The slice.
         slice: usize,
+    },
+    /// [`PwmPin::set_duty`] was given more steps than one period has.
+    /// Nothing was changed.
+    DutyOutOfRange {
+        /// The duty requested, in counts.
+        duty: u32,
+        /// The period, [`PwmPin::max_duty`].
+        max: u32,
     },
 }
 
@@ -689,7 +725,9 @@ impl Rp2350Pwm {
         self.running[slice] = Some(config);
         self.claimed |= claim;
         unsafe { connect_pin(N) };
-        Ok(Rp2350PwmSquare { config })
+        // CC = 0 was written by start_slice or is the slice's other
+        // channel's untouched value for this half: duty 0.
+        Ok(Rp2350PwmSquare { config, duty: 0 })
     }
 }
 
@@ -733,8 +771,9 @@ impl ErrorType for Rp2350Pwm {
     type Error = PwmError;
 }
 
-/// A pin driven by its PWM output as a fixed-frequency, 50 % square wave
-/// that can be switched on and off. Drive it with [`Write::write`].
+/// A pin driven by its PWM output at a fixed frequency. Switch a 50 %
+/// square wave on and off with [`Write::write`], or set any duty through
+/// the portable [`PwmPin`] trait.
 ///
 /// Ownership works as for [`Rp2350GpioOut`](crate::gpio::gpio::Rp2350GpioOut):
 /// construction consumed the pin's [`PinHandle`], so in safe code at most
@@ -744,10 +783,16 @@ impl ErrorType for Rp2350Pwm {
 /// an early return cannot leave a tone playing. The pin stays connected to
 /// its PWM output, held low, with the slice running.
 ///
-/// Holds only the slice's [`SquareConfig`]; the slice and channel follow
-/// from `N`.
+/// Holds the slice's [`SquareConfig`] and the duty last written; the
+/// slice and channel follow from `N`.
 pub struct Rp2350PwmSquare<const N: usize> {
+    /// Divider and `TOP` of the slice.
     config: SquareConfig,
+    /// The value this channel's half of `CC` holds, in counts: the duty.
+    /// Only this value writes that half, so it is always the register's
+    /// contents (until [`Rp2350Pwm::silence_all`], whose contract says the
+    /// owner never runs again).
+    duty: u16,
 }
 
 impl<const N: usize> Rp2350PwmSquare<N> {
@@ -765,10 +810,32 @@ impl<const N: usize> Rp2350PwmSquare<N> {
     }
 }
 
-/// Switching the tone cannot fail: every failure mode was ruled out when
-/// the pin was configured.
+/// Switching the tone cannot fail; only [`PwmPin::set_duty`] with too
+/// many steps returns [`PwmError::DutyOutOfRange`].
 impl<const N: usize> ErrorType for Rp2350PwmSquare<N> {
-    type Error = core::convert::Infallible;
+    type Error = PwmError;
+}
+
+impl<const N: usize> Rp2350PwmSquare<N> {
+    /// Write `duty` counts into this channel's half of `CC`, in one store
+    /// to the XOR alias of the old value XOR the new: the half changes
+    /// straight from the old value to the new one, and the other half is
+    /// XORed with 0, so it is untouched. See [Duty](self#duty).
+    fn store_duty(&mut self, duty: u16) {
+        // Slice and channel are fixed by the pin number (Table 1129, p1076).
+        let slice = gpio_to_slice(N);
+        // Channel A is CC bits 15:0, B bits 31:16 (Table 1134, p1088).
+        let shift = match gpio_to_channel(N) {
+            Channel::A => 0,
+            Channel::B => CC_B_SHIFT,
+        };
+        // The bits that differ between the old and the new value.
+        let flip = (self.duty ^ duty) as u32;
+        // One store: CC ^= flip << shift (§2.1.3, p27).
+        unsafe { (&raw mut (*pwm_xor()).slice[slice].cc).write_volatile(flip << shift) };
+        // The register now holds `duty`.
+        self.duty = duty;
+    }
 }
 
 impl<const N: usize> Write<bool> for Rp2350PwmSquare<N> {
@@ -778,35 +845,68 @@ impl<const N: usize> Write<bool> for Rp2350PwmSquare<N> {
     /// cycles; see the
     /// [module documentation](self#double-buffering-whole-cycles-only).
     ///
-    /// One store to this channel's half of `CC`, through an atomic alias,
-    /// so the other channel's half is never read or written. `false`
-    /// clears all 16 bits. `true` sets the bits of the 50 % level; that is
-    /// enough because this half only ever holds 0 or that level (nothing
-    /// else writes it once the pin is configured), and it is a single store
-    /// so a tone that is already on never passes through 0 — which a clear
-    /// followed by a set could, if a wrap fell between the two.
+    /// One store to this channel's half of `CC` through the XOR alias, so
+    /// the other channel's half is never read or written, and a tone that
+    /// is already on never passes through 0 on its way to a new level.
     fn write(&mut self, value: bool) -> Result<(), Self::Error> {
-        let slice = gpio_to_slice(N);
-        let shift = match gpio_to_channel(N) {
-            Channel::A => 0,
-            Channel::B => CC_B_SHIFT,
-        };
-        unsafe {
-            if value {
-                let level = self.config.compare_level() as u32;
-                (&raw mut (*pwm_set()).slice[slice].cc).write_volatile(level << shift);
-            } else {
-                (&raw mut (*pwm_clr()).slice[slice].cc).write_volatile(CC_HALF_MASK << shift);
-            }
-        }
+        // 50 % is half the period (Figure 111, p1077); off is 0.
+        let level = if value { self.config.compare_level() } else { 0 };
+        self.store_duty(level);
         Ok(())
+    }
+}
+
+/// The portable duty-cycle interface: a duty of `d` counts makes the pin
+/// high for `d` of the `TOP` + 1 counts of each period, from the next
+/// counter wrap on.
+impl<const N: usize> PwmPin<N> for Rp2350PwmSquare<N> {
+    fn frequency_hz(&self) -> u32 {
+        // The inherent method: rounded to the nearest hertz.
+        Rp2350PwmSquare::frequency_hz(self)
+    }
+
+    fn max_duty(&self) -> u32 {
+        // One period, TOP + 1 counts: CC at this value is always high.
+        self.config.period_counts()
+    }
+
+    fn duty(&self) -> u32 {
+        // What this half of CC holds.
+        self.duty as u32
+    }
+
+    fn set_duty(&mut self, duty: u32) -> Result<(), PwmError> {
+        // More than a whole period is not a duty.
+        let max = self.config.period_counts();
+        if duty > max {
+            return Err(PwmError::DutyOutOfRange { duty, max });
+        }
+        // max ≤ 0xfffe (MAX_HALF_PERIOD), so this fits the 16-bit half.
+        self.store_duty(duty as u16);
+        Ok(())
+    }
+}
+
+/// The portable factory, [`api::pwm::Pwm`]: [`Rp2350Pwm::square_from_handle`], whose pin
+/// starts at duty 0, as the trait requires.
+impl PwmFactory for Rp2350Pwm {
+    type Output<const N: usize> = Rp2350PwmSquare<N>;
+
+    fn output_from_handle<const N: usize>(
+        &mut self,
+        handle: PinHandle<N>,
+        frequency_hz: u32,
+    ) -> Result<Rp2350PwmSquare<N>, PwmError> {
+        // Same checks, same safe start.
+        self.square_from_handle(handle, frequency_hz)
     }
 }
 
 /// Turns the tone off: see the [`Rp2350PwmSquare`] documentation.
 impl<const N: usize> Drop for Rp2350PwmSquare<N> {
     fn drop(&mut self) {
-        let Ok(()) = self.write(false);
+        // Duty 0: held low from the next wrap. Cannot fail.
+        self.store_duty(0);
     }
 }
 
