@@ -135,7 +135,7 @@ impl Rp2350Gpio
             clr_reset_reg(!IO_PAD_BITMASK);
             wait_for_reset_done(IO_PAD_BITMASK);
         }
-        return Self{_private: ()};
+        Self{_private: ()}
     }
 }
 
@@ -155,11 +155,11 @@ impl Gpio for Rp2350Gpio
     type Output<const N: usize> = Rp2350GpioOut<N>;
 
     fn input_from_handle<const N: usize>(&mut self, handle: PinHandle<N>, pull: Pull) -> Result<Self::Input<N>, Self::Error> {
-        return Rp2350GpioIn::new_input(handle, pull);
+        Rp2350GpioIn::new_input(handle, pull)
     }
 
     fn output_from_handle<const N: usize>(&mut self, handle: PinHandle<N>) -> Result<Self::Output<N>, Self::Error> {
-        return Rp2350GpioOut::new_output(handle);
+        Rp2350GpioOut::new_output(handle)
     }
 }
 
@@ -248,7 +248,7 @@ impl<const N: usize> Rp2350GpioOut<N>{
         unsafe{
             configure_gpio_pin_out(N);
         }
-        return Ok(Self{_private: {}})
+        Ok(Self{_private: {}})
     }
 }
 
@@ -265,7 +265,7 @@ impl<const N: usize> Rp2350GpioIn<N>{
         unsafe{
             configure_gpio_pin_in(N, pull);
         }
-        return Ok(Self{_private: {}})
+        Ok(Self{_private: {}})
     }
 }
 
@@ -314,7 +314,7 @@ impl<const N: usize> Write<bool> for Rp2350GpioOut<N>
             };
             set_reg.write_volatile(1 << N);
         }
-        return  Ok(());
+        Ok(())
     }
 }
 
@@ -336,7 +336,7 @@ impl<const N: usize> Read<bool> for Rp2350GpioIn<N>
         let sio_addr = RegAddr::SIO as usize as *mut Sio;
         unsafe{
             let in_reg = &raw const (*sio_addr).gpio_in;
-            return Ok(((in_reg.read_volatile() & (1 << N))) == 1 << N)
+            Ok((in_reg.read_volatile() & (1 << N)) == 1 << N)
         }
     }
 }

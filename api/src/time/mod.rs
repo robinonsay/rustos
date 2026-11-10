@@ -68,7 +68,7 @@ impl<C: ClockId> Time<C>
 
     /// Packs the time into one `u64` of 32.32 fixed-point seconds, so
     /// arithmetic can carry between the fraction and the whole seconds.
-    const fn to_fixed(&self) -> u64 {
+    const fn to_fixed(self) -> u64 {
         ((self.seconds as u64) << Self::FRAC_BITS) | self.subseconds as u64
     }
 

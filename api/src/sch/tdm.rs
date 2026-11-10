@@ -167,7 +167,7 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             _ => return Err(SchConfigError::PeriodNotMultipleOfMinorFrame),
         };
         // The same frames in every major frame: stride divides FRAMES.
-        if stride > FRAMES as u64 || FRAMES as u64 % stride != 0 {
+        if stride > FRAMES as u64 || !(FRAMES as u64).is_multiple_of(stride) {
             return Err(SchConfigError::PeriodDoesNotDivideMajorFrame);
         }
         // The first frame: a whole number of frames, inside one period.
@@ -371,11 +371,11 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             // This frame ends one minor frame after it began.
             deadline = deadline + self.minor;
             // Finished after the end: an overrun, by now − deadline.
-            if let Some(late_by) = self.clock.now().checked_sub(deadline) {
-                if late_by > Duration::ZERO {
-                    self.log.log(SchEvent::Overrun { minor_frame: frame, late_by });
-                    report.overruns = report.overruns.saturating_add(1);
-                }
+            if let Some(late_by) = self.clock.now().checked_sub(deadline)
+                && late_by > Duration::ZERO
+            {
+                self.log.log(SchEvent::Overrun { minor_frame: frame, late_by });
+                report.overruns = report.overruns.saturating_add(1);
             }
             // Wait for the boundary (at once if it has passed).
             if let Err(error) = self.clock.sleep_until(deadline) {

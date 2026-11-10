@@ -312,7 +312,7 @@ unsafe fn reset_vtor() {
 unsafe fn reset_data() {
     let src = &raw const __sidata; // flash (LMA)
     let dst = &raw const __sdata as *mut u32; // RAM (VMA)
-    let end = &raw const __edata as *const u32;
+    let end = &raw const __edata;
     let count = (end as usize - dst as usize) / 4;
     unsafe { copy_nonoverlapping(src, dst, count) }
 }
@@ -331,7 +331,7 @@ unsafe fn reset_data() {
 #[inline]
 unsafe fn reset_bss() {
     let p = &raw const __sbss as *mut u32;
-    let end = &raw const __ebss as *const u32;
+    let end = &raw const __ebss;
     let count = (end as usize - p as usize) / 4;
     unsafe { p.write_bytes(0, count) }
 }
@@ -463,7 +463,9 @@ pub extern "C" fn OnReset() -> ! {
 #[unsafe(no_mangle)]
 pub extern "C" fn DefaultHandler() {
     unsafe { __rustos_safe_state() };
-    loop {}
+    loop {
+        core::hint::spin_loop();
+    }
 }
 
 /// HardFault handler, exception 3.
@@ -475,7 +477,9 @@ pub extern "C" fn DefaultHandler() {
 #[unsafe(no_mangle)]
 pub extern "C" fn OnHardFault() {
     unsafe { __rustos_safe_state() };
-    loop {}
+    loop {
+        core::hint::spin_loop();
+    }
 }
 
 /// The Armv8-M vector table: 68 words at the very start of flash.

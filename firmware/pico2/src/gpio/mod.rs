@@ -76,6 +76,10 @@
 //! - Tables 533/534, p504 — `RESETS` register map and reset bit assignments
 //! - §2.1.3, p27 — atomic register aliases
 
+#[expect(
+    clippy::module_inception,
+    reason = "`pico2::gpio::gpio` is the public path applications already use; renaming it would break them"
+)]
 pub mod gpio;
 
 /// One GPIO's pair of control registers in `IO_BANK0`.

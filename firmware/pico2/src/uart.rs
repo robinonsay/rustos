@@ -295,7 +295,7 @@ impl BaudDivisor {
         // 8 × clk / baud, in u64 so 8 × 150 MHz cannot overflow.
         let eighth_units = 8 * clk_hz as u64 / baud as u64;
         // Round half up to whole 64ths.
-        let sixty_fourths = (eighth_units + 1) / 2;
+        let sixty_fourths = eighth_units.div_ceil(2);
         // IBRD must be 1..=65535 with FBRD 0 at the top end.
         if sixty_fourths < MIN_DIVISOR_64THS as u64 || sixty_fourths > MAX_DIVISOR_64THS as u64 {
             return None;
