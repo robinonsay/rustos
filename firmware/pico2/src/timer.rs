@@ -59,7 +59,7 @@
 //! (one more than the number printed in the page footer).
 
 use api::device::DeviceHandle;
-use api::time::{Clock, ClockId, Time};
+use api::time::{Clock, ClockId, Sleep, Time};
 
 use crate::clocks::{Rp2350Clocks, CLK_REF_HZ};
 use crate::common::reg::RegAddr;
@@ -274,5 +274,28 @@ impl Clock for Rp2350Timer {
 
     fn now(&self) -> Time<Timer0Clock> {
         Time::from_ticks(Rp2350Timer::now(self), 1_000_000)
+    }
+}
+
+/// Waiting for a [`Time`] on this clock, for schedulers such as
+/// [`api::sch::TdmSch`].
+///
+/// A busy-wait on `TIMER0`, like [`delay_us`](Rp2350Timer::delay_us): it
+/// reads [`Clock::now`] until the deadline is reached, so it returns within
+/// about a microsecond after it (the timer's resolution) and at once if the
+/// deadline has passed. No interrupt or low-power wait is used, so it
+/// cannot fail, and the core stays busy while it waits. It does not feed
+/// the watchdog: keep minor frames well inside the watchdog timeout.
+impl Sleep for Rp2350Timer {
+    type Error = core::convert::Infallible;
+
+    fn sleep_until(&self, deadline: Time<Timer0Clock>) -> Result<(), Self::Error> {
+        // Poll the 64-bit µs counter, converted, until it reaches the deadline.
+        while Clock::now(self) < deadline {
+            // Hint to the core that this is a wait loop.
+            core::hint::spin_loop();
+        }
+        // The deadline has been reached.
+        Ok(())
     }
 }

@@ -209,9 +209,6 @@ is a pointer into the datasheet, not a replacement for it.
 - `docs/rp2350-datasheet.pdf` — authoritative for everything chip-level
 - `docs/pico-2-datasheet.pdf` — board-level: flash size and part, the LED pin,
   the test points
-- `docs/icd/rp2350/gpio/` — this project's GPIO interface control document:
-  `01_overview.md`, `02_pads.md`, `03_interrupts.md`, `04_registers.md`,
-  `index.md`
 
 Section numbers throughout refer to the RP2350 datasheet unless stated
 otherwise. Where a PDF page is cited it is the **PDF page**; the datasheet's own

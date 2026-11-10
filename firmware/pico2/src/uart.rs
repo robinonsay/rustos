@@ -226,7 +226,7 @@ pub struct UartConfig {
 
 impl UartConfig {
     /// `baud` with 8 data bits, no parity and 1 stop bit ("8N1"), the
-    /// format of the FT1 GPS and LoRa links.
+    /// most common format.
     pub const fn new_8n1(baud: u32) -> Self {
         // The common default; every field spelled out for review.
         Self { baud, data_bits: DataBits::Eight, parity: Parity::None, stop_bits: StopBits::One }
@@ -333,7 +333,7 @@ const _: () = {
     assert!(d.ibrd() == 67 && d.fbrd() == 52);
     assert!(d.baud(125_000_000) == 115_207);
 };
-// FT1's 9600 baud at this crate's clk_peri divides exactly: 976 + 36/64.
+// 9600 baud at this crate's clk_peri divides exactly: 976 + 36/64.
 const _: () = {
     // 4 × 150 MHz / 9600 = 62 500 = 976 × 64 + 36.
     let Some(d) = BaudDivisor::for_baud(CLK_PERI_HZ, 9_600) else { panic!() };

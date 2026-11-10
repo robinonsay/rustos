@@ -82,6 +82,12 @@
 //!   chip-independent [`adc::Sample`].
 //! * [`watchdog`] — start, feed and force a reset, and a chip-independent
 //!   [`watchdog::ResetReason`] for why the last reset happened.
+//! * [`error`] — an extensible error vocabulary: any error type implements
+//!   [`error::Error`] by naming its [`error::ErrorKind`].
+//! * [`app`] — the application lifecycle a scheduler drives
+//!   (`on_start`, `on_process`, `on_exit`), LibJuno's `APP_API_T` in Rust.
+//! * [`sch`] — the [`sch::Scheduler`] trait and [`sch::TdmSch`], a
+//!   time-division-multiplexed cyclic executive, LibJuno's `SCH_API_T`.
 //!
 //! ## Design notes
 //!
@@ -108,3 +114,6 @@ pub mod spi;
 pub mod pwm;
 pub mod adc;
 pub mod watchdog;
+pub mod error;
+pub mod app;
+pub mod sch;

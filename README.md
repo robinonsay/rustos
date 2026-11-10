@@ -53,14 +53,6 @@ repository's [bare-metal tutorial](docs/tutorials/rp2350_baremetal/index.md). No
 embedded crates (`cortex-m`, `cortex-m-rt`, `rp-hal`, `embassy`, …) are
 used; nothing outside this repository is compiled into the firmware image.
 
-The repository also carries a large set of **design documents for a planned
-flight software system named "Juno"** (for a rocket flight test called FT1).
-Those documents describe modules — GPS, IMU, barometer, LoRa radio, SD
-logging, a navigation filter, a scheduler, and more — that are **not yet
-implemented in code**. See [What is implemented and what is
-planned](#what-is-implemented-and-what-is-planned) below so the two are never
-confused.
-
 ## Repository layout
 
 The code is a Cargo **workspace** (one repository containing several Rust
@@ -71,7 +63,7 @@ rustos/
 ├── api/                portable hardware-interface definitions (library)
 ├── firmware/pico2/     RP2350 runtime + drivers (library)
 ├── demo/               the blinky application (binary — this is what you flash)
-├── docs/               datasheets, tutorials, and the Juno planning baseline
+├── docs/               datasheets, the bare-metal tutorial, and handover notes
 ├── blinky.elf          prebuilt demo binary (ELF format)
 └── blinky.uf2          prebuilt demo binary (UF2 format, ready to drag onto the board)
 ```
@@ -348,33 +340,14 @@ The main learning path is the bare-metal tutorial:
   disagrees with the code in the tree (the workspace has been restructured
   since parts of it were written), the tree is authoritative.
 
-- **[Kalman Filter and Navigation](docs/tutorials/nav_kalman/index.md)** —
-  a twelve-chapter mathematics tutorial (linear algebra through sensor
-  fusion) written for the planned `nav_lib`/`nav_app` modules of the Juno
-  flight software. It is self-contained math; none of the code it targets
-  exists yet.
-
 The primary hardware references live in `docs/`:
 `docs/rp2350-datasheet.pdf` (the microcontroller),
-`docs/pico-2-datasheet.pdf` (the board), and extracted register-level
-interface documents under `docs/icd/rp2350/` and `docs/icd/pico2_pinout/`,
-which the GPIO driver and the tutorial cite by section and page.
+`docs/pico-2-datasheet.pdf` (the board), and the Armv8-M and Cortex-M33
+manuals, with text extractions of each under `docs/extracted/`. The drivers
+cite them by section, table and page.
 
-## What is implemented and what is planned
+## What is implemented
 
 **Implemented today:** the three-crate workspace described above — boot path,
 GPIO, clock, timer, SysTick, watchdog, USB serial and PWM drivers, portable traits, the
 board-definition macro, and the blinky demo. That is all of the code.
-
-**Planned, documented, not implemented:** everything under `docs/design/`,
-`docs/requirements/`, `docs/test_cases/`, `docs/sdp/`, `docs/sprints/`,
-`docs/inspections/`, `docs/reviews/`, and `docs/REVIEW.md` is a
-planning/specification baseline for the **Juno FT1 flight software** — a
-sensor-fusion flight computer with 27 planned modules (GPS, IMU, barometer,
-LoRa telemetry, SD logging, navigation, scheduling, and so on). "Juno" and
-"Juno FT1 FSW" in those documents are the project name of that planned
-system; no module they describe has source code in this repository yet, and
-the `tools/*.py` scripts some of them reference are not in this repository
-either. Under `docs/icd/`, the device ICDs (GPS, IMU, baro, LoRa, SD,
-avionics wiring) likewise describe planned hardware integrations; only the
-`rp2350/` and `pico2_pinout/` ICDs relate to implemented code.

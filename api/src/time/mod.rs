@@ -229,6 +229,24 @@ pub trait Clock
     fn now(&self) -> Time<Self::ThisTime>;
 }
 
+/// A [`Clock`] that can also wait for a time on itself: what a scheduler
+/// needs to pace its frames.
+///
+/// The LibJuno counterpart is `TIME_API_T::SleepTo`. "Sleep" here means
+/// "do not return until": an implementation may busy-wait, wait for an
+/// interrupt, or ask an operating system, as its platform allows.
+pub trait Sleep: Clock {
+    /// What [`sleep_until`](Self::sleep_until) reports when it cannot wait.
+    type Error: crate::error::Error;
+
+    /// Return once `deadline` has been reached on this clock: as soon as
+    /// [`Clock::now`] would return a time not earlier than `deadline`. If
+    /// `deadline` has already passed, return at once. Absolute deadlines,
+    /// not relative delays, so that lateness in one frame does not push
+    /// every later frame back.
+    fn sleep_until(&self, deadline: Time<Self::ThisTime>) -> Result<(), Self::Error>;
+}
+
 /// A length of time, such as a timeout or a period, as 32.32 fixed-point
 /// seconds.
 ///
@@ -366,6 +384,22 @@ impl Duration {
         }
     }
 
+    /// `self × rhs`, or `None` if the product exceeds [`Duration::MAX`].
+    pub const fn checked_mul(self, rhs: u32) -> Option<Self> {
+        // Scaling fixed point by an integer is integer multiplication.
+        match self.fixed.checked_mul(rhs as u64) {
+            Some(fixed) => Some(Self { fixed }),
+            None => None,
+        }
+    }
+
+    /// The raw 32.32 value, for exact arithmetic inside this crate
+    /// (checking that one span is a whole multiple of another).
+    pub(crate) const fn to_fixed(self) -> u64 {
+        // The field itself.
+        self.fixed
+    }
+
     /// `self - rhs`, or [`Duration::ZERO`] if `rhs` is longer.
     pub const fn saturating_sub(self, rhs: Self) -> Self {
         // Clamp at zero instead of failing.
@@ -382,6 +416,17 @@ impl Add for Duration {
     fn add(self, rhs: Self) -> Duration {
         // Integer addition of the fixed-point values.
         Duration { fixed: self.fixed + rhs.fixed }
+    }
+}
+
+/// A span repeated `rhs` times. Overflow past [`Duration::MAX`] follows
+/// the integer rules; use [`Duration::checked_mul`] where that matters.
+impl Mul<u32> for Duration {
+    type Output = Duration;
+
+    fn mul(self, rhs: u32) -> Duration {
+        // Integer multiplication of the fixed-point value.
+        Duration { fixed: self.fixed * rhs as u64 }
     }
 }
 
@@ -526,6 +571,16 @@ mod tests {
         // The largest possible tick count fits: (2^32 − 2^-32) s × (2^32 − 1) Hz.
         assert_eq!(Duration::MAX.as_ticks_ceil(u32::MAX), 0xffff_ffff_0000_0000);
         assert_eq!(Duration::from_secs(1).saturating_sub(Duration::from_secs(2)), Duration::ZERO);
+    }
+
+    #[test]
+    fn duration_times_an_integer() {
+        assert_eq!(Duration::from_secs(1) * 3, Duration::from_secs(3));
+        // 5 ms is not a whole number of 2^-32 s units (21 474 836.48), so
+        // 200 of the truncated value fall 96 units (22 ns) short of 1 s.
+        assert_eq!(Duration::from_secs(1).to_fixed() - (Duration::from_millis(5) * 200).to_fixed(), 96);
+        assert_eq!(Duration::MAX.checked_mul(2), None);
+        assert_eq!(Duration::from_secs(3).checked_mul(0), Some(Duration::ZERO));
     }
 
     #[test]
