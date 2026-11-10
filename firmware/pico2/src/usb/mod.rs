@@ -232,7 +232,7 @@ use api::usb::descriptor::{
     BULK_MAX_PACKET, EP0_MAX_PACKET, EP_DATA_IN, EP_DATA_OUT, EP_NOTIFY_IN, INTERFACE_COMM,
     INTERFACE_DATA, NOTIFY_MAX_PACKET,
 };
-use api::usb::ring::ByteRing;
+use api::common::ring::ByteRing;
 use api::usb::setup::SetupPacket;
 
 /// The device identity and strings, given to [`Rp2350Usb::new`].

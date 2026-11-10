@@ -3,7 +3,7 @@
 //! Everything in this module is pure computation on bytes. It never touches
 //! a register, so it compiles for the host and every byte it produces is
 //! pinned down by the unit tests at the bottom of each file. The chip driver
-//! (`pico2::usb` for the RP2350) owns the hardware half: it moves packets
+//! owns the hardware half: it moves packets
 //! between the USB controller and these functions, and applies the
 //! [`control::Effect`]s they ask for.
 //!
@@ -99,7 +99,6 @@ pub mod setup;
 pub mod descriptor;
 pub mod cdc_acm;
 pub mod control;
-pub mod ring;
 
 /// Does an IN data stage of a control transfer need a trailing zero-length
 /// packet?
