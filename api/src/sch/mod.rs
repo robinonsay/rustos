@@ -12,7 +12,7 @@
 
 pub mod tdm;
 
-pub use tdm::{SchConfigError, TdmSch, TdmSchBuilder};
+pub use tdm::{AppTiming, SchConfigError, TdmSch, TdmSchBuilder};
 
 use crate::app::Hook;
 use crate::error::Error;
@@ -39,6 +39,10 @@ pub enum SchEvent<'e> {
         minor_frame: usize,
         /// How far past the frame's end its apps finished.
         late_by: Duration,
+        /// The app that ran longest in that frame, by its index in the
+        /// scheduler's app array: the likeliest cause. `None` if the frame
+        /// had no apps (it began late).
+        slowest_app: Option<usize>,
     },
     /// The clock could not wait for a frame boundary. The next frame
     /// starts at once.
@@ -80,7 +84,8 @@ impl SchLog for NoLog {
 }
 
 /// What happened during one scheduler call: the counts of the events
-/// logged, so a caller without a log still sees them.
+/// logged, so a caller without a log still sees them, and how long the
+/// apps kept the processor busy.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Report {
     /// App hooks that returned an error.
@@ -89,6 +94,13 @@ pub struct Report {
     pub overruns: u32,
     /// Frame-boundary sleeps that failed.
     pub sleep_failures: u32,
+    /// Time the apps ran: for each minor frame, from its start to its last
+    /// app finishing, summed. Over a major frame's period, the processor's
+    /// load.
+    pub busy: Duration,
+    /// The longest any one minor frame's apps ran: how close the busiest
+    /// frame came to its end.
+    pub busiest_frame: Duration,
 }
 
 impl Report {
@@ -98,12 +110,15 @@ impl Report {
         self.app_failures == 0 && self.overruns == 0 && self.sleep_failures == 0
     }
 
-    /// Add `other`'s counts to this one's, saturating.
+    /// Add `other`'s counts and busy time to this one's, saturating; keep
+    /// the busier of the two busiest frames.
     pub fn merge(&mut self, other: Report) {
         // Field by field.
         self.app_failures = self.app_failures.saturating_add(other.app_failures);
         self.overruns = self.overruns.saturating_add(other.overruns);
         self.sleep_failures = self.sleep_failures.saturating_add(other.sleep_failures);
+        self.busy = self.busy.checked_add(other.busy).unwrap_or(Duration::MAX);
+        self.busiest_frame = self.busiest_frame.max(other.busiest_frame);
     }
 }
 

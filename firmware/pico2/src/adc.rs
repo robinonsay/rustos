@@ -87,6 +87,27 @@
 //! channel has moved on that far by the time the clearing ends, it starts
 //! again.
 //!
+//! # One-shot reads
+//!
+//! For a voltage read now and then, such as a supply voltage once a second,
+//! a stream and its 16 kB ring are more than is needed. Instead, connect
+//! the pin with [`Rp2350Adc::input`] and convert on demand with
+//! [`Rp2350Adc::read`]: one conversion, 96 `clk_adc` cycles, 2 µs at
+//! 48 MHz (§12.4.3.1, p1067). [`Rp2350Adc::read_temperature`] converts the
+//! on-chip temperature sensor, and [`die_temperature_millicelsius`] turns
+//! its voltage into a temperature (§12.4.6, p1071).
+//!
+//! ```ignore
+//! let mut adc = Rp2350Adc::new(board.adc, &clocks).unwrap();
+//! let vsys = adc.input(board.pins.vsys_adc);
+//! let code = adc.read(&vsys)?;                    // 0..=4095
+//! let die = adc.read_temperature()?;
+//! let mc = die_temperature_millicelsius(code_to_microvolts(die, RESOLUTION_BITS, ADC_AVDD_MICROVOLTS));
+//! ```
+//!
+//! One-shot reads and a stream are alternatives: the stream consumes the
+//! [`Rp2350Adc`].
+//!
 //! # The pin
 //!
 //! "When using an ADC input shared with a GPIO pin, always disable the
@@ -212,8 +233,9 @@ struct Adc {
     /// `CS` (Table 1120, p1072): `EN` 0, `START_MANY` 3, `READY` 8 (read
     /// only), `AINSEL` 15:12, `RROBIN` 24:16. Reset 0.
     cs: u32,
-    /// `RESULT` (Table 1121, p1072): the most recent conversion. Not used.
-    _result: u32,
+    /// `RESULT` (Table 1121, p1072): the most recent conversion, bits 11:0;
+    /// read by one-shot conversions.
+    result: u32,
     /// `FCS` (Table 1122, p1072): `EN` 0, `SHIFT` 1, `ERR` 2, `DREQ_EN` 3,
     /// `EMPTY` 8, `UNDER` 10 and `OVER` 11 (write 1 to clear), `THRESH`
     /// 27:24. Reset 0.
@@ -238,9 +260,21 @@ const fn adc() -> *mut Adc {
 
 /// `CS.EN`, bit 0: "Power on ADC and enable its clock."
 const CS_EN: u32 = 1 << 0;
+/// `CS.TS_EN`, bit 1: "Power on temperature sensor."
+const CS_TS_EN: u32 = 1 << 1;
+/// `CS.START_ONCE`, bit 2: "Start a single conversion. Self-clearing."
+const CS_START_ONCE: u32 = 1 << 2;
 /// `CS.START_MANY`, bit 3: "Continuously perform conversions whilst this bit
 /// is 1."
 const CS_START_MANY: u32 = 1 << 3;
+/// `CS.ERR`, bit 9: "The most recent ADC conversion encountered an error;
+/// result is undefined or noisy."
+const CS_ERR: u32 = 1 << 9;
+/// `CS.AINSEL` of the temperature sensor on QFN-60, the fifth input
+/// (§12.4.3.1, p1067).
+const AINSEL_TEMPERATURE: u32 = 4;
+/// `RESULT` bits 11:0 (Table 1121, p1072).
+const RESULT_VALUE: u32 = 0xfff;
 /// `CS.READY`, bit 8: "1 if the ADC is ready to start a new conversion.
 /// Implies any previous conversion has completed."
 const CS_READY: u32 = 1 << 8;
@@ -416,6 +450,10 @@ pub enum AdcError {
     /// The flag is cleared; the samples already in the ring are still
     /// good, and the next `read` returns them.
     FifoOverflow,
+    /// [`Rp2350Adc::read`] or [`Rp2350Adc::read_temperature`]: the
+    /// conversion flagged an error (`CS.ERR`, Table 1120, p1072), so its
+    /// result is "undefined or noisy", or `READY` did not rise in time.
+    Conversion,
     /// [`Rp2350AdcStream::read`]: the DMA channel received a bus error and
     /// halted (`CTRL.AHB_ERROR`, Table 1150, p1125; §12.6.7.1, p1103). No
     /// more samples arrive; every later `read` returns this.
@@ -431,7 +469,8 @@ pub enum AdcError {
 /// paced by `DREQ_ADC` ("Multiple channels must not be connected to the
 /// same DREQ", §12.6.4.2, p1100).
 pub struct Rp2350Adc {
-    _private: (),
+    /// `CS.TS_EN` is set: the temperature sensor is powered.
+    temperature_on: bool,
 }
 
 impl Rp2350Adc {
@@ -454,11 +493,53 @@ impl Rp2350Adc {
             cs.write_volatile(CS_EN);
             for _ in 0..READY_POLLS {
                 if cs.read_volatile() & CS_READY != 0 {
-                    return Ok(Self { _private: () });
+                    return Ok(Self { temperature_on: false });
                 }
             }
         }
         Err(AdcError::NotReady)
+    }
+
+    /// Connect pin `N` to the ADC for one-shot [`read`](Self::read)s: its
+    /// pad set up as [The pin](self#the-pin) describes. `N` must be 26–29,
+    /// an ADC input on this package; any other pin is a build error.
+    pub fn input<const N: usize>(&mut self, pin: PinHandle<N>) -> Rp2350AdcInput<N> {
+        let () = AdcPin::<N>::VALID;
+        unsafe { connect_pin(N) };
+        Rp2350AdcInput { _pin: pin }
+    }
+
+    /// One conversion of `input`'s pin, 0 to 4095 (0 V to
+    /// [`ADC_AVDD_MICROVOLTS`]). Takes about 2 µs.
+    pub fn read<const N: usize>(&mut self, _input: &Rp2350AdcInput<N>) -> Result<u16, AdcError> {
+        self.convert((N - 26) as u32)
+    }
+
+    /// One conversion of the on-chip temperature sensor, 0 to 4095. The
+    /// first call powers the sensor (`CS.TS_EN`, Table 1120, p1072), which
+    /// then stays on; convert with [`die_temperature_millicelsius`].
+    pub fn read_temperature(&mut self) -> Result<u16, AdcError> {
+        self.temperature_on = true;
+        self.convert(AINSEL_TEMPERATURE)
+    }
+
+    /// Select `ainsel`, start one conversion, wait for `READY` and return
+    /// `RESULT` (§12.4.3.1, p1067).
+    fn convert(&mut self, ainsel: u32) -> Result<u16, AdcError> {
+        let ts = if self.temperature_on { CS_TS_EN } else { 0 };
+        let cs = unsafe { &raw mut (*adc()).cs };
+        unsafe { cs.write_volatile(CS_EN | ts | (ainsel << CS_AINSEL_SHIFT) | CS_START_ONCE) };
+        for _ in 0..READY_POLLS {
+            let now = unsafe { cs.read_volatile() };
+            if now & CS_READY != 0 {
+                if now & CS_ERR != 0 {
+                    return Err(AdcError::Conversion);
+                }
+                let result = unsafe { (&raw const (*adc()).result).read_volatile() };
+                return Ok((result & RESULT_VALUE) as u16);
+            }
+        }
+        Err(AdcError::Conversion)
     }
 
     /// Sample pin `N` at `hz` samples per second, endlessly, into `ring`
@@ -519,6 +600,28 @@ impl Rp2350Adc {
         })
     }
 }
+
+/// Pin `N`, connected to the ADC by [`Rp2350Adc::input`] for one-shot
+/// reads. Holding it keeps the pin from any other use.
+pub struct Rp2350AdcInput<const N: usize> {
+    _pin: PinHandle<N>,
+}
+
+/// The die temperature, in thousandths of a degree Celsius, from the
+/// temperature sensor's voltage: "Vbe = 0.706 V at 27 °C, with a slope of
+/// -1.721 mV per degree", so T = 27 − (V − 0.706) / 0.001721 (§12.4.6,
+/// p1071). Typical figures: the datasheet warns the result is "very
+/// sensitive to errors in reference voltage".
+pub const fn die_temperature_millicelsius(microvolts: u32) -> i32 {
+    // 27 °C − (µV − 706 000) / 1.721 µV per m°C, rounded to the nearest.
+    let delta = microvolts as i64 - 706_000;
+    let offset = (delta * 1000 * 2 + if delta >= 0 { 1721 } else { -1721 }) / (1721 * 2);
+    (27_000 - offset) as i32
+}
+
+const _: () = assert!(die_temperature_millicelsius(706_000) == 27_000);
+// 0.706 V − 17.21 mV is 10 °C warmer.
+const _: () = assert!(die_temperature_millicelsius(688_790) == 37_000);
 
 /// The ring an [`Rp2350AdcStream`] fills: [`RING_SAMPLES`] samples, 16 kB,
 /// aligned to its own size as the DMA's address wrap requires (Table 1150,

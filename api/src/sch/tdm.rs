@@ -22,7 +22,12 @@
 //!   compile error, not a review rule.
 //! * **Overruns are logged.** After each frame's apps, the clock is read;
 //!   if it is already past the frame's end, [`SchEvent::Overrun`] says by
-//!   how much. LibJuno only tolerates overruns silently.
+//!   how much, and which app ran longest. LibJuno only tolerates overruns
+//!   silently.
+//! * **Each app is timed.** Every `on_process` is timed, and
+//!   [`TdmSch::take_timings`] hands back each app's [`AppTiming`]: its
+//!   runs, its total and longest run, and the overruns it was the slowest
+//!   app in, so the load and the overruns can be put down to apps.
 //!
 //! What is the same: frames are paced to **absolute** deadlines (start +
 //! (i + 1) × minor), so one late frame does not delay the rest; a failing
@@ -216,6 +221,7 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             minor: self.minor,
             next: None,
             state: State::Configured,
+            timings: [AppTiming::default(); APPS],
         }
     }
 }
@@ -282,11 +288,38 @@ pub struct TdmSch<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usi
     next: Option<Time<C::ThisTime>>,
     /// Lifecycle position.
     state: State,
+    /// Each app's `on_process` timing since the last
+    /// [`take_timings`](Self::take_timings).
+    timings: [AppTiming; APPS],
+}
+
+/// How one app's `on_process` ran over some span of the schedule: see
+/// [`TdmSch::take_timings`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AppTiming {
+    /// Times it ran.
+    pub runs: u32,
+    /// Its runs' durations, summed.
+    pub busy: Duration,
+    /// Its longest run.
+    pub longest: Duration,
+    /// Minor frames that overran with it as their slowest app.
+    pub overruns: u32,
 }
 
 impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APPS: usize>
     TdmSch<'a, C, L, SLOTS, FRAMES, APPS>
 {
+    /// Each app's timing, by its index in the app array, since the last
+    /// call (or since the schedule started), and start counting afresh.
+    /// Call it between major frames, for example after each
+    /// [`run_major_frame`](Scheduler::run_major_frame), for per-second
+    /// figures.
+    pub fn take_timings(&mut self) -> [AppTiming; APPS] {
+        // Hand back the totals and zero them.
+        core::mem::replace(&mut self.timings, [AppTiming::default(); APPS])
+    }
+
     /// The app in `slot` of `minor_frame`, if any.
     pub fn app_at(&self, minor_frame: usize, slot: usize) -> Option<usize> {
         // Same lookup as the builder's.
@@ -355,8 +388,13 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             None => self.clock.now(),
         };
         for frame in 0..FRAMES {
+            // Busy from here, or from the frame's start if it began late.
+            let began = self.clock.now();
             // Disjoint borrows for the dispatch loop.
             let (apps, log, row) = (&mut self.apps, &mut self.log, &self.table[frame]);
+            // The frame's slowest app so far, and how long it took.
+            let mut slowest: Option<(usize, Duration)> = None;
+            let mut mark = began;
             // Every occupied slot, in column order.
             for &index in row.iter().filter(|&&i| i != EMPTY) {
                 let app = index as usize;
@@ -367,15 +405,35 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
                 if !ok {
                     report.app_failures = report.app_failures.saturating_add(1);
                 }
+                // Its time, from the end of the one before.
+                let now = self.clock.now();
+                let took = now.checked_sub(mark).unwrap_or(Duration::ZERO);
+                mark = now;
+                let t = &mut self.timings[app];
+                t.runs = t.runs.saturating_add(1);
+                t.busy = t.busy.checked_add(took).unwrap_or(Duration::MAX);
+                t.longest = t.longest.max(took);
+                if slowest.is_none_or(|(_, longest)| took > longest) {
+                    slowest = Some((app, took));
+                }
             }
+            // How long its apps ran.
+            let finished = mark;
+            let ran = finished.checked_sub(began).unwrap_or(Duration::ZERO);
+            report.busy = report.busy.checked_add(ran).unwrap_or(Duration::MAX);
+            report.busiest_frame = report.busiest_frame.max(ran);
             // This frame ends one minor frame after it began.
             deadline = deadline + self.minor;
             // Finished after the end: an overrun, by now − deadline.
-            if let Some(late_by) = self.clock.now().checked_sub(deadline)
+            if let Some(late_by) = finished.checked_sub(deadline)
                 && late_by > Duration::ZERO
             {
-                self.log.log(SchEvent::Overrun { minor_frame: frame, late_by });
+                let slowest_app = slowest.map(|(app, _)| app);
+                self.log.log(SchEvent::Overrun { minor_frame: frame, late_by, slowest_app });
                 report.overruns = report.overruns.saturating_add(1);
+                if let Some(app) = slowest_app {
+                    self.timings[app].overruns = self.timings[app].overruns.saturating_add(1);
+                }
             }
             // Wait for the boundary (at once if it has passed).
             if let Err(error) = self.clock.sleep_until(deadline) {
@@ -492,14 +550,14 @@ mod tests {
     #[derive(Debug, PartialEq)]
     enum Seen {
         App(usize, Hook, ErrorKind),
-        Overrun(usize, Duration),
+        Overrun(usize, Duration, Option<usize>),
         Sleep(usize),
     }
 
     fn seen(event: SchEvent<'_>) -> Seen {
         match event {
             SchEvent::AppFailed { app, hook, error } => Seen::App(app, hook, error.kind()),
-            SchEvent::Overrun { minor_frame, late_by } => Seen::Overrun(minor_frame, late_by),
+            SchEvent::Overrun { minor_frame, late_by, slowest_app } => Seen::Overrun(minor_frame, late_by, slowest_app),
             SchEvent::SleepFailed { minor_frame, .. } => Seen::Sleep(minor_frame),
         }
     }
@@ -607,6 +665,32 @@ mod tests {
     }
 
     #[test]
+    fn the_report_says_how_long_the_apps_ran() {
+        let clock = FakeClock::at(0);
+        let trace = RefCell::new(Vec::new());
+        let (mut a, mut b) = (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace));
+        a.work = ms(1);
+        b.work = ms(2);
+        let mut sch = TdmSchBuilder::<_, _, 2, 4, 2>::new(&clock, ms(5), [&mut a, &mut b], NoLog).unwrap();
+        sch.register(0, ms(5), ms(0)).unwrap(); // every frame
+        sch.register(1, ms(20), ms(5)).unwrap(); // frame 1 only
+        let mut sch = sch.build();
+        let report = sch.run_major_frame();
+        // 4 × 1 ms, plus 2 ms in frame 1, which is the busiest at 3 ms
+        // (as sums: 1 ms is not a whole number of 2^-32 s units).
+        assert_eq!((report.busy, report.busiest_frame), (ms(1) * 4 + ms(2), ms(1) + ms(2)));
+        // Per app: a ran 4 times, b once; nothing overran.
+        let [ta, tb] = sch.take_timings();
+        assert_eq!((ta.runs, ta.busy, ta.longest, ta.overruns), (4, ms(1) * 4, ms(1), 0));
+        assert_eq!((tb.runs, tb.busy, tb.longest, tb.overruns), (1, ms(2), ms(2), 0));
+        // Taken: counting starts afresh.
+        assert_eq!(sch.take_timings(), [AppTiming::default(); 2]);
+        let mut twice = report;
+        twice.merge(report);
+        assert_eq!((twice.busy, twice.busiest_frame), (report.busy + report.busy, ms(1) + ms(2)));
+    }
+
+    #[test]
     fn an_overrun_is_logged_with_how_late_it_was() {
         let clock = FakeClock::at(0);
         let trace = RefCell::new(Vec::new());
@@ -619,8 +703,27 @@ mod tests {
         let report = sch.build().run_major_frame();
         // Frame 0 ends 2 ms late; frame 1 has slack and is back on time.
         assert_eq!(report.overruns, 1);
-        assert_eq!(*events.borrow(), [Seen::Overrun(0, ms(7) - ms(5))]);
+        assert_eq!(*events.borrow(), [Seen::Overrun(0, ms(7) - ms(5), Some(0))]);
         assert_eq!(clock.now(), Time::new(0, 0) + ms(10));
+    }
+
+    #[test]
+    fn an_overrun_is_put_down_to_the_slowest_app_in_its_frame() {
+        let clock = FakeClock::at(0);
+        let trace = RefCell::new(Vec::new());
+        let (mut a, mut b) = (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace));
+        a.work = ms(1);
+        b.work = ms(6); // with a, 7 ms in a 5 ms frame
+        let events = RefCell::new(Vec::new());
+        let log = |e: SchEvent<'_>| events.borrow_mut().push(seen(e));
+        let mut sch = TdmSchBuilder::<_, _, 2, 2, 2>::new(&clock, ms(5), [&mut a, &mut b], log).unwrap();
+        sch.register(0, ms(10), ms(0)).unwrap();
+        sch.register(1, ms(10), ms(0)).unwrap();
+        let mut sch = sch.build();
+        assert_eq!(sch.run_major_frame().overruns, 1);
+        assert_eq!(*events.borrow(), [Seen::Overrun(0, ms(1) + ms(6) - ms(5), Some(1))]);
+        let [ta, tb] = sch.take_timings();
+        assert_eq!((ta.overruns, tb.overruns, tb.longest), (0, 1, ms(6)));
     }
 
     #[test]
