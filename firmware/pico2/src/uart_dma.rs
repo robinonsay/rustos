@@ -364,6 +364,14 @@ pub struct Rp2350UartDma<const I: usize> {
     tx_halted: bool,
 }
 
+// SAFETY: the ring pointers come from the `&'static mut` rings handed to
+// `into_dma`, so this value is the only thing that touches them, and no
+// interrupt is enabled, so nothing on the core it leaves reaches them after
+// it moves. The UART and DMA registers are shared bus peripherals either
+// core may drive. `Send`, not `Sync`: one owner at a time, since two cores
+// using one ring at once would corrupt its read and write counts.
+unsafe impl<const I: usize> Send for Rp2350UartDma<I> {}
+
 impl<const I: usize> Rp2350UartDma<I> {
     /// The baud rate actually produced, as [`Rp2350Uart::baud`].
     pub fn baud(&self) -> u32 {
