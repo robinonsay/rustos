@@ -364,3 +364,9 @@ cite them by section, table and page.
 **Implemented today:** the three-crate workspace described above — boot path,
 GPIO, clock, timer, SysTick, watchdog, USB serial and PWM drivers, portable traits, the
 board-definition macro, and the blinky demo. That is all of the code.
+
+## License
+
+The code is under the [MIT License](LICENSE). The third-party documents in
+`docs/` (datasheets, reference manuals and their text extractions) are not:
+they remain their publishers' and are included for reference only.
