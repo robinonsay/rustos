@@ -80,6 +80,19 @@ pub enum SchConfigError {
         /// The minor frame (row) it is already in.
         minor_frame: usize,
     },
+    /// [`TdmSchBuilder::keep_free`]: there is no such minor frame.
+    NoSuchFrame {
+        /// The minor frame given.
+        minor_frame: usize,
+    },
+    /// [`TdmSchBuilder::keep_free`]: an app already runs in the frame.
+    FrameInUse {
+        /// The minor frame given.
+        minor_frame: usize,
+    },
+    /// Every frame this registration selects is a catch-up frame
+    /// ([`TdmSchBuilder::keep_free`]), so the app would never run.
+    OnlyFreeFrames,
 }
 
 /// Configuration mistakes classified for [`crate::error`].
@@ -89,7 +102,9 @@ impl Error for SchConfigError {
             // No room in a fixed-size table.
             SchConfigError::FrameFull { .. } => ErrorKind::Full,
             // An index or size beyond what fits.
-            SchConfigError::NoSuchApp { .. } | SchConfigError::MajorFrameTooLong => ErrorKind::OutOfRange,
+            SchConfigError::NoSuchApp { .. } | SchConfigError::NoSuchFrame { .. } | SchConfigError::MajorFrameTooLong => {
+                ErrorKind::OutOfRange
+            }
             // Everything else is an unacceptable argument.
             _ => ErrorKind::InvalidInput,
         }
@@ -114,6 +129,8 @@ pub struct TdmSchBuilder<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAM
     table: [[u8; SLOTS]; FRAMES],
     /// One minor frame.
     minor: Duration,
+    /// Catch-up frames: see [`keep_free`](Self::keep_free).
+    free: [bool; FRAMES],
 }
 
 impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APPS: usize>
@@ -148,7 +165,28 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             return Err(SchConfigError::MajorFrameTooLong);
         }
         // Every slot starts empty.
-        Ok(Self { clock, log, apps, table: [[EMPTY; SLOTS]; FRAMES], minor: minor_frame })
+        Ok(Self { clock, log, apps, table: [[EMPTY; SLOTS]; FRAMES], minor: minor_frame, free: [false; FRAMES] })
+    }
+
+    /// Make `minor_frame` a *catch-up* frame: apps registered afterwards
+    /// skip it, unless they run every frame. The apps that run every frame
+    /// are usually the ones that must not miss a beat (a bus that must be
+    /// polled each frame, an input timed by when it is looked at) and the
+    /// cheapest; everything else stays out, so if earlier frames overran,
+    /// the schedule has most of a frame of slack to get back onto its
+    /// deadlines before the next major frame starts. Every app still runs
+    /// as often as its period says.
+    ///
+    /// Call it before registering: [`SchConfigError::FrameInUse`] if an app
+    /// is already in the frame.
+    pub fn keep_free(&mut self, minor_frame: usize) -> Result<(), SchConfigError> {
+        // The frame must exist and be empty.
+        let row = self.table.get(minor_frame).ok_or(SchConfigError::NoSuchFrame { minor_frame })?;
+        if row.iter().any(|&s| s != EMPTY) {
+            return Err(SchConfigError::FrameInUse { minor_frame });
+        }
+        self.free[minor_frame] = true;
+        Ok(())
     }
 
     /// Run app number `app` every `period`, starting `offset` into the
@@ -159,8 +197,10 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
     ///
     /// Both `period` and `offset` must be whole numbers of minor frames,
     /// `period` must divide the major frame evenly, and `offset` must be
-    /// shorter than `period`. All of the frames it selects are checked
-    /// before any is written, so an error leaves the table as it was.
+    /// shorter than `period`. Frames kept free
+    /// ([`keep_free`](Self::keep_free)) are skipped. All of the frames it
+    /// selects are checked before any is written, so an error leaves the
+    /// table as it was.
     pub fn register(&mut self, app: usize, period: Duration, offset: Duration) -> Result<(), SchConfigError> {
         // The app must exist.
         if app >= APPS {
@@ -182,8 +222,15 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
         };
         // Both are below FRAMES, so they fit a usize.
         let (first, stride) = (first as usize, stride as usize);
+        // The selected rows, less catch-up frames for an app that does not
+        // run every frame; at least one.
+        let free = self.free;
+        let rows = (first..FRAMES).step_by(stride).filter(move |&f| stride == 1 || !free[f]);
+        if rows.clone().next().is_none() {
+            return Err(SchConfigError::OnlyFreeFrames);
+        }
         // Check every selected row before writing any.
-        for frame in (first..FRAMES).step_by(stride) {
+        for frame in rows.clone() {
             // Running twice in one frame is almost certainly a mistake.
             if self.table[frame].contains(&(app as u8)) {
                 return Err(SchConfigError::AlreadyScheduled { minor_frame: frame });
@@ -194,7 +241,7 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             }
         }
         // All rows have room: take the first free slot of each.
-        for frame in (first..FRAMES).step_by(stride) {
+        for frame in rows {
             // Checked above, so a free slot exists.
             if let Some(slot) = self.table[frame].iter_mut().find(|s| **s == EMPTY) {
                 *slot = app as u8;
@@ -662,6 +709,31 @@ mod tests {
         assert_eq!(*events.borrow(), [Seen::App(0, Hook::Process, ErrorKind::Timeout), Seen::App(0, Hook::Process, ErrorKind::Timeout)]);
         // App 1 still ran in both frames.
         assert_eq!(trace.borrow().iter().filter(|(id, h)| *id == 1 && *h == Hook::Process).count(), 2);
+    }
+
+    #[test]
+    fn a_catch_up_frame_holds_only_every_frame_apps_and_gives_slack() {
+        let clock = FakeClock::at(0);
+        let trace = RefCell::new(Vec::new());
+        let (mut a, mut b) = (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace));
+        b.work = ms(3); // overruns its 2 ms frame by 1 ms
+        let events = RefCell::new(Vec::new());
+        let log = |e: SchEvent<'_>| events.borrow_mut().push(seen(e));
+        let mut sch = TdmSchBuilder::<_, _, 2, 4, 2>::new(&clock, ms(2), [&mut a, &mut b], log).unwrap();
+        assert_eq!(sch.keep_free(4), Err(SchConfigError::NoSuchFrame { minor_frame: 4 }));
+        sch.keep_free(3).unwrap();
+        // An app whose only frame is the catch-up frame would never run.
+        assert_eq!(sch.register(1, ms(8), ms(6)), Err(SchConfigError::OnlyFreeFrames));
+        // Every frame: in the catch-up frame too. Every other frame: not.
+        sch.register(0, ms(2), ms(0)).unwrap();
+        sch.register(1, ms(4), ms(2)).unwrap();
+        assert_eq!((sch.app_at(3, 0), sch.app_at(1, 1), sch.app_at(3, 1)), (Some(0), Some(1), None));
+        let mut sch = sch.build();
+        // b overruns frame 1; frame 2 starts late but has slack, and the
+        // major frame ends on its deadline.
+        sch.run_major_frame();
+        assert_eq!(*events.borrow(), [Seen::Overrun(1, ms(3) - ms(2), Some(1))]);
+        assert_eq!(clock.now(), Time::new(0, 0) + ms(2) * 4);
     }
 
     #[test]
