@@ -6,77 +6,54 @@
 //! compile time, so a value out of range fails the build instead of the
 //! boot.
 
+use api::iload::{Slot, assert_ok};
 use api::sb::Mid;
-use api::time::Duration;
+
+/// The minor frame of the core the app runs on, in milliseconds. Point it
+/// at the crate's own constant.
+const MINOR_FRAME_MS: u64 = 1;
+
+/// That core's major frame, in milliseconds. Point it at the crate's own
+/// constant.
+const MAJOR_FRAME_MS: u64 = 1000;
 
 /// How the {{project-name | pascal_case}}App runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct {{project-name | pascal_case}}Table {
-    /// How often the scheduler runs the app, in milliseconds: a whole
-    /// number of the core's minor frames that divides its major frame.
-    pub period_ms: u64,
-    /// Which minor frame in each period it runs in, in milliseconds from
-    /// the start of the period. Less than the period.
-    pub offset_ms: u64,
-    /// The message id its status goes out under.
-    pub status_mid: Mid,
-    /// Runs between status reports: with a 100 ms period, 10 is once a
-    /// second.
-    pub status_every: u32,
+    /// Its schedule slot. Its health goes out once a second, every
+    /// [`hz`](Slot::hz) runs.
+    pub slot: Slot,
+    /// The message id its health goes out under.
+    pub health_mid: Mid,
 }
 
 impl {{project-name | pascal_case}}Table {
-    /// `Err` with the reason if any value is out of range. Whether the slot
-    /// fits the schedule's minor and major frames is checked when `main`
-    /// registers it, at boot.
+    /// `Err` with the reason if any value is out of range.
     pub const fn check(&self) -> Result<(), &'static str> {
-        if self.period_ms == 0 {
-            return Err("the {{project-name | pascal_case}}App's period is 0");
-        }
-        if self.offset_ms >= self.period_ms {
-            return Err("the {{project-name | pascal_case}}App's offset is not inside its period");
-        }
-        if self.status_every == 0 {
-            return Err("the {{project-name | pascal_case}}App's status interval is 0 runs");
+        if let Err(e) = self.slot.check(MINOR_FRAME_MS, MAJOR_FRAME_MS) {
+            return Err(e);
         }
         Ok(())
     }
-
-    /// Its period and offset, as `TdmSchBuilder::register` takes them.
-    pub const fn slot(&self) -> (Duration, Duration) {
-        (Duration::from_millis(self.period_ms), Duration::from_millis(self.offset_ms))
-    }
 }
 
-/// The values it runs with: every 100 ms, at the start of each period,
-/// with a status report once a second.
+/// The values it runs with: every 100 ms, at the start of each period.
 pub const DEFAULT: {{project-name | pascal_case}}Table = {{project-name | pascal_case}}Table {
-    period_ms: 100,
-    offset_ms: 0,
+    slot: Slot { period_ms: 100, offset_ms: 0 },
     // Pick an id no other app publishes under.
-    status_mid: 0,
-    status_every: 10,
+    health_mid: 0,
 };
 
-const _: () = if let Err(why) = DEFAULT.check() {
-    panic!("{}", why)
-};
+const _: () = assert_ok(DEFAULT.check());
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn out_of_range_values_are_refused() {
+    fn out_of_range_slots_are_refused() {
         assert_eq!(DEFAULT.check(), Ok(()));
-        assert!({{project-name | pascal_case}}Table { period_ms: 0, ..DEFAULT }.check().is_err());
-        assert!({{project-name | pascal_case}}Table { offset_ms: DEFAULT.period_ms, ..DEFAULT }.check().is_err());
-        assert!({{project-name | pascal_case}}Table { status_every: 0, ..DEFAULT }.check().is_err());
-    }
-
-    #[test]
-    fn the_slot_is_in_milliseconds() {
-        let t = {{project-name | pascal_case}}Table { period_ms: 250, offset_ms: 10, ..DEFAULT };
-        assert_eq!(t.slot(), (Duration::from_millis(250), Duration::from_millis(10)));
+        let bad = Slot { period_ms: DEFAULT.slot.period_ms, offset_ms: DEFAULT.slot.period_ms };
+        assert!({{project-name | pascal_case}}Table { slot: bad, ..DEFAULT }.check().is_err());
     }
 }

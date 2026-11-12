@@ -23,6 +23,9 @@
 //! own, but must implement [`api::error::Error`](crate::error::Error), so a
 //! scheduler can log it and classify it without knowing the type.
 //!
+//! What an app reports about itself, run by run, is its [`Health`]; see
+//! [`health`].
+//!
 //! ```ignore
 //! use api::app::App;
 //! use api::error::{Error, ErrorKind};
@@ -39,6 +42,10 @@
 //!     fn on_exit(&mut self) -> Result<(), ErrorKind> { Ok(()) }
 //! }
 //! ```
+
+pub mod health;
+
+pub use health::{AppState, Health, HealthTlm};
 
 use crate::error::Error;
 

@@ -87,7 +87,10 @@
 //! * [`error`] — an extensible error vocabulary: any error type implements
 //!   [`error::Error`] by naming its [`error::ErrorKind`].
 //! * [`app`] — the application lifecycle a scheduler drives
-//!   (`on_start`, `on_process`, `on_exit`), LibJuno's `APP_API_T` in Rust.
+//!   (`on_start`, `on_process`, `on_exit`), LibJuno's `APP_API_T` in Rust,
+//!   and [`app::Health`], the record every app keeps of its runs.
+//! * [`iload`] — configuration tables compiled into the image, checked at
+//!   compile time, and [`iload::Slot`], an app's place in the schedule.
 //! * [`sch`] — the [`sch::Scheduler`] trait and [`sch::TdmSch`], a
 //!   time-division-multiplexed cyclic executive, LibJuno's `SCH_API_T`.
 //! * [`sb`] — the software bus: apps publish messages by id, and each
@@ -126,6 +129,7 @@ pub mod adc;
 pub mod watchdog;
 pub mod error;
 pub mod app;
+pub mod iload;
 pub mod sch;
 pub mod sb;
 pub mod multicore;

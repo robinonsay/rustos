@@ -59,19 +59,22 @@ cargo generate --path ../../../deps/rustos templates/app --name air_data --force
     --define summary="Air data from the pitot tube"
 ```
 
-That writes `air_data/{mod,app,table}.rs` and makes `AirDataApp`,
-`AirDataStatus` and `AirDataTable`. Then:
+That writes `air_data/{mod,app,table}.rs`, with `AirDataApp` and its
+table, `AirDataTable`. Then:
 
 1. Add `pub mod air_data;` to the apps module.
-2. Implement `From<AirDataStatus<_>>` for the crate's message type, and
-   pick the app's `status_mid` in `table.rs`.
-3. In `main`, build it with its table, input pipe, bus and clock, put it in
-   the scheduler's app array and register `table.slot()`.
-4. Write its work in `handle` and `on_process`, and move every number it
+2. Implement `From<api::app::HealthTlm<Id>>` for the crate's message type,
+   where `Id` is the crate's app-id type, and pick the app's `health_mid`.
+3. Point `MINOR_FRAME_MS` and `MAJOR_FRAME_MS` in `table.rs` at the
+   crate's own schedule constants.
+4. In `main`, build it with its id, table, input pipe and bus, put it in
+   the scheduler's app array and register `table.slot.durations()`.
+5. Write its work in `handle` and `on_process`, and move every number it
    uses into its table.
 
-The generated app depends only on `api`. Crate-wide types (a health
-record, a shared `Slot`) are the crate's to swap in.
+The generated app depends only on `api`: its schedule slot is an
+`api::iload::Slot`, checked at compile time with `api::iload::assert_ok`,
+and its health is an `api::app::Health`.
 
 ## Co-developing an app and RustOS
 

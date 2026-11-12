@@ -1,71 +1,50 @@
-use api::app::App;
+use api::app::{App, AppState, Health, HealthTlm};
 use api::error::ErrorKind;
 use api::sb::{Pipe, Publisher};
-use api::time::{Clock, ClockId, Time};
 
 use super::table::{{project-name | pascal_case}}Table;
 
-/// What the {{project-name | pascal_case}}App reports about itself, every
-/// [`status_every`]({{project-name | pascal_case}}Table::status_every) runs. The crate's message
-/// type carries it: the app publishes `M::from(status)`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct {{project-name | pascal_case}}Status<T: ClockId> {
-    /// When it was taken.
-    pub time: Time<T>,
-    /// Runs so far.
-    pub runs: u32,
-    /// Messages taken from its input pipe so far.
-    pub received: u32,
-    /// Messages its input pipe had no room for so far.
-    pub dropped: u32,
-}
-
 /// {{summary}}
 ///
-/// Every run it takes everything waiting on its input pipe, then does its
-/// period's work. Every [`status_every`]({{project-name | pascal_case}}Table::status_every) runs,
-/// from the first, it publishes its [`{{project-name | pascal_case}}Status`] under
-/// [`status_mid`]({{project-name | pascal_case}}Table::status_mid).
-pub struct {{project-name | pascal_case}}App<'a, M, C: Clock, const N: usize> {
+/// Every run it takes everything waiting on its input pipe and does its
+/// period's work. Its health goes out once a second, from the first run,
+/// under [`health_mid`]({{project-name | pascal_case}}Table::health_mid), as the crate's
+/// message type: `M::from(record)`.
+pub struct {{project-name | pascal_case}}App<'a, Id, M, const N: usize> {
     /// Its iLoad.
     table: &'a {{project-name | pascal_case}}Table,
     /// What it hears.
     input: &'a Pipe<M, N>,
-    /// Where its status goes.
+    /// Where its health goes.
     bus: &'a dyn Publisher<M>,
-    /// Timestamps.
-    clock: &'a C,
-    /// Its counts, as of the last run.
-    status: {{project-name | pascal_case}}Status<C::ThisTime>,
+    /// Runs since the schedule started, for the health interval.
+    runs: u32,
+    /// Run and failure counts.
+    health: Health<Id>,
 }
 
-impl<'a, M, C: Clock, const N: usize> {{project-name | pascal_case}}App<'a, M, C, N> {
-    /// The app on `input`, configured by `table`, publishing on `bus`.
-    /// `main` registers its slot.
-    pub fn new(table: &'a {{project-name | pascal_case}}Table, input: &'a Pipe<M, N>, bus: &'a dyn Publisher<M>, clock: &'a C) -> Self {
-        Self {
-            table,
-            input,
-            bus,
-            clock,
-            status: {{project-name | pascal_case}}Status { time: Time::new(0, 0), runs: 0, received: 0, dropped: 0 },
-        }
+impl<'a, Id: Copy, M, const N: usize> {{project-name | pascal_case}}App<'a, Id, M, N> {
+    /// The app `id` on `input`, configured by `table`, publishing on
+    /// `bus`. `main` registers its slot.
+    pub fn new(id: Id, table: &'a {{project-name | pascal_case}}Table, input: &'a Pipe<M, N>, bus: &'a dyn Publisher<M>) -> Self {
+        Self { table, input, bus, runs: 0, health: Health::new(id, None) }
     }
 
-    /// Its status as of the last run.
-    pub const fn status(&self) -> {{project-name | pascal_case}}Status<C::ThisTime> {
-        self.status
+    /// The health record as of the last run.
+    pub const fn health(&self) -> HealthTlm<Id> {
+        self.health.get()
     }
 
     /// Act on one message from the input pipe.
-    fn handle(&mut self, _msg: M) {
+    fn handle(&mut self, _msg: M) -> Result<(), ErrorKind> {
         // The app's work on each message goes here.
+        Ok(())
     }
 }
 
-impl<M, C: Clock, const N: usize> App for {{project-name | pascal_case}}App<'_, M, C, N>
+impl<Id: Copy, M, const N: usize> App for {{project-name | pascal_case}}App<'_, Id, M, N>
 where
-    M: From<{{project-name | pascal_case}}Status<C::ThisTime>>,
+    M: From<HealthTlm<Id>>,
 {
     type Error = ErrorKind;
 
@@ -74,20 +53,27 @@ where
     }
 
     fn on_process(&mut self) -> Result<(), ErrorKind> {
-        // Everything that arrived since the last run.
+        // Everything that arrived since the last run; the first failure is
+        // this run's.
+        let mut state = AppState::NoData;
+        let mut result = Ok(());
         while let Some(msg) = self.input.pop() {
-            self.status.received = self.status.received.wrapping_add(1);
-            self.handle(msg);
+            match self.handle(msg) {
+                Ok(()) => state = AppState::Ok,
+                Err(e) => result = result.and(Err(e)),
+            }
         }
-        self.status.dropped = self.status.dropped.wrapping_add(self.input.take_dropped());
-        // The status goes out every `status_every` runs, from the first. A
-        // pipe too full to take it counts the drop itself.
-        if self.status.runs.is_multiple_of(self.table.status_every) {
-            self.status.time = self.clock.now();
-            let _ = self.bus.publish(self.table.status_mid, &M::from(self.status));
+        if result.is_err() {
+            state = AppState::Failing;
         }
-        self.status.runs = self.status.runs.wrapping_add(1);
-        Ok(())
+        // Every run counts; the record goes out once a second. A pipe too
+        // full to take it counts the drop itself.
+        let record = self.health.record(state, result.err());
+        if self.runs.is_multiple_of(self.table.slot.hz().max(1)) {
+            let _ = self.bus.publish(self.table.health_mid, &M::from(record));
+        }
+        self.runs = self.runs.wrapping_add(1);
+        result
     }
 
     fn on_exit(&mut self) -> Result<(), ErrorKind> {
@@ -97,44 +83,21 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::cell::Cell;
-
     use api::sb::{ArrayBroker, Broker, Mid};
-    use api::time::Duration;
 
-    use super::*;
     use super::super::table::DEFAULT;
-
-    /// The test clock's name.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-    struct Test;
-
-    impl ClockId for Test {
-        const NAME: &'static str = "test";
-    }
-
-    /// A clock that moves on 1 ms each time it is read.
-    struct StepClock(Cell<Time<Test>>);
-
-    impl Clock for StepClock {
-        type ThisTime = Test;
-        fn now(&self) -> Time<Test> {
-            let t = self.0.get();
-            self.0.set(t + Duration::from_millis(1));
-            t
-        }
-    }
+    use super::*;
 
     /// The messages of a crate with this app in it.
     #[derive(Clone, Copy, Debug, PartialEq)]
     enum Msg {
         Data(u32),
-        Status({{project-name | pascal_case}}Status<Test>),
+        Health(HealthTlm<u8>),
     }
 
-    impl From<{{project-name | pascal_case}}Status<Test>> for Msg {
-        fn from(s: {{project-name | pascal_case}}Status<Test>) -> Self {
-            Msg::Status(s)
+    impl From<HealthTlm<u8>> for Msg {
+        fn from(h: HealthTlm<u8>) -> Self {
+            Msg::Health(h)
         }
     }
 
@@ -142,33 +105,29 @@ mod tests {
     const DATA: Mid = 100;
 
     #[test]
-    fn drains_its_input_and_reports_every_status_interval() {
-        let input: Pipe<Msg, 2> = Pipe::new(DATA);
-        let status: Pipe<Msg, 4> = Pipe::new(DEFAULT.status_mid);
+    fn drains_its_input_and_reports_once_a_second() {
+        let input: Pipe<Msg, 4> = Pipe::new(DATA);
+        let health: Pipe<Msg, 4> = Pipe::new(DEFAULT.health_mid);
         let bus: ArrayBroker<'_, Msg, 2> = ArrayBroker::new();
         bus.subscribe(&input).unwrap();
-        bus.subscribe(&status).unwrap();
-        let clock = StepClock(Cell::new(Time::new(0, 0)));
-        let mut app = {{project-name | pascal_case}}App::new(&DEFAULT, &input, &bus, &clock);
+        bus.subscribe(&health).unwrap();
+        let mut app = {{project-name | pascal_case}}App::new(7u8, &DEFAULT, &input, &bus);
         assert_eq!(app.on_start(), Ok(()));
-        // Three messages for a pipe of two: one dropped.
-        for n in 0..3 {
-            let _ = bus.publish(DATA, &Msg::Data(n));
-        }
-        // The first run reports at once.
+        // A message to handle, and the first run reports at once.
+        bus.publish(DATA, &Msg::Data(1)).unwrap();
         assert_eq!(app.on_process(), Ok(()));
         assert!(input.is_empty());
-        let Msg::Status(s) = status.pop().unwrap() else { panic!() };
-        assert_eq!((s.runs, s.received, s.dropped), (0, 2, 1));
-        // Then not again until the interval is up.
-        for _ in 1..DEFAULT.status_every {
+        let Msg::Health(h) = health.pop().unwrap() else { panic!() };
+        assert_eq!((h.app, h.state, h.runs), (7, AppState::Ok, 1));
+        // Then nothing to handle, and no report until a second is up.
+        for _ in 1..DEFAULT.slot.hz() {
             assert_eq!(app.on_process(), Ok(()));
         }
-        assert!(status.is_empty());
+        assert!(health.is_empty());
+        assert_eq!(app.health().state, AppState::NoData);
         assert_eq!(app.on_process(), Ok(()));
-        let Msg::Status(s) = status.pop().unwrap() else { panic!() };
-        assert_eq!(s.runs, DEFAULT.status_every);
-        assert_eq!(app.status().runs, DEFAULT.status_every + 1);
+        let Msg::Health(h) = health.pop().unwrap() else { panic!() };
+        assert_eq!(h.runs, DEFAULT.slot.hz() + 1);
         assert_eq!(app.on_exit(), Ok(()));
     }
 }
