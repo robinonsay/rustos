@@ -1,0 +1,10 @@
+# An application module: generates `<name>/` holding mod.rs, app.rs and
+# table.rs, for an existing crate's apps directory. No Cargo.toml and no
+# repository of its own: it is part of the crate it is generated into.
+[template]
+vcs = "None"
+
+[placeholders.summary]
+type = "string"
+prompt = "In one line, what does this app do?"
+default = "TODO: what this app does"

@@ -1,0 +1,174 @@
+use api::app::App;
+use api::error::ErrorKind;
+use api::sb::{Pipe, Publisher};
+use api::time::{Clock, ClockId, Time};
+
+use super::table::{{project-name | pascal_case}}Table;
+
+/// What the {{project-name | pascal_case}}App reports about itself, every
+/// [`status_every`]({{project-name | pascal_case}}Table::status_every) runs. The crate's message
+/// type carries it: the app publishes `M::from(status)`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct {{project-name | pascal_case}}Status<T: ClockId> {
+    /// When it was taken.
+    pub time: Time<T>,
+    /// Runs so far.
+    pub runs: u32,
+    /// Messages taken from its input pipe so far.
+    pub received: u32,
+    /// Messages its input pipe had no room for so far.
+    pub dropped: u32,
+}
+
+/// {{summary}}
+///
+/// Every run it takes everything waiting on its input pipe, then does its
+/// period's work. Every [`status_every`]({{project-name | pascal_case}}Table::status_every) runs,
+/// from the first, it publishes its [`{{project-name | pascal_case}}Status`] under
+/// [`status_mid`]({{project-name | pascal_case}}Table::status_mid).
+pub struct {{project-name | pascal_case}}App<'a, M, C: Clock, const N: usize> {
+    /// Its iLoad.
+    table: &'a {{project-name | pascal_case}}Table,
+    /// What it hears.
+    input: &'a Pipe<M, N>,
+    /// Where its status goes.
+    bus: &'a dyn Publisher<M>,
+    /// Timestamps.
+    clock: &'a C,
+    /// Its counts, as of the last run.
+    status: {{project-name | pascal_case}}Status<C::ThisTime>,
+}
+
+impl<'a, M, C: Clock, const N: usize> {{project-name | pascal_case}}App<'a, M, C, N> {
+    /// The app on `input`, configured by `table`, publishing on `bus`.
+    /// `main` registers its slot.
+    pub fn new(table: &'a {{project-name | pascal_case}}Table, input: &'a Pipe<M, N>, bus: &'a dyn Publisher<M>, clock: &'a C) -> Self {
+        Self {
+            table,
+            input,
+            bus,
+            clock,
+            status: {{project-name | pascal_case}}Status { time: Time::new(0, 0), runs: 0, received: 0, dropped: 0 },
+        }
+    }
+
+    /// Its status as of the last run.
+    pub const fn status(&self) -> {{project-name | pascal_case}}Status<C::ThisTime> {
+        self.status
+    }
+
+    /// Act on one message from the input pipe.
+    fn handle(&mut self, _msg: M) {
+        // The app's work on each message goes here.
+    }
+}
+
+impl<M, C: Clock, const N: usize> App for {{project-name | pascal_case}}App<'_, M, C, N>
+where
+    M: From<{{project-name | pascal_case}}Status<C::ThisTime>>,
+{
+    type Error = ErrorKind;
+
+    fn on_start(&mut self) -> Result<(), ErrorKind> {
+        Ok(())
+    }
+
+    fn on_process(&mut self) -> Result<(), ErrorKind> {
+        // Everything that arrived since the last run.
+        while let Some(msg) = self.input.pop() {
+            self.status.received = self.status.received.wrapping_add(1);
+            self.handle(msg);
+        }
+        self.status.dropped = self.status.dropped.wrapping_add(self.input.take_dropped());
+        // The status goes out every `status_every` runs, from the first. A
+        // pipe too full to take it counts the drop itself.
+        if self.status.runs.is_multiple_of(self.table.status_every) {
+            self.status.time = self.clock.now();
+            let _ = self.bus.publish(self.table.status_mid, &M::from(self.status));
+        }
+        self.status.runs = self.status.runs.wrapping_add(1);
+        Ok(())
+    }
+
+    fn on_exit(&mut self) -> Result<(), ErrorKind> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::cell::Cell;
+
+    use api::sb::{ArrayBroker, Broker, Mid};
+    use api::time::Duration;
+
+    use super::*;
+    use super::super::table::DEFAULT;
+
+    /// The test clock's name.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    struct Test;
+
+    impl ClockId for Test {
+        const NAME: &'static str = "test";
+    }
+
+    /// A clock that moves on 1 ms each time it is read.
+    struct StepClock(Cell<Time<Test>>);
+
+    impl Clock for StepClock {
+        type ThisTime = Test;
+        fn now(&self) -> Time<Test> {
+            let t = self.0.get();
+            self.0.set(t + Duration::from_millis(1));
+            t
+        }
+    }
+
+    /// The messages of a crate with this app in it.
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    enum Msg {
+        Data(u32),
+        Status({{project-name | pascal_case}}Status<Test>),
+    }
+
+    impl From<{{project-name | pascal_case}}Status<Test>> for Msg {
+        fn from(s: {{project-name | pascal_case}}Status<Test>) -> Self {
+            Msg::Status(s)
+        }
+    }
+
+    /// The input pipe's message id.
+    const DATA: Mid = 100;
+
+    #[test]
+    fn drains_its_input_and_reports_every_status_interval() {
+        let input: Pipe<Msg, 2> = Pipe::new(DATA);
+        let status: Pipe<Msg, 4> = Pipe::new(DEFAULT.status_mid);
+        let bus: ArrayBroker<'_, Msg, 2> = ArrayBroker::new();
+        bus.subscribe(&input).unwrap();
+        bus.subscribe(&status).unwrap();
+        let clock = StepClock(Cell::new(Time::new(0, 0)));
+        let mut app = {{project-name | pascal_case}}App::new(&DEFAULT, &input, &bus, &clock);
+        assert_eq!(app.on_start(), Ok(()));
+        // Three messages for a pipe of two: one dropped.
+        for n in 0..3 {
+            let _ = bus.publish(DATA, &Msg::Data(n));
+        }
+        // The first run reports at once.
+        assert_eq!(app.on_process(), Ok(()));
+        assert!(input.is_empty());
+        let Msg::Status(s) = status.pop().unwrap() else { panic!() };
+        assert_eq!((s.runs, s.received, s.dropped), (0, 2, 1));
+        // Then not again until the interval is up.
+        for _ in 1..DEFAULT.status_every {
+            assert_eq!(app.on_process(), Ok(()));
+        }
+        assert!(status.is_empty());
+        assert_eq!(app.on_process(), Ok(()));
+        let Msg::Status(s) = status.pop().unwrap() else { panic!() };
+        assert_eq!(s.runs, DEFAULT.status_every);
+        assert_eq!(app.status().runs, DEFAULT.status_every + 1);
+        assert_eq!(app.on_exit(), Ok(()));
+    }
+}

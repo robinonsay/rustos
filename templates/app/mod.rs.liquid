@@ -1,0 +1,15 @@
+//! [`{{project-name | pascal_case}}App`]: {{summary}}
+//!
+//! Every time the scheduler runs it, the app drains its input pipe and
+//! does its period's work, then every
+//! [`status_every`](table::{{project-name | pascal_case}}Table::status_every) runs publishes its
+//! [`{{project-name | pascal_case}}Status`] on the software bus.
+//!
+//! `app.rs` has its code and `table.rs` its iLoad, the table of every value
+//! it is configured with, including its place in the schedule. Its
+//! configuration is [`table::DEFAULT`].
+
+mod app;
+pub mod table;
+
+pub use app::{ {{- project-name | pascal_case}}App, {{project-name | pascal_case}}Status};
