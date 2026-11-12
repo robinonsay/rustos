@@ -132,6 +132,38 @@ impl<C: ClockId> Time<C> {
     pub fn to_f64(&self) -> f64 {
         self.to_fixed() as f64 / Self::ONE_SECOND as f64
     }
+
+    /// The time in periods of a `ticks_per_second` counter since the
+    /// epoch, rounded to nearest. [`Self::from_ticks`] truncates by under
+    /// one 2^-32 s unit, far less than half a tick at any rate up to 1 GHz,
+    /// so a reading built from a count converts back to that count.
+    const fn as_ticks_nearest(&self, ticks_per_second: u32) -> u64 {
+        // 64.64 product in u128, plus half a unit, back to whole ticks by
+        // dropping 32 bits. fixed < 2^64 and the rate < 2^32, so the sum is
+        // below 2^96 and the result always fits a u64.
+        ((self.to_fixed() as u128 * ticks_per_second as u128 + (Self::ONE_SECOND as u128 / 2)) >> Self::FRAC_BITS)
+            as u64
+    }
+
+    /// Milliseconds since the epoch, rounded to nearest.
+    pub const fn as_millis(&self) -> u64 {
+        // A millisecond counter runs at 1000 Hz.
+        self.as_ticks_nearest(1_000)
+    }
+
+    /// Microseconds since the epoch, rounded to nearest: a reading of a
+    /// 1 MHz timer converts back to its count.
+    pub const fn as_micros(&self) -> u64 {
+        // A microsecond counter runs at 1 MHz.
+        self.as_ticks_nearest(1_000_000)
+    }
+
+    /// Nanoseconds since the epoch, rounded to nearest. At most about
+    /// 4.3 × 10^18, at the 2^32 s limit, so it always fits a `u64`.
+    pub const fn as_nanos(&self) -> u64 {
+        // A nanosecond counter runs at 1 GHz.
+        self.as_ticks_nearest(1_000_000_000)
+    }
 }
 
 /// Adds two times on the same clock.
@@ -541,6 +573,33 @@ mod tests {
         assert_eq!(t(1, 1).to_f32(), 1.0);
         // The largest time rounds up to 2^32.
         assert_eq!(t(u32::MAX, u32::MAX).to_f32(), 4294967296.0);
+    }
+
+    #[test]
+    fn whole_units_since_the_epoch() {
+        assert_eq!((t(0, 0).as_millis(), t(0, 0).as_micros(), t(0, 0).as_nanos()), (0, 0, 0));
+        let x = t(2, HALF);
+        assert_eq!((x.as_millis(), x.as_micros(), x.as_nanos()), (2_500, 2_500_000, 2_500_000_000));
+        // Rounded to nearest: 0.4 ms down, 0.6 ms up.
+        assert_eq!(Time::<Test>::from_ticks(4, 10_000).as_millis(), 0);
+        assert_eq!(Time::<Test>::from_ticks(6, 10_000).as_millis(), 1);
+        // The largest time still fits.
+        assert_eq!(t(u32::MAX, u32::MAX).as_nanos(), 4_294_967_296_000_000_000);
+    }
+
+    #[test]
+    fn a_count_converts_back_to_itself() {
+        // from_ticks truncates (1 µs is 4294.97 units, kept as 4294), but
+        // never by half a tick.
+        for us in [0, 1, 7, 999_999, 1_000_001, 123_456_789_012] {
+            assert_eq!(Time::<Test>::from_ticks(us, 1_000_000).as_micros(), us);
+        }
+        for ns in [1, 3, 999_999_999, 1_000_000_001, 4_000_000_000_123] {
+            assert_eq!(Time::<Test>::from_ticks(ns, 1_000_000_000).as_nanos(), ns);
+        }
+        for ms in [1, 999, 1_001, 86_400_000] {
+            assert_eq!(Time::<Test>::from_ticks(ms, 1_000).as_millis(), ms);
+        }
     }
 
     #[test]
