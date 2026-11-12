@@ -504,13 +504,7 @@ unsafe fn select_glitchless(clk: *mut ClockGenerator, src_mask: u32, src: u32) {
 /// Implements §8.1.2.2 (p517) "to switch between clock sources for the aux
 /// mux when the generator has a glitchless mux", plus the divisor ordering
 /// rule from the `clock_configure` listing (p522).
-unsafe fn switch_glitchless(
-    clk: *mut ClockGenerator,
-    src_mask: u32,
-    src: u32,
-    aux: Option<(u32, u32, u32)>,
-    div: u32,
-) {
+unsafe fn switch_glitchless(clk: *mut ClockGenerator, src_mask: u32, src: u32, aux: Option<(u32, u32, u32)>, div: u32) {
     unsafe {
         let div_reg = &raw mut (*clk).div;
         // A larger divisor goes in before the switch, so the output never

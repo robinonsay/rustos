@@ -192,9 +192,7 @@ pub struct FifoErrors {
 
 impl Fifo {
     const fn new() -> Self {
-        Self {
-            _not_send: PhantomData,
-        }
+        Self { _not_send: PhantomData }
     }
 
     /// Read the sticky flags `WOF` and `ROE`, then clear them. [`Fifo`]'s
@@ -209,10 +207,7 @@ impl Fifo {
             let st = (&raw const (*SIO_FIFO).fifo_st).read_volatile();
             let seen = st & (FIFO_ST_WOF | FIFO_ST_ROE);
             (&raw mut (*SIO_FIFO).fifo_st).write_volatile(seen);
-            FifoErrors {
-                written_when_full: st & FIFO_ST_WOF != 0,
-                read_when_empty: st & FIFO_ST_ROE != 0,
-            }
+            FifoErrors { written_when_full: st & FIFO_ST_WOF != 0, read_when_empty: st & FIFO_ST_ROE != 0 }
         }
     }
 }
@@ -282,9 +277,7 @@ impl<const WORDS: usize> Core1Stack<WORDS> {
 
     /// A stack of `WORDS` words, zeroed.
     pub const fn new() -> Self {
-        Self {
-            words: UnsafeCell::new([0; WORDS]),
-        }
+        Self { words: UnsafeCell::new([0; WORDS]) }
     }
 
     /// The stack's addresses, from its lowest byte, where core 1's stack
@@ -355,19 +348,10 @@ impl Rp2350Core1 {
         timeout_us: u64,
     ) -> Result<Fifo, LaunchError> {
         const {
-            assert!(
-                WORDS >= Core1Stack::<WORDS>::MIN_WORDS,
-                "core 1's stack is too small"
-            );
-            assert!(
-                WORDS.is_multiple_of(4),
-                "core 1's stack must be whole 32-byte blocks"
-            );
+            assert!(WORDS >= Core1Stack::<WORDS>::MIN_WORDS, "core 1's stack is too small");
+            assert!(WORDS.is_multiple_of(4), "core 1's stack must be whole 32-byte blocks");
         };
-        let Range {
-            start: bottom,
-            end: top,
-        } = stack.range();
+        let Range { start: bottom, end: top } = stack.range();
         CORE1_ENTRY.store(entry as usize, Ordering::Release);
         CORE1_STACK_LIMIT.store(bottom, Ordering::Release);
         // The two stores reach memory before any word of the handshake
@@ -377,11 +361,8 @@ impl Rp2350Core1 {
         // `core1_start`'s address already has the Thumb bit (bit 0) set, as
         // every function pointer here does; the bootrom branches to it as
         // given.
-        let mut launch = Launch::new(
-            &raw const crate::VECTOR_TABLE as u32,
-            top as u32,
-            core1_start as *const () as u32,
-        );
+        let mut launch =
+            Launch::new(&raw const crate::VECTOR_TABLE as u32, top as u32, core1_start as *const () as u32);
         let mut fifo = Fifo::new();
         let start = timer.now();
         loop {

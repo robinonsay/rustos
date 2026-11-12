@@ -102,9 +102,9 @@ impl Error for SchConfigError {
             // No room in a fixed-size table.
             SchConfigError::FrameFull { .. } => ErrorKind::Full,
             // An index or size beyond what fits.
-            SchConfigError::NoSuchApp { .. } | SchConfigError::NoSuchFrame { .. } | SchConfigError::MajorFrameTooLong => {
-                ErrorKind::OutOfRange
-            }
+            SchConfigError::NoSuchApp { .. }
+            | SchConfigError::NoSuchFrame { .. }
+            | SchConfigError::MajorFrameTooLong => ErrorKind::OutOfRange,
             // Everything else is an unacceptable argument.
             _ => ErrorKind::InvalidInput,
         }
@@ -267,7 +267,7 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
             table: self.table,
             minor: self.minor,
             next: None,
-            state: State::Configured,
+            state: State::Running,
             timings: [AppTiming::default(); APPS],
         }
     }
@@ -308,11 +308,9 @@ fn app_at<const SLOTS: usize, const FRAMES: usize>(
 /// Where a [`TdmSch`] is in the app lifecycle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum State {
-    /// Built; no `on_start` yet.
-    Configured,
-    /// Every app's `on_start` has run.
+    /// Built: its apps were ready to run once constructed.
     Running,
-    /// Every app's `on_exit` has run, or exit came before start.
+    /// Every app's `on_exit` has run.
     Exited,
 }
 
@@ -410,25 +408,13 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
         self.minor * FRAMES as u32
     }
 
-    fn start(&mut self) -> Report {
-        // Only from Configured: start is once per app.
-        if self.state != State::Configured {
-            return Report::default();
-        }
-        // Every app's on_start, in app order.
-        let report = self.every_app(Hook::Start);
-        // From here on, frames may run.
-        self.state = State::Running;
-        report
-    }
-
     fn run_major_frame(&mut self) -> Report {
         // Nothing runs after exit.
         if self.state == State::Exited {
             return Report::default();
         }
-        // Start first if needed, counting its failures in this report.
-        let mut report = self.start();
+        // This frame's counts.
+        let mut report = Report::default();
         // This major frame begins where the last one ended, or now.
         let mut deadline = match self.next {
             Some(boundary) => boundary,
@@ -494,12 +480,11 @@ impl<'a, C: Sleep, L: SchLog, const SLOTS: usize, const FRAMES: usize, const APP
     }
 
     fn exit(&mut self) -> Report {
-        // Only started apps are exited; either way nothing runs after.
-        let report = if self.state == State::Running {
-            self.every_app(Hook::Exit)
-        } else {
-            Report::default()
-        };
+        // Exit is once per app; nothing runs after.
+        if self.state == State::Exited {
+            return Report::default();
+        }
+        let report = self.every_app(Hook::Exit);
         self.state = State::Exited;
         report
     }
@@ -574,10 +559,6 @@ mod tests {
 
     impl App for Probe<'_> {
         type Error = ErrorKind;
-        fn on_start(&mut self) -> Result<(), ErrorKind> {
-            self.trace.borrow_mut().push((self.id, Hook::Start));
-            Ok(())
-        }
         fn on_process(&mut self) -> Result<(), ErrorKind> {
             self.trace.borrow_mut().push((self.id, Hook::Process));
             self.clock.advance(self.work);
@@ -613,7 +594,8 @@ mod tests {
     fn register_places_apps_by_period_and_offset() {
         let clock = FakeClock::at(0);
         let trace = RefCell::new(Vec::new());
-        let (mut a, mut b, mut c) = (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace), Probe::new(2, &clock, &trace));
+        let (mut a, mut b, mut c) =
+            (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace), Probe::new(2, &clock, &trace));
         let mut sch = TdmSchBuilder::<_, _, 3, 10, 3>::new(&clock, ms(5), [&mut a, &mut b, &mut c], NoLog).unwrap();
         sch.register(0, ms(5), ms(0)).unwrap(); // every frame
         sch.register(1, ms(10), ms(0)).unwrap(); // even frames
@@ -658,7 +640,7 @@ mod tests {
     }
 
     #[test]
-    fn major_frame_runs_rows_in_order_and_starts_first() {
+    fn major_frame_runs_rows_in_order() {
         let clock = FakeClock::at(100);
         let trace = RefCell::new(Vec::new());
         let (mut a, mut b) = (Probe::new(0, &clock, &trace), Probe::new(1, &clock, &trace));
@@ -668,8 +650,8 @@ mod tests {
         let mut sch = sch.build();
         let report = sch.run_major_frame();
         assert!(report.is_clean());
-        use Hook::{Process as P, Start as S};
-        assert_eq!(*trace.borrow(), [(0, S), (1, S), (1, P), (1, P), (0, P), (1, P), (1, P), (0, P)]);
+        use Hook::Process as P;
+        assert_eq!(*trace.borrow(), [(1, P), (1, P), (0, P), (1, P), (1, P), (0, P)]);
     }
 
     #[test]
@@ -706,7 +688,10 @@ mod tests {
         sch.register(1, ms(5), ms(0)).unwrap();
         let report = sch.build().run_major_frame();
         assert_eq!(report.app_failures, 2);
-        assert_eq!(*events.borrow(), [Seen::App(0, Hook::Process, ErrorKind::Timeout), Seen::App(0, Hook::Process, ErrorKind::Timeout)]);
+        assert_eq!(
+            *events.borrow(),
+            [Seen::App(0, Hook::Process, ErrorKind::Timeout), Seen::App(0, Hook::Process, ErrorKind::Timeout)]
+        );
         // App 1 still ran in both frames.
         assert_eq!(trace.borrow().iter().filter(|(id, h)| *id == 1 && *h == Hook::Process).count(), 2);
     }
@@ -817,24 +802,22 @@ mod tests {
         let mut sch = TdmSchBuilder::<_, _, 1, 1, 1>::new(&clock, ms(5), [&mut a], NoLog).unwrap();
         sch.register(0, ms(5), ms(0)).unwrap();
         let mut sch = sch.build();
-        sch.start();
-        sch.start(); // a second start does nothing
         sch.run_major_frame();
         sch.exit();
         sch.exit(); // a second exit does nothing
         assert_eq!(sch.run_major_frame(), Report::default()); // nothing after exit
-        use Hook::{Exit as E, Process as P, Start as S};
-        assert_eq!(*trace.borrow(), [(0, S), (0, P), (0, E)]);
+        use Hook::{Exit as E, Process as P};
+        assert_eq!(*trace.borrow(), [(0, P), (0, E)]);
     }
 
     #[test]
-    fn exit_before_start_runs_no_hooks() {
+    fn exit_before_any_frame_exits_each_app_and_runs_nothing_after() {
         let clock = FakeClock::at(0);
         let trace = RefCell::new(Vec::new());
         let mut a = Probe::new(0, &clock, &trace);
         let mut sch = TdmSchBuilder::<_, _, 1, 1, 1>::new(&clock, ms(5), [&mut a], NoLog).unwrap().build();
         sch.exit();
         sch.run_major_frame();
-        assert!(trace.borrow().is_empty());
+        assert_eq!(*trace.borrow(), [(0, Hook::Exit)]);
     }
 }

@@ -4,13 +4,19 @@
 //! run a control loop, send telemetry — packaged so that a
 //! scheduler can drive it without knowing what it does. This is the Rust
 //! form of LibJuno's `juno::app::APP_API_T` (`juno/app/app_api.hpp`), with
-//! the same three hooks:
+//! two of its three hooks:
 //!
 //! | Hook | LibJuno | When |
 //! |------|---------|------|
-//! | [`App::on_start`] | `OnStart` | once, before the first `on_process` |
 //! | [`App::on_process`] | `OnProcess` | every time the app's schedule slot comes up |
 //! | [`App::on_exit`] | `OnExit` | once, at shutdown (never, on a system that runs until power-off) |
+//!
+//! There is no `OnStart`. An app is ready to run once it is constructed:
+//! whatever LibJuno's `OnStart` would do happens in the app's constructor,
+//! so no app exists half set up. A constructor never fails. Setup that can
+//! fail (hardware that does not answer, say) leaves the app in a degraded
+//! state it reports through its [`Health`], so one bad app cannot stop the
+//! others from being built and scheduled.
 //!
 //! Where LibJuno passes an `APP_ROOT_T&` and the implementation downcasts
 //! it to its own aggregate, a Rust app is simply a type that implements
@@ -34,7 +40,6 @@
 //!
 //! impl<P: api::common::Write<bool>> App for Blink<P> {
 //!     type Error = ErrorKind;
-//!     fn on_start(&mut self) -> Result<(), ErrorKind> { Ok(()) }
 //!     fn on_process(&mut self) -> Result<(), ErrorKind> {
 //!         self.on = !self.on;
 //!         self.led.write(self.on).map_err(|_| ErrorKind::Write)
@@ -49,19 +54,16 @@ pub use health::{AppState, Health, HealthTlm};
 
 use crate::error::Error;
 
-/// An application with a start, a periodic step and an exit.
+/// An application with a periodic step and an exit.
 ///
-/// A scheduler guarantees the order: `on_start` once, then `on_process`
-/// any number of times, then at most one `on_exit`. A failed hook is
-/// reported, not fatal: the scheduler keeps calling the app's later hooks
-/// and keeps running the other apps.
+/// It is ready to run once constructed (see the [module docs](self)). A
+/// scheduler guarantees the order: `on_process` any number of times, then
+/// at most one `on_exit`. A failed hook is reported, not fatal: the
+/// scheduler keeps calling the app's later hooks and keeps running the
+/// other apps.
 pub trait App {
     /// What this app's hooks report when they fail.
     type Error: Error;
-
-    /// Prepare to run: claim resources, probe hardware, set the initial
-    /// state. Called once, before the first [`on_process`](Self::on_process).
-    fn on_start(&mut self) -> Result<(), Self::Error>;
 
     /// Do one period's work. Called once per scheduled slot; must finish
     /// well within the scheduler's minor frame, because the scheduler
@@ -76,8 +78,6 @@ pub trait App {
 /// Which lifecycle hook a report is about.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Hook {
-    /// [`App::on_start`].
-    Start,
     /// [`App::on_process`].
     Process,
     /// [`App::on_exit`].
@@ -100,7 +100,6 @@ impl<A: App> DynApp for A {
     fn run_hook(&mut self, hook: Hook, report: &mut dyn FnMut(&dyn Error)) -> bool {
         // Call the typed hook.
         let result = match hook {
-            Hook::Start => self.on_start(),
             Hook::Process => self.on_process(),
             Hook::Exit => self.on_exit(),
         };
@@ -123,7 +122,6 @@ mod tests {
 
     /// Counts its hooks; fails `on_process` when told to.
     struct Counter {
-        starts: u32,
         processes: u32,
         exits: u32,
         fail: bool,
@@ -131,10 +129,6 @@ mod tests {
 
     impl App for Counter {
         type Error = ErrorKind;
-        fn on_start(&mut self) -> Result<(), ErrorKind> {
-            self.starts += 1;
-            Ok(())
-        }
         fn on_process(&mut self) -> Result<(), ErrorKind> {
             self.processes += 1;
             if self.fail { Err(ErrorKind::Timeout) } else { Ok(()) }
@@ -147,18 +141,17 @@ mod tests {
 
     #[test]
     fn dyn_app_runs_the_named_hook() {
-        let mut c = Counter { starts: 0, processes: 0, exits: 0, fail: false };
+        let mut c = Counter { processes: 0, exits: 0, fail: false };
         let app: &mut dyn DynApp = &mut c;
         let mut never = |_: &dyn Error| panic!("no error expected");
-        assert!(app.run_hook(Hook::Start, &mut never));
         assert!(app.run_hook(Hook::Process, &mut never));
         assert!(app.run_hook(Hook::Exit, &mut never));
-        assert_eq!((c.starts, c.processes, c.exits), (1, 1, 1));
+        assert_eq!((c.processes, c.exits), (1, 1));
     }
 
     #[test]
     fn dyn_app_reports_the_error_it_got() {
-        let mut c = Counter { starts: 0, processes: 0, exits: 0, fail: true };
+        let mut c = Counter { processes: 0, exits: 0, fail: true };
         let mut seen = None;
         let ok = DynApp::run_hook(&mut c, Hook::Process, &mut |e| seen = Some(e.kind()));
         assert!(!ok);

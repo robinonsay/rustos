@@ -126,10 +126,10 @@ use api::common::{ErrorType, Read, Write};
 
 use crate::clocks::CLK_PERI_HZ;
 use crate::dma::{
-    self, CTRL_AHB_ERROR, CTRL_BUSY, CTRL_CHAIN_TO_SHIFT, CTRL_DATA_SIZE_SHIFT, CTRL_EN,
-    CTRL_INCR_READ, CTRL_INCR_WRITE, CTRL_RING_SEL_READ, CTRL_RING_SEL_WRITE, CTRL_RING_SIZE_SHIFT,
-    CTRL_TREQ_SEL_SHIFT, DATA_SIZE_BYTE, DATA_SIZE_HALFWORD, MODE_ENDLESS, MODE_NORMAL,
-    Rp2350DmaChannel, TRANS_COUNT_MODE_SHIFT, dreq_uart_rx, dreq_uart_tx,
+    self, CTRL_AHB_ERROR, CTRL_BUSY, CTRL_CHAIN_TO_SHIFT, CTRL_DATA_SIZE_SHIFT, CTRL_EN, CTRL_INCR_READ,
+    CTRL_INCR_WRITE, CTRL_RING_SEL_READ, CTRL_RING_SEL_WRITE, CTRL_RING_SIZE_SHIFT, CTRL_TREQ_SEL_SHIFT,
+    DATA_SIZE_BYTE, DATA_SIZE_HALFWORD, MODE_ENDLESS, MODE_NORMAL, Rp2350DmaChannel, TRANS_COUNT_MODE_SHIFT,
+    dreq_uart_rx, dreq_uart_tx,
 };
 use crate::uart::{self, BaudDivisor, FR_BUSY, FR_RXFE, LineErrors, Rp2350Uart, UartError};
 
@@ -281,8 +281,7 @@ impl<const I: usize> Rp2350Uart<I> {
             // Move characters already waiting into the ring, with their
             // error bits, while the processor may still read UARTDR: stop
             // at RXFE (Table 1030, p973) or a full ring less the guard.
-            while (&raw const (*regs).fr).read_volatile() & FR_RXFE == 0
-                && pending < RX_RING_ENTRIES - RX_GUARD_ENTRIES
+            while (&raw const (*regs).fr).read_volatile() & FR_RXFE == 0 && pending < RX_RING_ENTRIES - RX_GUARD_ENTRIES
             {
                 // Bits 15:0 of UARTDR: character and error bits (Table 1028).
                 let entry = (&raw const (*regs).dr).read_volatile() as u16;
@@ -639,10 +638,6 @@ impl<const I: usize> Write<u8> for Rp2350UartDma<I> {
     /// full.
     fn write(&mut self, byte: u8) -> Result<(), UartError> {
         // The slice method returns how many it queued: 0 or 1 here.
-        if Rp2350UartDma::write(self, &[byte])? == 1 {
-            Ok(())
-        } else {
-            Err(UartError::WouldBlock)
-        }
+        if Rp2350UartDma::write(self, &[byte])? == 1 { Ok(()) } else { Err(UartError::WouldBlock) }
     }
 }

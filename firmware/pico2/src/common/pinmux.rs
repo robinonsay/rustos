@@ -119,36 +119,36 @@ use Role::{UartCts as CTS, UartRts as RTS, UartRx as URX, UartTx as UTX};
 /// GPIO0–29, transcribed row by row. Index by GPIO number.
 const BANK0: [Row; MAX_GPIO_PIN] = [
     //      F1 (SPI)     F2 (UART)    F3 (I2C)     F11 (UART aux)
-    row(  s(0, SRX), s(0, UTX), s(0, SDA)),               // GPIO0
-    row(  s(0, CSN), s(0, URX), s(0, SCL)),               // GPIO1
-    row11(s(0, SCK), s(0, CTS), s(1, SDA), s(0, UTX)),    // GPIO2
-    row11(s(0, STX), s(0, RTS), s(1, SCL), s(0, URX)),    // GPIO3
-    row(  s(0, SRX), s(1, UTX), s(0, SDA)),               // GPIO4
-    row(  s(0, CSN), s(1, URX), s(0, SCL)),               // GPIO5
-    row11(s(0, SCK), s(1, CTS), s(1, SDA), s(1, UTX)),    // GPIO6
-    row11(s(0, STX), s(1, RTS), s(1, SCL), s(1, URX)),    // GPIO7
-    row(  s(1, SRX), s(1, UTX), s(0, SDA)),               // GPIO8
-    row(  s(1, CSN), s(1, URX), s(0, SCL)),               // GPIO9
-    row11(s(1, SCK), s(1, CTS), s(1, SDA), s(1, UTX)),    // GPIO10
-    row11(s(1, STX), s(1, RTS), s(1, SCL), s(1, URX)),    // GPIO11
-    row(  s(1, SRX), s(0, UTX), s(0, SDA)),               // GPIO12
-    row(  s(1, CSN), s(0, URX), s(0, SCL)),               // GPIO13
-    row11(s(1, SCK), s(0, CTS), s(1, SDA), s(0, UTX)),    // GPIO14
-    row11(s(1, STX), s(0, RTS), s(1, SCL), s(0, URX)),    // GPIO15
-    row(  s(0, SRX), s(0, UTX), s(0, SDA)),               // GPIO16
-    row(  s(0, CSN), s(0, URX), s(0, SCL)),               // GPIO17
-    row11(s(0, SCK), s(0, CTS), s(1, SDA), s(0, UTX)),    // GPIO18
-    row11(s(0, STX), s(0, RTS), s(1, SCL), s(0, URX)),    // GPIO19
-    row(  s(0, SRX), s(1, UTX), s(0, SDA)),               // GPIO20
-    row(  s(0, CSN), s(1, URX), s(0, SCL)),               // GPIO21
-    row11(s(0, SCK), s(1, CTS), s(1, SDA), s(1, UTX)),    // GPIO22
-    row11(s(0, STX), s(1, RTS), s(1, SCL), s(1, URX)),    // GPIO23
-    row(  s(1, SRX), s(1, UTX), s(0, SDA)),               // GPIO24
-    row(  s(1, CSN), s(1, URX), s(0, SCL)),               // GPIO25
-    row11(s(1, SCK), s(1, CTS), s(1, SDA), s(1, UTX)),    // GPIO26
-    row11(s(1, STX), s(1, RTS), s(1, SCL), s(1, URX)),    // GPIO27
-    row(  s(1, SRX), s(0, UTX), s(0, SDA)),               // GPIO28
-    row(  s(1, CSN), s(0, URX), s(0, SCL)),               // GPIO29
+    row(s(0, SRX), s(0, UTX), s(0, SDA)),              // GPIO0
+    row(s(0, CSN), s(0, URX), s(0, SCL)),              // GPIO1
+    row11(s(0, SCK), s(0, CTS), s(1, SDA), s(0, UTX)), // GPIO2
+    row11(s(0, STX), s(0, RTS), s(1, SCL), s(0, URX)), // GPIO3
+    row(s(0, SRX), s(1, UTX), s(0, SDA)),              // GPIO4
+    row(s(0, CSN), s(1, URX), s(0, SCL)),              // GPIO5
+    row11(s(0, SCK), s(1, CTS), s(1, SDA), s(1, UTX)), // GPIO6
+    row11(s(0, STX), s(1, RTS), s(1, SCL), s(1, URX)), // GPIO7
+    row(s(1, SRX), s(1, UTX), s(0, SDA)),              // GPIO8
+    row(s(1, CSN), s(1, URX), s(0, SCL)),              // GPIO9
+    row11(s(1, SCK), s(1, CTS), s(1, SDA), s(1, UTX)), // GPIO10
+    row11(s(1, STX), s(1, RTS), s(1, SCL), s(1, URX)), // GPIO11
+    row(s(1, SRX), s(0, UTX), s(0, SDA)),              // GPIO12
+    row(s(1, CSN), s(0, URX), s(0, SCL)),              // GPIO13
+    row11(s(1, SCK), s(0, CTS), s(1, SDA), s(0, UTX)), // GPIO14
+    row11(s(1, STX), s(0, RTS), s(1, SCL), s(0, URX)), // GPIO15
+    row(s(0, SRX), s(0, UTX), s(0, SDA)),              // GPIO16
+    row(s(0, CSN), s(0, URX), s(0, SCL)),              // GPIO17
+    row11(s(0, SCK), s(0, CTS), s(1, SDA), s(0, UTX)), // GPIO18
+    row11(s(0, STX), s(0, RTS), s(1, SCL), s(0, URX)), // GPIO19
+    row(s(0, SRX), s(1, UTX), s(0, SDA)),              // GPIO20
+    row(s(0, CSN), s(1, URX), s(0, SCL)),              // GPIO21
+    row11(s(0, SCK), s(1, CTS), s(1, SDA), s(1, UTX)), // GPIO22
+    row11(s(0, STX), s(1, RTS), s(1, SCL), s(1, URX)), // GPIO23
+    row(s(1, SRX), s(1, UTX), s(0, SDA)),              // GPIO24
+    row(s(1, CSN), s(1, URX), s(0, SCL)),              // GPIO25
+    row11(s(1, SCK), s(1, CTS), s(1, SDA), s(1, UTX)), // GPIO26
+    row11(s(1, STX), s(1, RTS), s(1, SCL), s(1, URX)), // GPIO27
+    row(s(1, SRX), s(0, UTX), s(0, SDA)),              // GPIO28
+    row(s(1, CSN), s(0, URX), s(0, SCL)),              // GPIO29
 ];
 
 /// `true` if `cell` is signal `role` of peripheral instance `instance`.
@@ -192,21 +192,21 @@ pub(crate) const fn funcsel(pin: usize, instance: usize, role: Role) -> Option<u
 // Spot checks of the lookup against cells read straight off Table 644
 // (p588–589), so a typo in `BANK0` or a mistake in `funcsel` fails the
 // build. Each line is one cell: (GPIO, instance, signal) → column.
-const _: () = assert!(matches!(funcsel(0, 0, Role::UartTx), Some(2)));   // GPIO0  F2 UART0 TX
-const _: () = assert!(matches!(funcsel(1, 0, Role::UartRx), Some(2)));   // GPIO1  F2 UART0 RX
-const _: () = assert!(matches!(funcsel(2, 0, Role::UartTx), Some(11)));  // GPIO2  F11 UART0 TX
-const _: () = assert!(matches!(funcsel(4, 1, Role::UartTx), Some(2)));   // GPIO4  F2 UART1 TX
-const _: () = assert!(matches!(funcsel(5, 1, Role::UartRx), Some(2)));   // GPIO5  F2 UART1 RX
-const _: () = assert!(matches!(funcsel(8, 0, Role::I2cSda), Some(3)));   // GPIO8  F3 I2C0 SDA
-const _: () = assert!(matches!(funcsel(9, 0, Role::I2cScl), Some(3)));   // GPIO9  F3 I2C0 SCL
-const _: () = assert!(matches!(funcsel(10, 1, Role::I2cSda), Some(3)));  // GPIO10 F3 I2C1 SDA
-const _: () = assert!(matches!(funcsel(16, 0, Role::SpiRx), Some(1)));   // GPIO16 F1 SPI0 RX
-const _: () = assert!(matches!(funcsel(18, 0, Role::SpiSck), Some(1)));  // GPIO18 F1 SPI0 SCK
-const _: () = assert!(matches!(funcsel(19, 0, Role::SpiTx), Some(1)));   // GPIO19 F1 SPI0 TX
+const _: () = assert!(matches!(funcsel(0, 0, Role::UartTx), Some(2))); // GPIO0  F2 UART0 TX
+const _: () = assert!(matches!(funcsel(1, 0, Role::UartRx), Some(2))); // GPIO1  F2 UART0 RX
+const _: () = assert!(matches!(funcsel(2, 0, Role::UartTx), Some(11))); // GPIO2  F11 UART0 TX
+const _: () = assert!(matches!(funcsel(4, 1, Role::UartTx), Some(2))); // GPIO4  F2 UART1 TX
+const _: () = assert!(matches!(funcsel(5, 1, Role::UartRx), Some(2))); // GPIO5  F2 UART1 RX
+const _: () = assert!(matches!(funcsel(8, 0, Role::I2cSda), Some(3))); // GPIO8  F3 I2C0 SDA
+const _: () = assert!(matches!(funcsel(9, 0, Role::I2cScl), Some(3))); // GPIO9  F3 I2C0 SCL
+const _: () = assert!(matches!(funcsel(10, 1, Role::I2cSda), Some(3))); // GPIO10 F3 I2C1 SDA
+const _: () = assert!(matches!(funcsel(16, 0, Role::SpiRx), Some(1))); // GPIO16 F1 SPI0 RX
+const _: () = assert!(matches!(funcsel(18, 0, Role::SpiSck), Some(1))); // GPIO18 F1 SPI0 SCK
+const _: () = assert!(matches!(funcsel(19, 0, Role::SpiTx), Some(1))); // GPIO19 F1 SPI0 TX
 const _: () = assert!(matches!(funcsel(27, 1, Role::UartRx), Some(11))); // GPIO27 F11 UART1 RX
 // And cells that must not match: wrong instance, wrong signal, no pin.
-const _: () = assert!(funcsel(0, 1, Role::UartTx).is_none());  // GPIO0 is UART0, not UART1
-const _: () = assert!(funcsel(0, 0, Role::UartRx).is_none());  // GPIO0 has no UART RX
+const _: () = assert!(funcsel(0, 1, Role::UartTx).is_none()); // GPIO0 is UART0, not UART1
+const _: () = assert!(funcsel(0, 0, Role::UartRx).is_none()); // GPIO0 has no UART RX
 const _: () = assert!(funcsel(30, 0, Role::UartCts).is_none()); // GPIO30 is QFN-80 only
 
 /// Electrical settings for a pad, applied by [`connect`]. Fields map to
@@ -300,9 +300,17 @@ pub(crate) unsafe fn connect(pin: usize, funcsel: u32, pad: PadConfig) {
         // No pull-down on any serial-bus pin.
         value &= !PAD_PDE;
         // Pull-up only where asked for.
-        if pad.pull_up { value |= PAD_PUE } else { value &= !PAD_PUE }
+        if pad.pull_up {
+            value |= PAD_PUE
+        } else {
+            value &= !PAD_PUE
+        }
         // Fast edges only where asked for.
-        if pad.slew_fast { value |= PAD_SLEWFAST } else { value &= !PAD_SLEWFAST }
+        if pad.slew_fast {
+            value |= PAD_SLEWFAST
+        } else {
+            value &= !PAD_SLEWFAST
+        }
         // One store: ISO is still 1 here, so nothing reaches the pin yet.
         pad_reg.write_volatile(value);
         // GPIOn_CTRL: FUNCSEL in bits 4:0, every override field "normal"

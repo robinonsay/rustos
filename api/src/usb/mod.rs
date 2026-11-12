@@ -95,10 +95,10 @@
 //! * *USB Communications Class Subclass Specification for PSTN Devices,
 //!   Revision 1.2* — cited as "PSTN 1.2 §n". ACM is defined here.
 
-pub mod setup;
-pub mod descriptor;
 pub mod cdc_acm;
 pub mod control;
+pub mod descriptor;
+pub mod setup;
 
 /// Does an IN data stage of a control transfer need a trailing zero-length
 /// packet?

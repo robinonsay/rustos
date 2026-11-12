@@ -61,7 +61,7 @@
 use api::device::DeviceHandle;
 use api::time::{Clock, ClockId, Sleep, Time};
 
-use crate::clocks::{Rp2350Clocks, CLK_REF_HZ};
+use crate::clocks::{CLK_REF_HZ, Rp2350Clocks};
 use crate::common::reg::RegAddr;
 use crate::common::reset::cycle_reset;
 

@@ -208,10 +208,10 @@ use api::device::DeviceHandle;
 use api::time::Duration;
 use api::watchdog::{ResetReason as PortableReason, Watchdog as WatchdogTrait};
 
-use crate::clocks::{Rp2350Clocks, CLK_REF_HZ, CLK_SYS_HZ};
+use crate::clocks::{CLK_REF_HZ, CLK_SYS_HZ, Rp2350Clocks};
 use crate::common::reg::RegAddr;
 use crate::common::reset::{clr_reset_reg, wait_for_reset_done};
-use crate::timer::{start_tick, TickDestination};
+use crate::timer::{TickDestination, start_tick};
 
 /// Longest timeout `LOAD` can hold: `0xffffff` µs, about 16.7 s
 /// (Table 1248, p1195).
@@ -325,10 +325,8 @@ const HAD_RUN_LOW: u32 = 1 << 18;
 const HAD_BOR: u32 = 1 << 17;
 const HAD_POR: u32 = 1 << 16;
 /// Any of the four watchdog-initiated chip-level flags.
-const HAD_WATCHDOG_ANY: u32 = HAD_WATCHDOG_RESET_PSM
-    | HAD_WATCHDOG_RESET_SWCORE
-    | HAD_WATCHDOG_RESET_POWMAN
-    | HAD_WATCHDOG_RESET_POWMAN_ASYNC;
+const HAD_WATCHDOG_ANY: u32 =
+    HAD_WATCHDOG_RESET_PSM | HAD_WATCHDOG_RESET_SWCORE | HAD_WATCHDOG_RESET_POWMAN | HAD_WATCHDOG_RESET_POWMAN_ASYNC;
 
 /// The part of `SYSCFG` used here, base `0x4000_8000` (§12.15.2, p1249).
 #[repr(C)]
@@ -732,11 +730,7 @@ impl WatchdogTrait for Rp2350Watchdog {
 
 // The mapping, checked for the cases that matter most to an application.
 const _: () = assert!(matches!(portable_reason(ResetReason::WatchdogTimeout), PortableReason::WatchdogTimeout));
-const _: () = assert!(matches!(
-    portable_reason(ResetReason::WatchdogForced(ForcedBy::Trigger)),
-    PortableReason::Software
-));
-const _: () = assert!(matches!(
-    portable_reason(ResetReason::ChipReset(ChipResetCause::PowerOn)),
-    PortableReason::PowerOn
-));
+const _: () =
+    assert!(matches!(portable_reason(ResetReason::WatchdogForced(ForcedBy::Trigger)), PortableReason::Software));
+const _: () =
+    assert!(matches!(portable_reason(ResetReason::ChipReset(ChipResetCause::PowerOn)), PortableReason::PowerOn));

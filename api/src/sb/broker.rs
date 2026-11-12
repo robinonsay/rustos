@@ -108,14 +108,9 @@ impl<T, const S: usize> Publisher<T> for ArrayBroker<'_, T, S> {
             }
         }
         // Clean only if nobody refused.
-        if refused == 0 {
-            Ok(delivered)
-        } else {
-            Err(SbError::Undelivered { delivered, refused })
-        }
+        if refused == 0 { Ok(delivered) } else { Err(SbError::Undelivered { delivered, refused }) }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -232,9 +227,6 @@ mod tests {
 
     impl App for Producer<'_, '_> {
         type Error = SbError;
-        fn on_start(&mut self) -> Result<(), SbError> {
-            Ok(())
-        }
         fn on_process(&mut self) -> Result<(), SbError> {
             self.next += 1;
             self.bus.publish(1, &Msg(self.next)).map(|_| ())
@@ -244,18 +236,14 @@ mod tests {
         }
     }
 
-    /// Subscribes in `on_start`, then sums what arrives.
-    struct Consumer<'b, 'a> {
-        bus: &'b ArrayBroker<'a, Msg, 4>,
+    /// Sums what arrives on its pipe.
+    struct Consumer<'a> {
         pipe: &'a Pipe<Msg, 4>,
         sum: u32,
     }
 
-    impl App for Consumer<'_, '_> {
+    impl App for Consumer<'_> {
         type Error = SbError;
-        fn on_start(&mut self) -> Result<(), SbError> {
-            self.bus.subscribe(self.pipe)
-        }
         fn on_process(&mut self) -> Result<(), SbError> {
             while let Some(Msg(n)) = self.pipe.pop() {
                 self.sum += n;
@@ -269,14 +257,14 @@ mod tests {
 
     #[test]
     fn apps_share_one_broker_through_shared_references() {
-        // Pipes, then the broker, then the apps that borrow both.
+        // Pipes, then the broker and its subscriptions, then the apps that
+        // borrow them.
         let pipe: Pipe<Msg, 4> = Pipe::new(1);
         let bus: ArrayBroker<'_, Msg, 4> = ArrayBroker::new();
+        bus.subscribe(&pipe).unwrap();
+        // Both share the broker; the scheduler would hold `&mut` to each app.
         let mut producer = Producer { bus: &bus, next: 0 };
-        let mut consumer = Consumer { bus: &bus, pipe: &pipe, sum: 0 };
-        // Both hold `&bus` at once; the scheduler would hold `&mut` to each app.
-        producer.on_start().unwrap();
-        consumer.on_start().unwrap();
+        let mut consumer = Consumer { pipe: &pipe, sum: 0 };
         for _ in 0..3 {
             producer.on_process().unwrap();
         }

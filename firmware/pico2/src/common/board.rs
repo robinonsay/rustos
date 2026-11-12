@@ -94,8 +94,8 @@ use api::define_board;
 use crate::adc::Rp2350Adc;
 use crate::clocks::Rp2350Clocks;
 use crate::dma::Rp2350Dma;
-use crate::i2c::Rp2350I2c;
 use crate::gpio::gpio::Rp2350Gpio;
+use crate::i2c::Rp2350I2c;
 use crate::multicore::Rp2350Core1;
 use crate::pwm::Rp2350Pwm;
 use crate::spi::Rp2350Spi;
@@ -105,8 +105,7 @@ use crate::uart::Rp2350Uart;
 use crate::usb::Rp2350Usb;
 use crate::watchdog::Rp2350Watchdog;
 
-
-define_board!{
+define_board! {
     Rp2350{
         Rp2350Pins {
             gpio0: 0,

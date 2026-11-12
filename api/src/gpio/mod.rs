@@ -30,7 +30,10 @@
 //! above into "method not found" errors even though the driver types are in
 //! scope. The complete program is `demo/src/main.rs`.
 
-use crate::{common::{ErrorType, Read, Write}, device::PinHandle};
+use crate::{
+    common::{ErrorType, Read, Write},
+    device::PinHandle,
+};
 
 /// Which internal resistor, if any, holds an input pin at a known level when
 /// nothing external is driving it.
@@ -181,8 +184,7 @@ pub trait GpioPinOut<const N: usize>: Write<bool> {}
 /// returns declare their own error types — on the RP2350 the returned pins
 /// are infallible (`Error = Infallible`), because everything that could fail
 /// was dealt with before a pin value existed.
-pub trait Gpio: ErrorType
-{
+pub trait Gpio: ErrorType {
     /// The input-pin type this driver returns for pin `N`.
     type Input<const N: usize>: GpioPinIn<N>;
     /// The output-pin type this driver returns for pin `N`.
@@ -190,7 +192,11 @@ pub trait Gpio: ErrorType
 
     /// Configure pin `N` as an input with the given [`Pull`], consuming its
     /// handle.
-    fn input_from_handle<const N: usize>(&mut self, handle: PinHandle<N>, pull: Pull) -> Result<Self::Input<N>, Self::Error>;
+    fn input_from_handle<const N: usize>(
+        &mut self,
+        handle: PinHandle<N>,
+        pull: Pull,
+    ) -> Result<Self::Input<N>, Self::Error>;
     /// Configure pin `N` as a push-pull output, consuming its handle. The
     /// initial output level is the implementation's choice; the RP2350
     /// driver drives low before enabling the driver, so the pin never

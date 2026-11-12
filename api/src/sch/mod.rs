@@ -124,9 +124,9 @@ impl Report {
 
 /// A scheduler of [`App`](crate::app::App)s.
 ///
-/// The lifecycle it guarantees each app: [`start`](Self::start) runs every
-/// app's `on_start` once; then [`run_major_frame`](Self::run_major_frame)
-/// runs `on_process` on the schedule, as often as it is called; then
+/// The lifecycle it guarantees each app, which is ready to run once
+/// constructed: [`run_major_frame`](Self::run_major_frame) runs
+/// `on_process` on the schedule, as often as it is called; then
 /// [`exit`](Self::exit) runs every app's `on_exit` once. Calls out of that
 /// order do the least surprising thing and say so in their documentation.
 pub trait Scheduler {
@@ -136,18 +136,12 @@ pub trait Scheduler {
     /// The length of one major frame, after which the schedule repeats.
     fn major_frame_period(&self) -> Duration;
 
-    /// Run every app's `on_start` once, in app order. Calling it again, or
-    /// after [`exit`](Self::exit), does nothing.
-    fn start(&mut self) -> Report;
-
     /// Run one major frame: every minor frame in turn, its apps in
-    /// schedule order, each frame paced to its absolute deadline. Calls
-    /// [`start`](Self::start) first if it has not run, so every app's
-    /// `on_start` comes before its first `on_process`. After
+    /// schedule order, each frame paced to its absolute deadline. After
     /// [`exit`](Self::exit), does nothing.
     fn run_major_frame(&mut self) -> Report;
 
-    /// Run every started app's `on_exit` once, in app order. After this the
+    /// Run every app's `on_exit` once, in app order. After this the
     /// scheduler runs nothing more. Calling it again does nothing.
     fn exit(&mut self) -> Report;
 }

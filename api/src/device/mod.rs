@@ -60,13 +60,11 @@ use core::marker::PhantomData;
 /// The result: invariants that other systems check at runtime (or trust to
 /// discipline) are checked by the compiler, and the check leaves no trace in
 /// the binary.
-pub struct PinHandle<const N: usize>
-{
-    _private: ()
+pub struct PinHandle<const N: usize> {
+    _private: (),
 }
 
-impl<const N: usize> PinHandle<N>
-{
+impl<const N: usize> PinHandle<N> {
     /// Create a handle without a board.
     ///
     /// This is the one public constructor that bypasses the
@@ -92,8 +90,7 @@ impl<const N: usize> PinHandle<N>
     /// `compare_exchange` allows to run at most once per boot — which
     /// discharges both obligations. Call it directly only in host-side tests
     /// or on hardware not (yet) described by a `define_board!` invocation.
-    pub const unsafe fn new() -> Self
-    {
+    pub const unsafe fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -132,11 +129,11 @@ impl<const N: usize> PinHandle<N>
 /// peripherals the board declares get a handle; and the type is neither
 /// `Copy` nor `Clone`, so the driver constructor's by-value parameter moves
 /// the handle and ends the claim's availability.
-pub struct DeviceHandle<T>{
+pub struct DeviceHandle<T> {
     _private: PhantomData<T>,
 }
 
-impl<T> DeviceHandle<T>{
+impl<T> DeviceHandle<T> {
     /// Create a handle without a board.
     ///
     /// The peripheral-level twin of [`PinHandle::new`], with the same
@@ -157,7 +154,7 @@ impl<T> DeviceHandle<T>{
     /// host-side tests or on hardware not (yet) described by a
     /// `define_board!` invocation.
     pub const unsafe fn new() -> Self {
-        Self{_private: PhantomData}
+        Self { _private: PhantomData }
     }
 }
 

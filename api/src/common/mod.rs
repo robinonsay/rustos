@@ -1,3 +1,4 @@
+pub mod num;
 /// Declares the single error type a peripheral reports.
 ///
 /// `Error` below is an **associated type**: a type member of a trait, for
@@ -45,9 +46,8 @@
 /// `core::error::Error`, which would drag in `Display` and force every
 /// implementor to write human-readable strings into flash, the chip's
 /// nonvolatile program memory.
-/// 
+///
 pub mod ring;
-pub mod num;
 
 pub trait ErrorType {
     /// The error reported by every fallible operation on this type.

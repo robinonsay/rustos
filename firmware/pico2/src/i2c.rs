@@ -756,7 +756,9 @@ impl<const I: usize> Rp2350I2c<I> {
             }
             // STOP sent: clear the flag and report success.
             if raw & INTR_STOP_DET != 0 {
-                unsafe { let _ = (&raw const (*regs).clr_stop_det).read_volatile(); }
+                unsafe {
+                    let _ = (&raw const (*regs).clr_stop_det).read_volatile();
+                }
                 return Ok(());
             }
         }
@@ -773,7 +775,9 @@ impl<const I: usize> Rp2350I2c<I> {
         let source = unsafe { (&raw const (*regs).tx_abrt_source).read_volatile() };
         // Reading IC_CLR_TX_ABRT clears TX_ABRT; the FIFOs stay flushed
         // until this read (Table 1065, p1023).
-        unsafe { let _ = (&raw const (*regs).clr_tx_abrt).read_volatile(); }
+        unsafe {
+            let _ = (&raw const (*regs).clr_tx_abrt).read_volatile();
+        }
         // Wait, bounded, for the STOP; an abort is followed by one (§12.2.10.4, p999).
         let mut stopped = false;
         for _ in 0..STALL_LOOKS {
@@ -784,7 +788,9 @@ impl<const I: usize> Rp2350I2c<I> {
         }
         if stopped {
             // Clear STOP_DET for the next transfer (Table 1076, p1028).
-            unsafe { let _ = (&raw const (*regs).clr_stop_det).read_volatile(); }
+            unsafe {
+                let _ = (&raw const (*regs).clr_stop_det).read_volatile();
+            }
         } else {
             // No STOP: the bus is stuck; reset the block.
             self.recover();
@@ -834,9 +840,9 @@ impl api::error::Error for I2cError {
         use api::error::ErrorKind;
         match self {
             // An argument the controller cannot use.
-            I2cError::FrequencyOutOfRange { .. }
-            | I2cError::InvalidAddress(_)
-            | I2cError::EmptyTransfer => ErrorKind::InvalidInput,
+            I2cError::FrequencyOutOfRange { .. } | I2cError::InvalidAddress(_) | I2cError::EmptyTransfer => {
+                ErrorKind::InvalidInput
+            }
             // Nobody answered at that address.
             I2cError::AddressNack => ErrorKind::NotFound,
             // The device answered but refused the data.

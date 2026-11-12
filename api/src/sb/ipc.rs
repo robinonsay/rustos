@@ -163,11 +163,6 @@ impl<'a, T, const N: usize> IpcApp<'a, T, N> {
 impl<'a, T: Clone, const N: usize> App for IpcApp<'a, T, N> {
     type Error = IpcError;
 
-    fn on_start(&mut self) -> Result<(), IpcError> {
-        // The queues were made empty and the pipes subscribed before start.
-        Ok(())
-    }
-
     fn on_process(&mut self) -> Result<(), IpcError> {
         self.stats.runs = self.stats.runs.wrapping_add(1);
         // Outbound: while the queue has room, move messages from the pipes.

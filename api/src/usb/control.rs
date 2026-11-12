@@ -41,17 +41,14 @@
 //! interface or endpoint that does not exist, and requests whose `wLength`
 //! contradicts the request's definition.
 
-use crate::usb::cdc_acm::{class_request, ControlLineState, LineCoding, LINE_CODING_LEN};
+use crate::usb::cdc_acm::{ControlLineState, LINE_CODING_LEN, LineCoding, class_request};
 use crate::usb::control_in_needs_zlp;
 use crate::usb::descriptor::{
-    device_descriptor, string_descriptor, UsbDeviceConfig, CONFIGURATION_DESCRIPTOR,
-    CONFIGURATION_VALUE, EP0_MAX_PACKET, EP_DATA_IN, EP_DATA_OUT, EP_NOTIFY_IN,
-    INTERFACE_COMM, LANGUAGE_ID_DESCRIPTOR, NUM_INTERFACES, STRING_MANUFACTURER,
-    STRING_PRODUCT, STRING_SERIAL,
+    CONFIGURATION_DESCRIPTOR, CONFIGURATION_VALUE, EP_DATA_IN, EP_DATA_OUT, EP_NOTIFY_IN, EP0_MAX_PACKET,
+    INTERFACE_COMM, LANGUAGE_ID_DESCRIPTOR, NUM_INTERFACES, STRING_MANUFACTURER, STRING_PRODUCT, STRING_SERIAL,
+    UsbDeviceConfig, device_descriptor, string_descriptor,
 };
-use crate::usb::setup::{
-    descriptor_type, feature, request, Direction, Recipient, RequestKind, SetupPacket,
-};
+use crate::usb::setup::{Direction, Recipient, RequestKind, SetupPacket, descriptor_type, feature, request};
 
 /// Size of the reply buffer: the largest reply is a string descriptor of
 /// [`MAX_STRING_UNITS`](crate::usb::descriptor::MAX_STRING_UNITS) code
@@ -420,9 +417,7 @@ impl ControlHandler {
     /// address; value 0 deconfigures, [`CONFIGURATION_VALUE`] configures.
     fn set_configuration(&mut self, pkt: &SetupPacket) -> ControlAction {
         let to = pkt.value;
-        if pkt.index != 0
-            || matches!(self.state, DeviceState::Default)
-            || (to != 0 && to != CONFIGURATION_VALUE as u16)
+        if pkt.index != 0 || matches!(self.state, DeviceState::Default) || (to != 0 && to != CONFIGURATION_VALUE as u16)
         {
             return ControlAction::Stall;
         }
@@ -515,10 +510,7 @@ mod tests {
     /// configured.
     fn configured() -> ControlHandler {
         let mut h = ControlHandler::new(CFG);
-        assert_eq!(
-            h.setup(&pkt([0x00, 0x05, 0x07, 0x00, 0, 0, 0, 0])),
-            ControlAction::NoData(Effect::SetAddress(7))
-        );
+        assert_eq!(h.setup(&pkt([0x00, 0x05, 0x07, 0x00, 0, 0, 0, 0])), ControlAction::NoData(Effect::SetAddress(7)));
         assert_eq!(
             h.setup(&pkt([0x00, 0x09, 0x01, 0x00, 0, 0, 0, 0])),
             ControlAction::NoData(Effect::ConfigurationChanged { from: 0, to: 1 })
@@ -581,10 +573,7 @@ mod tests {
     fn string_reply_needing_zlp() {
         // 31 characters -> 64-byte descriptor: exactly one full packet,
         // host asked for 255, so a ZLP must follow.
-        const CFG64: UsbDeviceConfig = UsbDeviceConfig {
-            product: "0123456789012345678901234567890",
-            ..CFG
-        };
+        const CFG64: UsbDeviceConfig = UsbDeviceConfig { product: "0123456789012345678901234567890", ..CFG };
         let mut h = ControlHandler::new(CFG64);
         let a = h.setup(&pkt([0x80, 0x06, 0x02, 0x03, 0x09, 0x04, 0xff, 0]));
         assert_eq!(a, ControlAction::DataIn { len: 64, zlp: true });
@@ -605,16 +594,10 @@ mod tests {
     fn set_address_rules() {
         let mut h = ControlHandler::new(CFG);
         assert_eq!(h.state(), DeviceState::Default);
-        assert_eq!(
-            h.setup(&pkt([0x00, 0x05, 0x2A, 0x00, 0, 0, 0, 0])),
-            ControlAction::NoData(Effect::SetAddress(42))
-        );
+        assert_eq!(h.setup(&pkt([0x00, 0x05, 0x2A, 0x00, 0, 0, 0, 0])), ControlAction::NoData(Effect::SetAddress(42)));
         assert_eq!(h.state(), DeviceState::Address);
         // Address 0 goes back to Default.
-        assert_eq!(
-            h.setup(&pkt([0x00, 0x05, 0x00, 0x00, 0, 0, 0, 0])),
-            ControlAction::NoData(Effect::SetAddress(0))
-        );
+        assert_eq!(h.setup(&pkt([0x00, 0x05, 0x00, 0x00, 0, 0, 0, 0])), ControlAction::NoData(Effect::SetAddress(0)));
         assert_eq!(h.state(), DeviceState::Default);
         // Out of range, or with a data stage.
         assert_eq!(h.setup(&pkt([0x00, 0x05, 0x80, 0x00, 0, 0, 0, 0])), ControlAction::Stall);
@@ -695,10 +678,7 @@ mod tests {
         );
         assert!(!h.is_halted(EP_DATA_OUT));
         // Endpoint 0: accepted, no effect.
-        assert_eq!(
-            h.setup(&pkt([0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0, 0])),
-            ControlAction::NoData(Effect::None)
-        );
+        assert_eq!(h.setup(&pkt([0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0, 0])), ControlAction::NoData(Effect::None));
         // Non-existent endpoint, wrong feature, device features.
         assert_eq!(h.setup(&pkt([0x02, 0x03, 0x00, 0x00, 0x05, 0x00, 0, 0])), ControlAction::Stall);
         assert_eq!(h.setup(&pkt([0x02, 0x03, 0x01, 0x00, 0x02, 0x00, 0, 0])), ControlAction::Stall);
@@ -715,10 +695,7 @@ mod tests {
         let a = h.setup(&pkt([0x81, 0x0A, 0, 0, 1, 0, 1, 0]));
         assert_eq!(a, ControlAction::DataIn { len: 1, zlp: false });
         assert_eq!(h.reply(), &[0]);
-        assert_eq!(
-            h.setup(&pkt([0x01, 0x0B, 0, 0, 1, 0, 0, 0])),
-            ControlAction::NoData(Effect::InterfaceReset(1))
-        );
+        assert_eq!(h.setup(&pkt([0x01, 0x0B, 0, 0, 1, 0, 0, 0])), ControlAction::NoData(Effect::InterfaceReset(1)));
         assert_eq!(h.setup(&pkt([0x01, 0x0B, 1, 0, 1, 0, 0, 0])), ControlAction::Stall);
         assert_eq!(h.setup(&pkt([0x01, 0x0B, 0, 0, 2, 0, 0, 0])), ControlAction::Stall);
     }
@@ -781,10 +758,7 @@ mod tests {
     #[test]
     fn device_to_host_with_zero_wlength_is_no_data() {
         let mut h = ControlHandler::new(CFG);
-        assert_eq!(
-            h.setup(&pkt([0x80, 0x06, 0x00, 0x01, 0, 0, 0, 0])),
-            ControlAction::NoData(Effect::None)
-        );
+        assert_eq!(h.setup(&pkt([0x80, 0x06, 0x00, 0x01, 0, 0, 0, 0])), ControlAction::NoData(Effect::None));
         assert_eq!(h.reply(), &[] as &[u8]);
     }
 

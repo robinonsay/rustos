@@ -224,8 +224,8 @@
 
 use api::common::{ErrorType, Write};
 // The trait is imported as `PwmFactory`: `Pwm` here names the register layout.
-use api::pwm::{Pwm as PwmFactory, PwmPin};
 use api::device::{DeviceHandle, PinHandle};
+use api::pwm::{Pwm as PwmFactory, PwmPin};
 
 use crate::clocks::{CLK_SYS_HZ, Rp2350Clocks};
 use crate::common::MAX_GPIO_PIN;
@@ -361,21 +361,13 @@ pub enum Channel {
 ///
 /// Meaningful for `gpio` < 48, the width of `IO_BANK0`.
 pub const fn gpio_to_slice(gpio: usize) -> usize {
-    if gpio < 32 {
-        (gpio / 2) % 8
-    } else {
-        8 + ((gpio - 32) / 2) % 4
-    }
+    if gpio < 32 { (gpio / 2) % 8 } else { 8 + ((gpio - 32) / 2) % 4 }
 }
 
 /// The channel of [`gpio_to_slice`]`(gpio)` that drives `gpio`: A for even
 /// pins, B for odd (Table 1129, p1076).
 pub const fn gpio_to_channel(gpio: usize) -> Channel {
-    if gpio.is_multiple_of(2) {
-        Channel::A
-    } else {
-        Channel::B
-    }
+    if gpio.is_multiple_of(2) { Channel::A } else { Channel::B }
 }
 
 /// Table 1129 (p1076) as printed, GPIO0–47: slice number and channel
@@ -462,11 +454,7 @@ impl SquareConfig {
         if h == 0 || h > MAX_HALF_PERIOD {
             return None;
         }
-        Some(Self {
-            div_int: (d >> DIV_INT_SHIFT) as u8,
-            div_frac: (d & 0xf) as u8,
-            top: (2 * h - 1) as u16,
-        })
+        Some(Self { div_int: (d >> DIV_INT_SHIFT) as u8, div_frac: (d & 0xf) as u8, top: (2 * h - 1) as u16 })
     }
 
     /// The divider in sixteenths: 16 × `DIV_INT` + `DIV_FRAC`.
@@ -528,11 +516,7 @@ const TONE_ERROR_PPM: u64 = 20;
 const _: () = {
     let mut hz = MIN_FREQUENCY_HZ;
     while hz <= MAX_FREQUENCY_HZ {
-        let bound = if hz >= 300 && hz <= 3000 {
-            TONE_ERROR_PPM
-        } else {
-            MAX_ERROR_PPM
-        };
+        let bound = if hz >= 300 && hz <= 3000 { TONE_ERROR_PPM } else { MAX_ERROR_PPM };
         match SquareConfig::for_frequency(CLK_SYS_HZ, hz) {
             Some(config) => {
                 assert!(config.div_int >= 1);
@@ -550,9 +534,7 @@ const _: () = assert!(SquareConfig::for_frequency(CLK_SYS_HZ, MAX_FREQUENCY_HZ +
 // The worked example in the module documentation: 700 Hz is DIV 3 + 5/16,
 // TOP 64 689, and reports 700 Hz.
 const _: () = match SquareConfig::for_frequency(CLK_SYS_HZ, 700) {
-    Some(c) => assert!(
-        c.div_int == 3 && c.div_frac == 5 && c.top == 64_689 && c.frequency_hz(CLK_SYS_HZ) == 700
-    ),
+    Some(c) => assert!(c.div_int == 3 && c.div_frac == 5 && c.top == 64_689 && c.frequency_hz(CLK_SYS_HZ) == 700),
     None => panic!(),
 };
 
@@ -654,10 +636,7 @@ impl Rp2350Pwm {
             disconnect_pwm_pins();
             cycle_reset(RESET_PWM);
         }
-        Self {
-            claimed: 0,
-            running: [None; SLICES],
-        }
+        Self { claimed: 0, running: [None; SLICES] }
     }
 
     /// Connect pin `N` to its PWM output as a square wave of `hz` hertz at
@@ -695,11 +674,7 @@ impl Rp2350Pwm {
         // package does not have is a build error here.
         let () = Rp2350PwmSquare::<N>::PIN_EXISTS;
         let Some(config) = SquareConfig::for_frequency(CLK_SYS_HZ, hz) else {
-            return Err(PwmError::FrequencyOutOfRange {
-                hz,
-                min: MIN_FREQUENCY_HZ,
-                max: MAX_FREQUENCY_HZ,
-            });
+            return Err(PwmError::FrequencyOutOfRange { hz, min: MIN_FREQUENCY_HZ, max: MAX_FREQUENCY_HZ });
         };
         let slice = gpio_to_slice(N);
         let channel = gpio_to_channel(N);

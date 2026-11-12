@@ -132,12 +132,7 @@ impl Launch {
     /// `entry` is a code address as the core branches to it: on Arm, with
     /// bit 0 (the Thumb bit) set, as a Rust function pointer already has it.
     pub const fn new(vector_table: u32, stack_pointer: u32, entry: u32) -> Self {
-        Self {
-            words: [0, 0, 1, vector_table, stack_pointer, entry],
-            next: 0,
-            sent: false,
-            quiet_from: None,
-        }
+        Self { words: [0, 0, 1, vector_table, stack_pointer, entry], next: 0, sent: false, quiet_from: None }
     }
 
     /// One step at time `now`, in microseconds from any clock that counts
@@ -162,11 +157,7 @@ impl Launch {
                 // 0, as the datasheet's listing does.
                 self.next = 0;
             }
-            return if self.next == self.words.len() {
-                Step::Launched
-            } else {
-                Step::Pending
-            };
+            return if self.next == self.words.len() { Step::Launched } else { Step::Pending };
         }
         if word == 0 {
             // "always drain the READ FIFO (from core 1) before sending a 0",
@@ -349,10 +340,7 @@ mod tests {
 
     impl<const DEPTH: usize> Fifo<DEPTH> {
         const fn new() -> Self {
-            Self {
-                words: [0; DEPTH],
-                len: 0,
-            }
+            Self { words: [0; DEPTH], len: 0 }
         }
         fn push(&mut self, w: u32) -> bool {
             if self.len == DEPTH {
@@ -473,11 +461,7 @@ mod tests {
     /// Step core 0 and core 1 by `schedule` (true: core 0's turn) until core
     /// 0 reports [`Step::Launched`], for at most `turns` turns of 1 µs each:
     /// the turn it did, if it did.
-    fn run(
-        chip: &mut Chip,
-        turns: usize,
-        mut schedule: impl FnMut(usize) -> bool,
-    ) -> Option<usize> {
+    fn run(chip: &mut Chip, turns: usize, mut schedule: impl FnMut(usize) -> bool) -> Option<usize> {
         let mut launch = Launch::new(VTOR, SP, ENTRY);
         for t in 0..turns {
             if schedule(t) {

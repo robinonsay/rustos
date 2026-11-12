@@ -105,21 +105,21 @@
 
 use core::ptr::copy_nonoverlapping;
 
-pub mod common;
-pub mod gpio;
-pub mod clocks;
-pub mod timer;
-pub mod systick;
-pub mod watchdog;
-pub mod usb;
-pub mod pwm;
-pub mod dma;
 pub mod adc;
+pub mod clocks;
+pub mod common;
+pub mod dma;
+pub mod gpio;
+pub mod i2c;
+pub mod multicore;
+pub mod pwm;
+pub mod spi;
+pub mod systick;
+pub mod timer;
 pub mod uart;
 pub mod uart_dma;
-pub mod i2c;
-pub mod spi;
-pub mod multicore;
+pub mod usb;
+pub mod watchdog;
 
 /// RP2350 `IMAGE_DEF` metadata block — **mandatory**; the chip will not boot
 /// without it.
@@ -156,13 +156,7 @@ pub mod multicore;
 ///   the first 4 kB.
 #[used]
 #[unsafe(link_section = ".boot_info")]
-static BOOT_INFO: [u32; 5] = [
-    0xffffded3,
-    0x10210142,
-    0x000001ff,
-    0x00000000,
-    0xab123579,
-];
+static BOOT_INFO: [u32; 5] = [0xffffded3, 0x10210142, 0x000001ff, 0x00000000, 0xab123579];
 
 // Symbols defined by `link.ld`. These have an ADDRESS but no VALUE — the
 // linker places them, it does not store anything at them. Reading one as a

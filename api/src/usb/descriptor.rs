@@ -128,16 +128,22 @@ pub const fn device_descriptor(cfg: &UsbDeviceConfig) -> [u8; DEVICE_DESCRIPTOR_
     [
         DEVICE_DESCRIPTOR_LEN as u8,
         descriptor_type::DEVICE,
-        0x00, 0x02,            // bcdUSB 2.00
-        0xEF, 0x02, 0x01,      // class/subclass/protocol: IAD
+        0x00,
+        0x02, // bcdUSB 2.00
+        0xEF,
+        0x02,
+        0x01, // class/subclass/protocol: IAD
         EP0_MAX_PACKET as u8,
-        vid[0], vid[1],
-        pid[0], pid[1],
-        rel[0], rel[1],
+        vid[0],
+        vid[1],
+        pid[0],
+        pid[1],
+        rel[0],
+        rel[1],
         STRING_MANUFACTURER,
         STRING_PRODUCT,
         STRING_SERIAL,
-        1,                     // bNumConfigurations
+        1, // bNumConfigurations
     ]
 }
 
@@ -177,35 +183,91 @@ pub const CONFIGURATION_DESCRIPTOR_LEN: usize = 75;
 /// port.
 pub const CONFIGURATION_DESCRIPTOR: [u8; CONFIGURATION_DESCRIPTOR_LEN] = [
     // Configuration (USB 2.0 Table 9-10)
-    9, descriptor_type::CONFIGURATION,
-    CONFIGURATION_DESCRIPTOR_LEN as u8, 0,
-    NUM_INTERFACES, CONFIGURATION_VALUE, 0, 0x80, 50,
+    9,
+    descriptor_type::CONFIGURATION,
+    CONFIGURATION_DESCRIPTOR_LEN as u8,
+    0,
+    NUM_INTERFACES,
+    CONFIGURATION_VALUE,
+    0,
+    0x80,
+    50,
     // Interface Association (IAD ECN)
-    8, descriptor_type::INTERFACE_ASSOCIATION,
-    INTERFACE_COMM, 2, 0x02, 0x02, 0x00, 0,
+    8,
+    descriptor_type::INTERFACE_ASSOCIATION,
+    INTERFACE_COMM,
+    2,
+    0x02,
+    0x02,
+    0x00,
+    0,
     // Interface 0: CDC communication (USB 2.0 Table 9-12; CDC 1.2 §4.2-§4.4)
-    9, descriptor_type::INTERFACE,
-    INTERFACE_COMM, 0, 1, 0x02, 0x02, 0x00, 0,
+    9,
+    descriptor_type::INTERFACE,
+    INTERFACE_COMM,
+    0,
+    1,
+    0x02,
+    0x02,
+    0x00,
+    0,
     // CDC Header functional descriptor: bcdCDC = 1.10
-    5, descriptor_type::CS_INTERFACE, 0x00, 0x10, 0x01,
+    5,
+    descriptor_type::CS_INTERFACE,
+    0x00,
+    0x10,
+    0x01,
     // CDC Call Management functional descriptor
-    5, descriptor_type::CS_INTERFACE, 0x01, 0x00, INTERFACE_DATA,
+    5,
+    descriptor_type::CS_INTERFACE,
+    0x01,
+    0x00,
+    INTERFACE_DATA,
     // CDC Abstract Control Management functional descriptor
-    4, descriptor_type::CS_INTERFACE, 0x02, 0x02,
+    4,
+    descriptor_type::CS_INTERFACE,
+    0x02,
+    0x02,
     // CDC Union functional descriptor
-    5, descriptor_type::CS_INTERFACE, 0x06, INTERFACE_COMM, INTERFACE_DATA,
+    5,
+    descriptor_type::CS_INTERFACE,
+    0x06,
+    INTERFACE_COMM,
+    INTERFACE_DATA,
     // Endpoint 0x81: interrupt IN, notifications (USB 2.0 Table 9-13)
-    7, descriptor_type::ENDPOINT,
-    EP_NOTIFY_IN, 0x03, NOTIFY_MAX_PACKET as u8, 0, 16,
+    7,
+    descriptor_type::ENDPOINT,
+    EP_NOTIFY_IN,
+    0x03,
+    NOTIFY_MAX_PACKET as u8,
+    0,
+    16,
     // Interface 1: CDC data (CDC 1.2 §4.5)
-    9, descriptor_type::INTERFACE,
-    INTERFACE_DATA, 0, 2, 0x0A, 0x00, 0x00, 0,
+    9,
+    descriptor_type::INTERFACE,
+    INTERFACE_DATA,
+    0,
+    2,
+    0x0A,
+    0x00,
+    0x00,
+    0,
     // Endpoint 0x02: bulk OUT
-    7, descriptor_type::ENDPOINT,
-    EP_DATA_OUT, 0x02, BULK_MAX_PACKET as u8, 0, 0,
+    7,
+    descriptor_type::ENDPOINT,
+    EP_DATA_OUT,
+    0x02,
+    BULK_MAX_PACKET as u8,
+    0,
+    0,
     // Endpoint 0x82: bulk IN
-    7, descriptor_type::ENDPOINT,
-    EP_DATA_IN, 0x02, BULK_MAX_PACKET as u8, 0, 0,
+    7,
+    descriptor_type::ENDPOINT,
+    EP_DATA_IN,
+    0x02,
+    BULK_MAX_PACKET as u8,
+    0,
+    0,
 ];
 
 /// String descriptor 0: the list of supported language IDs (USB 2.0
@@ -264,11 +326,7 @@ mod tests {
     fn device_descriptor_bytes() {
         assert_eq!(
             device_descriptor(&CFG),
-            [
-                18, 1, 0x00, 0x02, 0xEF, 0x02, 0x01, 64,
-                0x8A, 0x2E, 0x34, 0x12, 0x02, 0x01,
-                1, 2, 3, 1,
-            ]
+            [18, 1, 0x00, 0x02, 0xEF, 0x02, 0x01, 64, 0x8A, 0x2E, 0x34, 0x12, 0x02, 0x01, 1, 2, 3, 1,]
         );
     }
 

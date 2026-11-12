@@ -92,7 +92,7 @@ pub mod gpio;
 /// connected to the pin. It says nothing about the electrical behaviour of the
 /// pin itself — that is [`PadsBank`].
 #[repr(C)]
-pub(crate) struct GpioRegs{
+pub(crate) struct GpioRegs {
     /// `GPIOn_STATUS` — offset `0x0` within the pair. **Read-only.**
     ///
     /// Reports the live signal values at four observation points along the
@@ -157,7 +157,7 @@ pub(crate) struct GpioRegs{
 /// The QSPI pins have their own separate `IO_QSPI` block at a different base;
 /// this struct covers only the 48 general-purpose pins.
 #[repr(C)]
-pub(crate) struct IoBank{
+pub(crate) struct IoBank {
     /// `GPIO0_STATUS` … `GPIO47_CTRL` — `0x000`–`0x17f`.
     ///
     /// Index by GPIO number: `gpio[25].ctrl` is `GPIO25_CTRL` at `0x0cc`.
@@ -211,7 +211,7 @@ pub(crate) struct IoBank{
     /// themselves when the condition goes away.
     ///
     /// p697+.
-    pub intr: [u32; 6]
+    pub intr: [u32; 6],
 }
 
 /// `PADS_BANK0` — the electrical properties of each user GPIO pad.
@@ -227,7 +227,7 @@ pub(crate) struct IoBank{
 /// one right and the other wrong produces a pin that looks correct in the
 /// register dump and does nothing in the real world.
 #[repr(C)]
-pub(crate) struct PadsBank{
+pub(crate) struct PadsBank {
     /// `VOLTAGE_SELECT` — `0x00`. Bank-wide, reset `0x0`.
     ///
     /// Bit 0 sets the IO voltage threshold for **every** pad in the bank:
@@ -317,14 +317,14 @@ pub(crate) struct PadsBank{
 ///
 /// Table 16, p55–56.
 #[repr(C)]
-struct Sio{
+struct Sio {
     /// `CPUID` — `0x000`. **Read-only.**
     ///
     /// Reads `0` on core 0 and `1` on core 1. The address is the same for both
     /// cores; the value differs by which core issued the read, which makes it
     /// the cheapest possible "which core am I?" — one load, no branch, no
     /// shared state. Single-core code can ignore it.
-    pub cpuid:           u32,  // 0x000
+    pub cpuid: u32, // 0x000
     /// `GPIO_IN` — `0x004`. **Read-only.** Live input level of GPIO0–31.
     ///
     /// Bit *n* is the voltage actually present on pin *n*, sampled through the
@@ -337,15 +337,15 @@ struct Sio{
     /// Reads `0` for any pin whose `IE` bit is clear in [`PadsBank::pads`],
     /// because the input buffer is unpowered. Also reads `0` from Non-secure
     /// code for pins marked Secure-only in `ACCESSCTRL`.
-    pub gpio_in:         u32,  // 0x004
+    pub gpio_in: u32, // 0x004
     /// `GPIO_HI_IN` — `0x008`. **Read-only.** As
     /// [`gpio_in`](Self::gpio_in), for GPIO32–47, the QSPI pins, and the USB
     /// pins. Unused on Pico 2.
-    pub gpio_in_hi:      u32,  // 0x008
+    pub gpio_in_hi: u32, // 0x008
     /// Reserved — `0x00c`. An address hole; `FIFO_ST` is at `0x050`, not here.
     ///
     /// Declared only to push the following fields to their correct offsets.
-    _reserved:           u32,  // 0x00c  (FIFO_ST is at 0x050; 0x00c is a hole)
+    _reserved: u32, // 0x00c  (FIFO_ST is at 0x050; 0x00c is a hole)
     /// `GPIO_OUT` — `0x010`. Output *level* for GPIO0–31. 1 = high, 0 = low.
     ///
     /// **Reading this gives back the last value written, not the pin state.**
@@ -363,20 +363,20 @@ struct Sio{
     /// If both cores write simultaneously — here or through any of the
     /// aliases — the result is as though core 0's write landed first and
     /// core 1's was applied on top.
-    pub gpio_out:        u32,  // 0x010
+    pub gpio_out: u32, // 0x010
     /// `GPIO_HI_OUT` — `0x014`. As [`gpio_out`](Self::gpio_out), for
     /// GPIO32–47, QSPI, and USB pins.
-    pub gpio_out_hi:     u32,  // 0x014
+    pub gpio_out_hi: u32, // 0x014
     /// `GPIO_OUT_SET` — `0x018`. **Write-only in effect.** Atomic bit-set:
     /// `gpio_out |= wdata`.
     ///
     /// Writing `1 << n` drives pin *n* high. Zero bits leave their pins
     /// untouched, so this is the one-instruction way to raise a pin without a
     /// read-modify-write.
-    pub gpio_out_set:    u32,  // 0x018
+    pub gpio_out_set: u32, // 0x018
     /// `GPIO_HI_OUT_SET` — `0x01c`. Atomic bit-set on
     /// [`gpio_out_hi`](Self::gpio_out_hi).
-    pub gpio_out_set_hi: u32,  // 0x01c
+    pub gpio_out_set_hi: u32, // 0x01c
     /// `GPIO_OUT_CLR` — `0x020`. Atomic bit-clear: `gpio_out &= ~wdata`.
     ///
     /// Writing `1 << n` drives pin *n* low. Note the polarity — you write a
@@ -385,20 +385,20 @@ struct Sio{
     /// Worth doing *before* enabling the output in
     /// [`gpio_oe_set`](Self::gpio_oe_set), so the pin's first driven state is
     /// a known low rather than whatever `gpio_out` happened to hold.
-    pub gpio_out_clr:    u32,  // 0x020
+    pub gpio_out_clr: u32, // 0x020
     /// `GPIO_HI_OUT_CLR` — `0x024`. Atomic bit-clear on
     /// [`gpio_out_hi`](Self::gpio_out_hi).
-    pub gpio_out_clr_hi: u32,  // 0x024
+    pub gpio_out_clr_hi: u32, // 0x024
     /// `GPIO_OUT_XOR` — `0x028`. Atomic XOR: `gpio_out ^= wdata`.
     ///
     /// Writing `1 << n` inverts pin *n*. This is a whole blink cycle in one
     /// store — no read, no branch, no state kept in software. Toggling by
     /// reading [`gpio_out`](Self::gpio_out) and writing the complement costs
     /// three instructions and can race; this cannot.
-    pub gpio_out_xor:    u32,  // 0x028
+    pub gpio_out_xor: u32, // 0x028
     /// `GPIO_HI_OUT_XOR` — `0x02c`. Atomic XOR on
     /// [`gpio_out_hi`](Self::gpio_out_hi).
-    pub gpio_out_xor_hi: u32,  // 0x02c
+    pub gpio_out_xor_hi: u32, // 0x02c
     /// `GPIO_OE` — `0x030`. Output *enable* for GPIO0–31.
     /// 1 = drive the pin, 0 = leave it as an input.
     ///
@@ -412,30 +412,30 @@ struct Sio{
     ///
     /// As with `GPIO_OUT`, prefer the set/clear/XOR aliases below over
     /// read-modify-write.
-    pub gpio_oe:         u32,  // 0x030
+    pub gpio_oe: u32, // 0x030
     /// `GPIO_HI_OE` — `0x034`. As [`gpio_oe`](Self::gpio_oe), for GPIO32–47,
     /// QSPI, and USB pins.
-    pub gpio_oe_hi:      u32,  // 0x034
+    pub gpio_oe_hi: u32, // 0x034
     /// `GPIO_OE_SET` — `0x038`. Atomic bit-set: `gpio_oe |= wdata`.
     ///
     /// Writing `1 << n` turns pin *n* into an output. Set the level first
     /// via [`gpio_out_clr`](Self::gpio_out_clr) or
     /// [`gpio_out_set`](Self::gpio_out_set) so the pin does not briefly drive
     /// a stale value at the moment it becomes an output.
-    pub gpio_oe_set:     u32,  // 0x038
+    pub gpio_oe_set: u32, // 0x038
     /// `GPIO_HI_OE_SET` — `0x03c`. Atomic bit-set on
     /// [`gpio_oe_hi`](Self::gpio_oe_hi).
-    pub gpio_oe_set_hi:  u32,  // 0x03c
+    pub gpio_oe_set_hi: u32, // 0x03c
     /// `GPIO_OE_CLR` — `0x040`. Atomic bit-clear: `gpio_oe &= ~wdata`.
     ///
     /// Writing `1 << n` releases pin *n* back to a high-impedance input —
     /// not driven; its level is set by whatever external circuit or pull
     /// resistor is attached. This is how you stop driving a pin without
     /// disturbing any other.
-    pub gpio_oe_clr:     u32,  // 0x040
+    pub gpio_oe_clr: u32, // 0x040
     /// `GPIO_HI_OE_CLR` — `0x044`. Atomic bit-clear on
     /// [`gpio_oe_hi`](Self::gpio_oe_hi).
-    pub gpio_oe_clr_hi:  u32,  // 0x044
+    pub gpio_oe_clr_hi: u32, // 0x044
     /// `GPIO_OE_XOR` — `0x048`. Atomic XOR: `gpio_oe ^= wdata`.
     ///
     /// Writing `1 << n` flips pin *n* between driving and high-impedance
@@ -443,8 +443,8 @@ struct Sio{
     /// signalling done in software: hold `gpio_out` low permanently and
     /// toggle the enable, so the pin alternates between actively pulling low
     /// and being pulled high by an external pull-up resistor.
-    pub gpio_oe_xor:     u32,  // 0x048
+    pub gpio_oe_xor: u32, // 0x048
     /// `GPIO_HI_OE_XOR` — `0x04c`. Atomic XOR on
     /// [`gpio_oe_hi`](Self::gpio_oe_hi).
-    pub gpio_oe_xor_hi:  u32,  // 0x04c
+    pub gpio_oe_xor_hi: u32, // 0x04c
 }

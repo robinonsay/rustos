@@ -172,9 +172,9 @@ use crate::clocks::{CLK_ADC_HZ, Rp2350Clocks, start_clk_adc};
 use crate::common::reg::RegAddr;
 use crate::common::reset::{clr_reset_reg, cycle_reset, wait_for_reset_done};
 use crate::dma::{
-    self, CTRL_AHB_ERROR, CTRL_CHAIN_TO_SHIFT, CTRL_DATA_SIZE_SHIFT, CTRL_EN, CTRL_INCR_WRITE,
-    CTRL_RING_SEL_WRITE, CTRL_RING_SIZE_SHIFT, CTRL_TREQ_SEL_SHIFT, DATA_SIZE_HALFWORD, DREQ_ADC,
-    MODE_ENDLESS, Rp2350DmaChannel, TRANS_COUNT_MODE_SHIFT,
+    self, CTRL_AHB_ERROR, CTRL_CHAIN_TO_SHIFT, CTRL_DATA_SIZE_SHIFT, CTRL_EN, CTRL_INCR_WRITE, CTRL_RING_SEL_WRITE,
+    CTRL_RING_SIZE_SHIFT, CTRL_TREQ_SEL_SHIFT, DATA_SIZE_HALFWORD, DREQ_ADC, MODE_ENDLESS, Rp2350DmaChannel,
+    TRANS_COUNT_MODE_SHIFT,
 };
 use crate::gpio::{IoBank, PadsBank};
 
@@ -361,10 +361,7 @@ impl RateConfig {
         if div_int < 96 || div_int > u16::MAX as u64 {
             return None;
         }
-        Some(Self {
-            div_int: div_int as u16,
-            div_frac: (period_256ths % 256) as u8,
-        })
+        Some(Self { div_int: div_int as u16, div_frac: (period_256ths % 256) as u8 })
     }
 
     /// One sampling period in 256ths of a `clk_adc` cycle.
@@ -567,11 +564,7 @@ impl Rp2350Adc {
         let () = AdcPin::<N>::VALID;
         let () = Rp2350DmaChannel::<C>::EXISTS;
         let Some(rate) = RateConfig::for_rate(CLK_ADC_HZ, hz) else {
-            return Err(AdcError::RateOutOfRange {
-                hz,
-                min: MIN_RATE_HZ,
-                max: MAX_RATE_HZ,
-            });
+            return Err(AdcError::RateOutOfRange { hz, min: MIN_RATE_HZ, max: MAX_RATE_HZ });
         };
         let ring = ring.samples.as_mut_ptr();
         unsafe {
@@ -591,13 +584,7 @@ impl Rp2350Adc {
             let cs = &raw mut (*adc).cs;
             cs.write_volatile(cs.read_volatile() | CS_START_MANY);
         }
-        Ok(Rp2350AdcStream {
-            ring,
-            read: 0,
-            channel: C,
-            rate,
-            halted: false,
-        })
+        Ok(Rp2350AdcStream { ring, read: 0, channel: C, rate, halted: false })
     }
 }
 
@@ -642,9 +629,7 @@ impl AdcRing {
     /// A zeroed ring. The stream fills it with the sentinel before it
     /// starts.
     pub const fn new() -> Self {
-        Self {
-            samples: [0; RING_SAMPLES],
-        }
+        Self { samples: [0; RING_SAMPLES] }
     }
 }
 
@@ -721,10 +706,7 @@ impl Rp2350AdcStream {
         let dma = dma::dma();
         let adc = adc();
         unsafe {
-            if self.halted
-                || (&raw const (*dma).ch[self.channel].ctrl_trig).read_volatile() & CTRL_AHB_ERROR
-                    != 0
-            {
+            if self.halted || (&raw const (*dma).ch[self.channel].ctrl_trig).read_volatile() & CTRL_AHB_ERROR != 0 {
                 self.halted = true;
                 return Err(AdcError::DmaError);
             }

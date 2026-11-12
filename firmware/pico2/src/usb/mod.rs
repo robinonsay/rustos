@@ -223,23 +223,23 @@
 
 mod hw;
 
+use api::common::ring::ByteRing;
 use api::common::{ErrorType, Read, Write};
 use api::device::DeviceHandle;
 use api::usb::bulk_in_needs_zlp;
 use api::usb::cdc_acm::LineCoding;
 use api::usb::control::{ControlAction, ControlHandler, Effect};
 use api::usb::descriptor::{
-    BULK_MAX_PACKET, EP0_MAX_PACKET, EP_DATA_IN, EP_DATA_OUT, EP_NOTIFY_IN, INTERFACE_COMM,
-    INTERFACE_DATA, NOTIFY_MAX_PACKET,
+    BULK_MAX_PACKET, EP_DATA_IN, EP_DATA_OUT, EP_NOTIFY_IN, EP0_MAX_PACKET, INTERFACE_COMM, INTERFACE_DATA,
+    NOTIFY_MAX_PACKET,
 };
-use api::common::ring::ByteRing;
 use api::usb::setup::SetupPacket;
 
 /// The device identity and strings, given to [`Rp2350Usb::new`].
 /// Re-exported from [`api::usb::descriptor`].
 pub use api::usb::descriptor::UsbDeviceConfig;
 
-use crate::clocks::{Rp2350Clocks, CLK_SYS_HZ, CLK_USB_HZ};
+use crate::clocks::{CLK_SYS_HZ, CLK_USB_HZ, Rp2350Clocks};
 use crate::common::reset::cycle_reset;
 use crate::timer::Rp2350Timer;
 
@@ -382,17 +382,14 @@ impl Rp2350Usb {
 
             // 4. Force VBUS detect: value first, then the override enable.
             (&raw mut (*regs).usb_pwr).write_volatile(PWR_VBUS_DETECT);
-            (&raw mut (*regs).usb_pwr)
-                .write_volatile(PWR_VBUS_DETECT | PWR_VBUS_DETECT_OVERRIDE_EN);
+            (&raw mut (*regs).usb_pwr).write_volatile(PWR_VBUS_DETECT | PWR_VBUS_DETECT_OVERRIDE_EN);
 
             // 5. Enable in device mode (HOST_NDEVICE = 0), PHY not isolated.
-            (&raw mut (*regs).main_ctrl)
-                .write_volatile(MAIN_CTRL_CONTROLLER_EN & !MAIN_CTRL_PHY_ISO);
+            (&raw mut (*regs).main_ctrl).write_volatile(MAIN_CTRL_CONTROLLER_EN & !MAIN_CTRL_PHY_ISO);
 
             // 6. EP0 completions in BUFF_STATUS; no pull-down, no pull-up yet.
-            (&raw mut (*regs).sie_ctrl).write_volatile(
-                SIE_CTRL_EP0_INT_1BUF & !(SIE_CTRL_PULLDOWN_EN | SIE_CTRL_PULLUP_EN),
-            );
+            (&raw mut (*regs).sie_ctrl)
+                .write_volatile(SIE_CTRL_EP0_INT_1BUF & !(SIE_CTRL_PULLDOWN_EN | SIE_CTRL_PULLUP_EN));
 
             // 7. Polled: no interrupts. Address 0.
             (&raw mut (*regs).inte).write_volatile(0);
@@ -543,8 +540,7 @@ impl Rp2350Usb {
     fn track_bus_state(&mut self) {
         let (latched, status) = unsafe {
             let regs = regs();
-            let latched = (&raw const (*regs).intr).read_volatile()
-                & (INTR_DEV_SUSPEND | INTR_DEV_CONN_DIS);
+            let latched = (&raw const (*regs).intr).read_volatile() & (INTR_DEV_SUSPEND | INTR_DEV_CONN_DIS);
             // Acknowledge the latches *before* sampling the levels, so a
             // change after the sample sets them again for the next poll.
             let mut ack = 0;
@@ -732,10 +728,7 @@ impl Rp2350Usb {
         }
         let pid = if self.out_data1 { BC_DATA1 } else { 0 };
         unsafe {
-            write_buffer_control(
-                &raw mut (*dpram()).buf_ctrl[2].dir_out,
-                pid | BC_AVAILABLE | BULK_MAX_PACKET as u32,
-            );
+            write_buffer_control(&raw mut (*dpram()).buf_ctrl[2].dir_out, pid | BC_AVAILABLE | BULK_MAX_PACKET as u32);
         }
         self.out_armed = true;
     }
@@ -762,10 +755,7 @@ impl Rp2350Usb {
         };
         let pid = if self.in_data1 { BC_DATA1 } else { 0 };
         unsafe {
-            write_buffer_control(
-                &raw mut (*dp).buf_ctrl[2].dir_in,
-                BC_FULL | pid | BC_AVAILABLE | len as u32,
-            );
+            write_buffer_control(&raw mut (*dp).buf_ctrl[2].dir_in, BC_FULL | pid | BC_AVAILABLE | len as u32);
         }
         self.in_armed = true;
     }
@@ -805,9 +795,8 @@ impl Rp2350Usb {
     /// [`disable_data_endpoints`](Self::disable_data_endpoints)); EP2 OUT
     /// is armed by the next [`service_rx`](Self::service_rx).
     fn enable_data_endpoints(&mut self) {
-        let ep = |kind: u32, buf: usize| {
-            EP_CTRL_ENABLE | EP_CTRL_INT_PER_BUFFER | (kind << EP_CTRL_TYPE_SHIFT) | buf as u32
-        };
+        let ep =
+            |kind: u32, buf: usize| EP_CTRL_ENABLE | EP_CTRL_INT_PER_BUFFER | (kind << EP_CTRL_TYPE_SHIFT) | buf as u32;
         unsafe {
             let dp = dpram();
             (&raw mut (*dp).ep_ctrl[0].dir_in)
@@ -861,11 +850,7 @@ impl Rp2350Usb {
         let halted = self.control.is_halted(endpoint);
         unsafe {
             let dp = dpram();
-            let word = if is_in {
-                &raw mut (*dp).buf_ctrl[n].dir_in
-            } else {
-                &raw mut (*dp).buf_ctrl[n].dir_out
-            };
+            let word = if is_in { &raw mut (*dp).buf_ctrl[n].dir_in } else { &raw mut (*dp).buf_ctrl[n].dir_out };
             write_buffer_control(word, if halted { BC_STALL } else { 0 });
         }
         Self::abort_end(mask);
@@ -955,10 +940,7 @@ impl Rp2350Usb {
                 write_buffer_control(&raw mut (*dp).buf_ctrl[0].dir_out, BC_DATA1 | BC_AVAILABLE);
             }
             let pid = if data1 { BC_DATA1 } else { 0 };
-            write_buffer_control(
-                &raw mut (*dp).buf_ctrl[0].dir_in,
-                BC_FULL | pid | BC_AVAILABLE | chunk as u32,
-            );
+            write_buffer_control(&raw mut (*dp).buf_ctrl[0].dir_in, BC_FULL | pid | BC_AVAILABLE | chunk as u32);
         }
         self.ep0 = if last {
             Ep0Stage::StatusOut { in_done: false }
@@ -971,10 +953,7 @@ impl Rp2350Usb {
     /// effect to apply once it completes.
     fn ep0_arm_status_in(&mut self, effect: Effect) {
         unsafe {
-            write_buffer_control(
-                &raw mut (*dpram()).buf_ctrl[0].dir_in,
-                BC_FULL | BC_DATA1 | BC_AVAILABLE,
-            );
+            write_buffer_control(&raw mut (*dpram()).buf_ctrl[0].dir_in, BC_FULL | BC_DATA1 | BC_AVAILABLE);
         }
         self.ep0 = Ep0Stage::StatusIn(effect);
     }

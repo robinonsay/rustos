@@ -22,7 +22,10 @@
 //! Unsegmented Time Code with 4 coarse and 4 fine octets. Seconds wrap after
 //! 2^32 s, about 136 years.
 
-use core::{marker::PhantomData, ops::{Add, Mul, Sub}};
+use core::{
+    marker::PhantomData,
+    ops::{Add, Mul, Sub},
+};
 
 pub mod civil;
 pub mod discipline;
@@ -49,20 +52,17 @@ pub trait ClockId: Copy + Eq + Ord + core::fmt::Debug {
 /// See the [module documentation](self) for the layout. Comparisons order
 /// by seconds, then by fraction, which is time order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Time<C: ClockId>
-{
+pub struct Time<C: ClockId> {
     /// Whole seconds since clock `C`'s epoch.
     seconds: u32,
     /// Fraction of a second, in units of 2^-32 s.
     subseconds: u32,
     /// Ties this value to clock `C`. `PhantomData<C>` is zero-sized: it
     /// tells the compiler the struct is "about" a `C` without storing one.
-    _scale: PhantomData<C>
+    _scale: PhantomData<C>,
 }
 
-
-impl<C: ClockId> Time<C>
-{
+impl<C: ClockId> Time<C> {
     /// Number of fractional bits in the fixed-point representation.
     const FRAC_BITS: u32 = 32;
 
@@ -74,11 +74,7 @@ impl<C: ClockId> Time<C>
 
     /// Unpacks a 32.32 fixed-point value produced by [`Self::to_fixed`].
     const fn from_fixed(fixed: u64) -> Self {
-        Self {
-            seconds: (fixed >> Self::FRAC_BITS) as u32,
-            subseconds: fixed as u32,
-            _scale: PhantomData,
-        }
+        Self { seconds: (fixed >> Self::FRAC_BITS) as u32, subseconds: fixed as u32, _scale: PhantomData }
     }
 
     /// One second in fixed-point units: 2^32. Dividing by it is exact in
@@ -143,8 +139,7 @@ impl<C: ClockId> Time<C>
 /// A carry out of the fraction rolls into the seconds. Overflow past
 /// 2^32 seconds follows the integer rules: a panic in debug builds and
 /// wrap-around in release builds.
-impl<C: ClockId> Add for Time<C>
-{
+impl<C: ClockId> Add for Time<C> {
     type Output = Time<C>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -159,8 +154,7 @@ impl<C: ClockId> Add for Time<C>
 /// bits below 2^-32 s are truncated (rounded toward zero). A result of
 /// 2^32 seconds or more follows the integer rules: a panic in debug builds
 /// and wrap-around in release builds.
-impl <C: ClockId> Mul for Time<C>
-{
+impl<C: ClockId> Mul for Time<C> {
     type Output = Time<C>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -180,8 +174,7 @@ impl <C: ClockId> Mul for Time<C>
 /// wrap-around in release builds; [`Time::checked_sub`] returns `None`
 /// instead. On a clock that wraps (such as a 24-bit
 /// counter), take differences of the raw counts instead.
-impl<C: ClockId> Sub for Time<C>
-{
+impl<C: ClockId> Sub for Time<C> {
     type Output = Duration;
 
     fn sub(self, rhs: Self) -> Duration {
@@ -195,8 +188,7 @@ impl<C: ClockId> Sub for Time<C>
 ///
 /// Going past 2^32 s follows the integer rules: a panic in debug builds and
 /// wrap-around in release builds.
-impl<C: ClockId> Add<Duration> for Time<C>
-{
+impl<C: ClockId> Add<Duration> for Time<C> {
     type Output = Time<C>;
 
     fn add(self, rhs: Duration) -> Time<C> {
@@ -209,8 +201,7 @@ impl<C: ClockId> Add<Duration> for Time<C>
 ///
 /// Going back past clock `C`'s epoch follows the integer rules: a panic in
 /// debug builds and wrap-around in release builds.
-impl<C: ClockId> Sub<Duration> for Time<C>
-{
+impl<C: ClockId> Sub<Duration> for Time<C> {
     type Output = Time<C>;
 
     fn sub(self, rhs: Duration) -> Time<C> {
@@ -227,8 +218,7 @@ impl<C: ClockId> Sub<Duration> for Time<C>
 ///
 /// `now` takes `&self` so that only code holding the driver, and with it
 /// proof that the hardware has been started, can read the time.
-pub trait Clock
-{
+pub trait Clock {
     /// The clock this source reports on.
     type ThisTime: ClockId;
     /// Reads the current time.
@@ -481,7 +471,9 @@ mod tests {
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
     struct Test;
-    impl ClockId for Test { const NAME: &'static str = "TEST"; }
+    impl ClockId for Test {
+        const NAME: &'static str = "TEST";
+    }
 
     const HALF: u32 = 1 << 31;
 

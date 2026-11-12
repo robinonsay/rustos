@@ -85,11 +85,7 @@ impl SetupPacket {
 
     /// Direction of the data stage (bit 7 of `bmRequestType`).
     pub const fn direction(&self) -> Direction {
-        if self.request_type & 0x80 != 0 {
-            Direction::DeviceToHost
-        } else {
-            Direction::HostToDevice
-        }
+        if self.request_type & 0x80 != 0 { Direction::DeviceToHost } else { Direction::HostToDevice }
     }
 
     /// Request type (bits 6:5 of `bmRequestType`).

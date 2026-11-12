@@ -91,12 +91,8 @@ pub const LINE_CODING_LEN: usize = 7;
 impl LineCoding {
     /// 115200 baud, 8 data bits, no parity, 1 stop bit — what GET_LINE_CODING
     /// reports until the host sets something else.
-    pub const DEFAULT: LineCoding = LineCoding {
-        baud: 115_200,
-        stop_bits: StopBits::One,
-        parity: Parity::None,
-        data_bits: 8,
-    };
+    pub const DEFAULT: LineCoding =
+        LineCoding { baud: 115_200, stop_bits: StopBits::One, parity: Parity::None, data_bits: 8 };
 
     /// Decode the 7 bytes of a SET_LINE_CODING data stage. Returns `None`
     /// if the slice is not exactly 7 bytes or any enumerated field holds a
@@ -123,12 +119,7 @@ impl LineCoding {
             5 | 6 | 7 | 8 | 16 => b[6],
             _ => return None,
         };
-        Some(Self {
-            baud: u32::from_le_bytes([b[0], b[1], b[2], b[3]]),
-            stop_bits,
-            parity,
-            data_bits,
-        })
+        Some(Self { baud: u32::from_le_bytes([b[0], b[1], b[2], b[3]]), stop_bits, parity, data_bits })
     }
 
     /// Encode for GET_LINE_CODING.
@@ -159,10 +150,7 @@ impl ControlLineState {
     /// Decode `wValue` of SET_CONTROL_LINE_STATE. Bits above 1 are reserved
     /// and ignored.
     pub const fn from_value(value: u16) -> Self {
-        Self {
-            dtr: value & 0x1 != 0,
-            rts: value & 0x2 != 0,
-        }
+        Self { dtr: value & 0x1 != 0, rts: value & 0x2 != 0 }
     }
 }
 

@@ -48,10 +48,6 @@ where
 {
     type Error = ErrorKind;
 
-    fn on_start(&mut self) -> Result<(), ErrorKind> {
-        Ok(())
-    }
-
     fn on_process(&mut self) -> Result<(), ErrorKind> {
         // Everything that arrived since the last run; the first failure is
         // this run's.
@@ -112,7 +108,6 @@ mod tests {
         bus.subscribe(&input).unwrap();
         bus.subscribe(&health).unwrap();
         let mut app = {{project-name | pascal_case}}App::new(7u8, &DEFAULT, &input, &bus);
-        assert_eq!(app.on_start(), Ok(()));
         // A message to handle, and the first run reports at once.
         bus.publish(DATA, &Msg::Data(1)).unwrap();
         assert_eq!(app.on_process(), Ok(()));

@@ -6,10 +6,10 @@
 //! *board/package* facts: which pins the Pico 2 actually has and what its
 //! circuitry wired them to.
 
-pub mod reg;
-pub mod reset;
 pub mod board;
 pub(crate) mod pinmux;
+pub mod reg;
+pub mod reset;
 
 /// Number of GPIO pins usable on this board: **30**.
 ///

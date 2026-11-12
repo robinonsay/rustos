@@ -669,10 +669,6 @@ impl<const I: usize> Write<u8> for Rp2350Uart<I> {
     /// full.
     fn write(&mut self, byte: u8) -> Result<(), UartError> {
         // The slice method returns how many bytes it queued: 0 or 1 here.
-        if Rp2350Uart::write(self, &[byte]) == 1 {
-            Ok(())
-        } else {
-            Err(UartError::WouldBlock)
-        }
+        if Rp2350Uart::write(self, &[byte]) == 1 { Ok(()) } else { Err(UartError::WouldBlock) }
     }
 }

@@ -48,7 +48,7 @@
 use api::device::DeviceHandle;
 use api::time::{Clock, ClockId, Time};
 
-use crate::clocks::{Rp2350Clocks, CLK_SYS_HZ};
+use crate::clocks::{CLK_SYS_HZ, Rp2350Clocks};
 
 /// `SYST_CSR`, `SYST_RVR`, `SYST_CVR`: `PPB_BASE` + `0x0e010` (Table 120,
 /// p153).

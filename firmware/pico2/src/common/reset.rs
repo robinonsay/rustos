@@ -33,7 +33,7 @@ use crate::common::reg::RegAddr;
 ///
 /// GPIO bring-up needs bits 6 (`IO_BANK0`) and 9 (`PADS_BANK0`).
 #[repr(C)]
-struct Reset{
+struct Reset {
     /// `RESET` — `0x0`. Read/write, **reset value `0x1fff_ffff`** — every bit set.
     ///
     /// One bit per resettable block. **1 asserts reset, 0 releases it.** The
@@ -90,9 +90,8 @@ struct Reset{
     /// read through a plain `&u32`, LLVM is entitled to hoist the load out of
     /// the loop — nothing in the language says a `&u32` can change — and the
     /// wait compiles to an unconditional branch to itself.
-    pub reset_done: u32
+    pub reset_done: u32,
 }
-
 
 /// Read-modify-write `RESETS.RESET` with `RESET &= mask`.
 ///
@@ -126,16 +125,15 @@ struct Reset{
 ///
 /// Writes a chip-wide control register. Passing a mask with zeros outside the
 /// caller's own blocks releases peripherals belonging to other drivers.
-pub unsafe fn clr_reset_reg(mask: u32){
+pub unsafe fn clr_reset_reg(mask: u32) {
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
-    unsafe{
+    unsafe {
         // Read the current value, then AND with the mask: every bit that is 0
         // in `mask` is cleared, releasing that block from reset.
         let reset = &raw mut (*reset_addr).reset;
         let current = reset.read_volatile();
         reset.write_volatile(current & mask);
-
     }
 }
 
@@ -167,16 +165,15 @@ pub unsafe fn clr_reset_reg(mask: u32){
 ///
 /// Writes a chip-wide control register. Callers must set only their own bits;
 /// see the danger note above.
-pub unsafe fn set_reset_reg(mask: u32){
+pub unsafe fn set_reset_reg(mask: u32) {
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
-    unsafe{
+    unsafe {
         // Read the current value, then OR in the mask: every bit that is 1
         // in `mask` is set, asserting reset on that block.
         let reset = &raw mut (*reset_addr).reset;
         let current = reset.read_volatile();
         reset.write_volatile(current | mask);
-
     }
 }
 
@@ -197,14 +194,13 @@ pub unsafe fn set_reset_reg(mask: u32){
 ///
 /// Reads a hardware register. Loops forever if a block in `mask` never
 /// reports ready, which happens if it was never released in the first place.
-pub unsafe fn wait_for_reset_done(mask: u32){
+pub unsafe fn wait_for_reset_done(mask: u32) {
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
-    unsafe{
+    unsafe {
         let reset_done = &raw const (*reset_addr).reset_done;
         // Spin until every bit named in `mask` reads back 1 in RESET_DONE.
-        while reset_done.read_volatile() & mask != mask
-        {}
+        while reset_done.read_volatile() & mask != mask {}
     }
 }
 
@@ -218,10 +214,10 @@ pub unsafe fn wait_for_reset_done(mask: u32){
 /// # Safety
 ///
 /// Reads a hardware register.
-pub unsafe fn is_reset_done(mask: u32) -> bool{
+pub unsafe fn is_reset_done(mask: u32) -> bool {
     // Pointer to the RESETS block.
     let reset_addr = RegAddr::RESET as usize as *mut Reset;
-    unsafe{
+    unsafe {
         let reset_done = &raw const (*reset_addr).reset_done;
         reset_done.read_volatile() & mask == mask
     }
@@ -242,8 +238,8 @@ pub unsafe fn is_reset_done(mask: u32) -> bool{
 /// As [`set_reset_reg`]: the blocks in `mask` lose all state, so they must
 /// belong to the caller, and `IO_QSPI` (7) / `PADS_QSPI` (10) must never be
 /// included on an image executing from flash.
-pub unsafe fn cycle_reset(mask: u32){
-    unsafe{
+pub unsafe fn cycle_reset(mask: u32) {
+    unsafe {
         set_reset_reg(mask);
         clr_reset_reg(!mask);
         wait_for_reset_done(mask);

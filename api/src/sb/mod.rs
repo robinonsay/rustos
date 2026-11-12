@@ -50,9 +50,12 @@
 //!   to it twice.
 //! * **Brokers take `&self`.** Every app that publishes holds a shared
 //!   reference to the one broker, so publishing and subscribing work
-//!   through `&self`, with the registry behind a `RefCell`. That lets an
-//!   app subscribe in its [`on_start`](crate::app::App::on_start), as
-//!   LibJuno's examples do (`examples/udp-threads`, `MonitorApp`).
+//!   through `&self`, with the registry behind a `RefCell`.
+//! * **Pipes are subscribed before the apps that read them are built.**
+//!   LibJuno's examples subscribe in `OnStart` (`examples/udp-threads`,
+//!   `MonitorApp`); here there is no `OnStart` (see [`app`](crate::app)),
+//!   and the borrow checker proves every subscribed pipe outlives the
+//!   broker.
 //!
 //! # Example
 //!
@@ -74,7 +77,6 @@
 //!
 //! impl App for Engine<'_> {
 //!     type Error = ErrorKind;
-//!     fn on_start(&mut self) -> Result<(), ErrorKind> { Ok(()) }
 //!     fn on_process(&mut self) -> Result<(), ErrorKind> {
 //!         // Take every command that arrived since last time.
 //!         while let Some(Msg::EngineCmd { rpm }) = self.cmds.pop() {
