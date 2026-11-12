@@ -63,7 +63,7 @@
 //!
 //! # Transmit: a ring the channel drains
 //!
-//! [`write`](Rp2350UartDma::write) copies bytes into [`UartTxRing`] and,
+//! [`write`](Rp2350UartDma::write) copies a slice into [`UartTxRing`] and,
 //! if the TX channel is idle, starts it on everything queued: `NORMAL`
 //! mode with the count of queued bytes, byte transfers, read address
 //! incrementing and wrapping on the ring (`RING_SEL` = read, `RING_SIZE` =
@@ -79,6 +79,15 @@
 //! [`flush`](Rp2350UartDma::flush) after it finishes. Call one of them
 //! regularly, at least once per transmit-ring's worth of time (89 ms at
 //! 115 200 baud).
+//!
+//! The byte-at-a-time [`Write`] only queues: the bytes go at the next
+//! `poll`, `write` or `flush`. A driver written against the portable
+//! traits writes a whole message a byte at a time, then polls; so the
+//! message leaves in one transfer, back to back. Were each byte started as
+//! it was written, the first transfers would fill the UART's 32-byte FIFO
+//! and the rest of the message would wait, busy channel, for the next
+//! poll: a pause mid-message, which a peer that ends a command at a gap
+//! (as some REYAX LoRa modules do) reads as two broken commands.
 //!
 //! # Memory ordering
 //!
@@ -492,6 +501,15 @@ impl<const I: usize> Rp2350UartDma<I> {
     pub fn write(&mut self, data: &[u8]) -> Result<usize, UartError> {
         // Error check, and restart if the last transfer has finished.
         self.poll()?;
+        let n = self.enqueue(data);
+        // Send them now if the channel is idle.
+        self.poll()?;
+        Ok(n)
+    }
+
+    /// Copy as much of `data` as fits into the transmit ring, without
+    /// starting the channel; returns how many bytes.
+    fn enqueue(&mut self, data: &[u8]) -> usize {
         // Bytes queued but not yet taken by the DMA.
         let in_ring = self.tx_queued.wrapping_sub(self.tx_completed()) as usize;
         // Room left, and how much of `data` fits.
@@ -503,9 +521,19 @@ impl<const I: usize> Rp2350UartDma<I> {
             unsafe { self.tx_ring.add(slot).write_volatile(byte) };
             self.tx_queued = self.tx_queued.wrapping_add(1);
         }
-        // Send them now if the channel is idle.
-        self.poll()?;
-        Ok(n)
+        n
+    }
+
+    /// [`UartError::DmaError`] if the TX channel has halted, for good.
+    fn tx_check(&mut self) -> Result<(), UartError> {
+        // CTRL: the error flags (Table 1150, p1125).
+        let ctrl = unsafe { dma::ctrl(self.tx_channel) };
+        // A bus error halts the channel for good.
+        if self.tx_halted || ctrl & CTRL_AHB_ERROR != 0 {
+            self.tx_halted = true;
+            return Err(UartError::DmaError);
+        }
+        Ok(())
     }
 
     /// Start the TX channel on everything queued, if it is idle and
@@ -513,13 +541,9 @@ impl<const I: usize> Rp2350UartDma<I> {
     /// bytes queued while a transfer ran are not left waiting (see
     /// [Transmit](self#transmit-a-ring-the-channel-drains)). Never blocks.
     pub fn poll(&mut self) -> Result<(), UartError> {
-        // CTRL: BUSY and the error flags (Table 1150, p1125).
+        self.tx_check()?;
+        // CTRL: BUSY (Table 1150, p1125).
         let ctrl = unsafe { dma::ctrl(self.tx_channel) };
-        // A bus error halts the channel for good.
-        if self.tx_halted || ctrl & CTRL_AHB_ERROR != 0 {
-            self.tx_halted = true;
-            return Err(UartError::DmaError);
-        }
         // Still sending, or nothing new: nothing to do.
         if ctrl & CTRL_BUSY != 0 || self.tx_queued == self.tx_started {
             return Ok(());
@@ -634,10 +658,14 @@ impl<const I: usize> Read<u8> for Rp2350UartDma<I> {
 }
 
 impl<const I: usize> Write<u8> for Rp2350UartDma<I> {
-    /// Queue one byte; [`UartError::WouldBlock`] if the transmit ring is
-    /// full.
+    /// Queue one byte, to go at the next [`poll`](Rp2350UartDma::poll),
+    /// slice [`write`](Rp2350UartDma::write) or
+    /// [`flush`](Rp2350UartDma::flush) (see
+    /// [Transmit](self#transmit-a-ring-the-channel-drains));
+    /// [`UartError::WouldBlock`] if the transmit ring is full.
     fn write(&mut self, byte: u8) -> Result<(), UartError> {
-        // The slice method returns how many it queued: 0 or 1 here.
-        if Rp2350UartDma::write(self, &[byte])? == 1 { Ok(()) } else { Err(UartError::WouldBlock) }
+        self.tx_check()?;
+        // Queued, not started: the rest of the message follows.
+        if self.enqueue(&[byte]) == 1 { Ok(()) } else { Err(UartError::WouldBlock) }
     }
 }
